@@ -32,6 +32,7 @@ def normalize_endpoints(raw: list[dict[str, Any]]) -> list[ModelEndpoint]:
                 description=item.get("description"),
                 capabilities=item.get("capabilities") or {},
                 metadata=item.get("metadata") or {},
+                lab=item.get("lab"),
             )
             endpoints.append(ep)
         except KeyError as exc:

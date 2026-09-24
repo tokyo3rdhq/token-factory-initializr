@@ -1,6 +1,6 @@
 node_modules/
 __pycache__/
-*.pyc
+*.py[cod]
 .env
 .DS_Store
 *.log
@@ -21,3 +21,9 @@ htmlcov/
 # IDE / editor
 .idea/
 .vscode/
+
+# Python packaging
+*.egg-info/
+dist/
+build/
+.eggs/

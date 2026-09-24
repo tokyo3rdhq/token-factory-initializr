@@ -110,6 +110,10 @@ def filter_free_providers(payload: dict) -> List[Dict[str, Any]]:
         arch = m.get("architecture", {})
         input_modalities: List[str] = arch.get("input_modalities", [])
         output_modalities: List[str] = arch.get("output_modalities", [])
+        # Per-provider context_length is sometimes null even for live free
+        # providers. Fall back to the model-level value when present; only
+        # leave it None if neither is set (real data gap on HF side).
+        model_level_ctx = m.get("context_length")
         free_providers: List[dict] = []
         for p in m.get("providers", []):
             pricing = p.get("pricing") or {}
@@ -117,9 +121,11 @@ def filter_free_providers(payload: dict) -> List[Dict[str, Any]]:
                 continue
             if p.get("status") != "live":
                 continue
+            provider_ctx = p.get("context_length")
+            effective_ctx = provider_ctx if provider_ctx is not None else model_level_ctx
             free_providers.append({
                 "provider": p.get("provider", ""),
-                "context_length": p.get("context_length"),
+                "context_length": effective_ctx,
                 "supports_tools": bool(p.get("supports_tools", False)),
                 "supports_structured_output": bool(p.get("supports_structured_output", False)),
                 "first_token_latency_ms": p.get("first_token_latency_ms"),
@@ -166,15 +172,15 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
             "name": name,
             "description": None,
             "capabilities": capabilities,
-            # HF's router API exposes modalities directly via the
-            # ``architecture`` block — emit them at the canonical schema
-            # layer so consumers don't have to dig into metadata.
-            "modalities": {
+            # HF's router API exposes modalities under ``architecture``;
+            # we keep the same key in our canonical schema so consumers can
+            # read the field name verbatim.
+            "architecture": {
                 "input": list(input_modalities),
                 "output": list(output_modalities),
             },
+            "lab": model_group["owned_by"],
             "metadata": {
-                "owned_by": model_group["owned_by"],
                 "router_provider": fp["provider"],
                 "context_length": fp["context_length"],
                 "supports_tools": fp["supports_tools"],
@@ -213,4 +219,8 @@ if __name__ == "__main__":
     models = fetch_huggingface_models()
     print(f"Fetched {len(models)} endpoints")
     for m in models[:5]:
-        print(f"  {m['model_id']} provider={m['provider']} ctx={m['metadata'].get('context_length')}")
+        print(
+            f"  {m['model_id']} lab={m.get('lab')!r} "
+            f"provider={m['provider']} ctx={m['metadata'].get('context_length')} "
+            f"arch={m.get('architecture')}"
+        )

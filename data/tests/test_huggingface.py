@@ -310,6 +310,69 @@ def test_filter_free_providers_handles_empty_data():
     assert filter_free_providers({}) == []
 
 
+def test_filter_free_providers_falls_back_to_model_level_context_length():
+    """Per-provider context_length is sometimes null. When it's null, fall
+    back to the model-level context_length so downstream consumers don't
+    see null when the data is actually known.
+    """
+    payload = {
+        "data": [
+            {
+                "id": "org/model",
+                "owned_by": "org",
+                "context_length": 32768,  # model-level value
+                "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
+                "providers": [
+                    # Per-provider context_length is null — common in real
+                    # HF router API responses. Should fall back to 32768.
+                    {"provider": "huggingface", "pricing": {"input": 0, "output": 0}, "status": "live", "context_length": None},
+                ],
+            }
+        ]
+    }
+    out = filter_free_providers(payload)
+    assert len(out) == 1
+    assert out[0]["free_providers"][0]["context_length"] == 32768
+
+
+def test_filter_free_providers_prefers_per_provider_context_length():
+    """When both per-provider and model-level are present, prefer per-provider."""
+    payload = {
+        "data": [
+            {
+                "id": "org/model",
+                "owned_by": "org",
+                "context_length": 32768,  # model-level (less specific)
+                "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
+                "providers": [
+                    {"provider": "huggingface", "pricing": {"input": 0, "output": 0}, "status": "live", "context_length": 131072},  # per-provider wins
+                ],
+            }
+        ]
+    }
+    out = filter_free_providers(payload)
+    assert out[0]["free_providers"][0]["context_length"] == 131072
+
+
+def test_filter_free_providers_context_length_none_when_neither_set():
+    """Both null → stays null (real data gap, not a fallback case)."""
+    payload = {
+        "data": [
+            {
+                "id": "org/model",
+                "owned_by": "org",
+                # no model-level context_length
+                "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
+                "providers": [
+                    {"provider": "huggingface", "pricing": {"input": 0, "output": 0}, "status": "live"},  # no context_length
+                ],
+            }
+        ]
+    }
+    out = filter_free_providers(payload)
+    assert out[0]["free_providers"][0]["context_length"] is None
+
+
 def test_filter_free_providers():
     with open(str(FIXTURES / "huggingface_router.json"), encoding="utf-8") as f:
         payload = json.load(f)
@@ -443,8 +506,8 @@ def test_to_endpoint_dicts_provider_metadata_forwarded():
     assert meta["first_token_latency_ms"] == 123.0
 
 
-def test_to_endpoint_dicts_emits_structured_modalities():
-    """Modalities go in the top-level 'modalities' field as {input, output}."""
+def test_to_endpoint_dicts_emits_structured_architecture():
+    """Modalities go in the top-level 'architecture' field as {input, output}."""
     group = {
         "model_id": "owner/vision",
         "owned_by": "owner",
@@ -453,7 +516,7 @@ def test_to_endpoint_dicts_emits_structured_modalities():
         "free_providers": [_fp()],
     }
     eps = to_endpoint_dicts(group)
-    assert eps[0]["modalities"] == {"input": ["text", "image"], "output": ["text"]}
+    assert eps[0]["architecture"] == {"input": ["text", "image"], "output": ["text"]}
     # Old flat fields must NOT leak into metadata anymore.
     assert "input_modalities" not in eps[0]["metadata"]
     assert "output_modalities" not in eps[0]["metadata"]

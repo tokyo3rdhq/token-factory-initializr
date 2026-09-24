@@ -157,7 +157,7 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         if "text" not in output_modalities:
             output_modalities.append("text")
         output_modalities.append("tool_calls")
-    modalities = {"input": [], "output": output_modalities} if output_modalities else None
+    architecture = {"input": [], "output": output_modalities} if output_modalities else None
 
     return ModelEndpoint(
         provider="nvidia",
@@ -171,7 +171,7 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         name=name,
         description=obj.get("description", ""),
         capabilities=capabilities,
-        modalities=modalities,
+        architecture=architecture,
         metadata=metadata,
     )
 

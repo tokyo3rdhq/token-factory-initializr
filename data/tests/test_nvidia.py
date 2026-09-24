@@ -238,7 +238,7 @@ def test_normalize_model_attributes_list_tool_calling():
     assert _ep(obj).capabilities == {"tool_calling": True}
 
 
-def test_normalize_model_derives_output_modalities_from_chat():
+def test_normalize_model_derives_architecture_from_chat():
     """NVIDIA doesn't expose input_modalities; chat capability implies
     output_modalities=['text']."""
     obj = {
@@ -248,10 +248,10 @@ def test_normalize_model_derives_output_modalities_from_chat():
         "attributes": [{"key": "CHAT_MODALITY", "value": "text2textDiffusion"}],
     }
     ep = _ep(obj)
-    assert ep.modalities == {"input": [], "output": ["text"]}
+    assert ep.architecture == {"input": [], "output": ["text"]}
 
 
-def test_normalize_model_derives_output_modalities_from_tool_calling():
+def test_normalize_model_derives_architecture_from_tool_calling():
     """tool_calling capability implies output_modalities=['text', 'tool_calls']."""
     obj = {
         "resourceId": "x/y",
@@ -260,18 +260,18 @@ def test_normalize_model_derives_output_modalities_from_tool_calling():
         "attributes": [{"key": "TOOL_CALLING", "value": "true"}],
     }
     ep = _ep(obj)
-    assert ep.modalities == {"input": [], "output": ["text", "tool_calls"]}
+    assert ep.architecture == {"input": [], "output": ["text", "tool_calls"]}
 
 
-def test_normalize_model_modalities_is_none_when_no_capabilities():
-    """When neither chat nor tool_calling is set, modalities stays None."""
+def test_normalize_model_architecture_is_none_when_no_capabilities():
+    """When neither chat nor tool_calling is set, architecture stays None."""
     obj = {
         "resourceId": "x/y",
         "displayName": "X",
         "labels": [],
         "attributes": [],
     }
-    assert _ep(obj).modalities is None
+    assert _ep(obj).architecture is None
 
 
 def test_normalize_model_skips_non_dict_label_entries():

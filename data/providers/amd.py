@@ -205,14 +205,16 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
             "use_case": derive_use_case(detail),
         },
         # Structured modalities matching the canonical schema. AMD's API
-        # splits input vs output natively; we mirror that directly.
-        "modalities": {
+        # splits input vs output natively; we mirror that directly under
+        # the ``architecture`` key (named for parity with HF's router
+        # ``architecture`` block).
+        "architecture": {
             "input": input_modalities,
             "output": output_modalities,
         },
+        "lab": tf.get("publisher", {}).get("name"),
         "metadata": {
             "family": tf.get("publisher", {}).get("name") or m.get("family", "unknown"),
-            "publisher": tf.get("publisher", {}).get("name") or m.get("family", "unknown"),
             "context_length": m.get("context_length", 0),
             "free_status": free_status,
             # Preserve the original AMD id (with gateway prefix) so callers can

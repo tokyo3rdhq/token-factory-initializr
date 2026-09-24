@@ -34,9 +34,9 @@
       "type": "object",
       "description": "Model capability flags (chat, tool_calling, vision, speech, embedding, etc.)"
     },
-    "modalities": {
+    "architecture": {
       "type": ["object", "null"],
-      "description": "Input and output modalities (mirrors HF architecture.{input,output}_modalities and AMD model.output + provider_pricing).",
+      "description": "Input and output modalities. Field name matches HF router API convention (architecture.{input,output}_modalities); AMD mirrors via model.output + provider_pricing; NVIDIA derives from capabilities.",
       "properties": {
         "input": {
           "type": "array",
@@ -50,6 +50,10 @@
         }
       },
       "additionalProperties": false
+    },
+    "lab": {
+      "type": ["string", "null"],
+      "description": "Lab / organization the model is attributed to (HF: owned_by, AMD: token_factory.publisher.name)."
     },
     "metadata": {
       "type": "object",

@@ -26,6 +26,7 @@ def test_normalize_endpoints_basic():
             "name": "Test Model",
             "capabilities": {"chat": True},
             "metadata": {"context_length": 4096},
+            "lab": "Test Lab",
         }
     ]
     eps = normalize_endpoints(raw)
@@ -38,6 +39,21 @@ def test_normalize_endpoints_basic():
     assert ep.name == "Test Model"
     assert ep.capabilities == {"chat": True}
     assert ep.metadata == {"context_length": 4096}
+    assert ep.lab == "Test Lab"
+
+
+def test_normalize_endpoints_lab_none_when_missing():
+    raw = [
+        {
+            "provider": "amd",
+            "model_id": "x/y",
+            "free": True,
+        }
+    ]
+    eps = normalize_endpoints(raw)
+    assert len(eps) == 1
+    ep = eps[0]
+    assert ep.lab is None
 
 
 def test_normalize_endpoints_missing_required_field():
