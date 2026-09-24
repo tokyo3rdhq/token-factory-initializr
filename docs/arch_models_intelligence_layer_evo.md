@@ -2,7 +2,7 @@
 
 ## 1. Context
 
-We are building an open-source project currently named **Free Model Aggregator**.
+We are building an open-source project named **Token Factory Initializr**.
 
 The short-term goal is:
 

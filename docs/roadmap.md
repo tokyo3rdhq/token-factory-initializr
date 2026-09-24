@@ -1,8 +1,8 @@
-# Free Model Aggregator Roadmap
+# Token Factory Initializr Roadmap
 
 ## 1. Vision
 
-The project starts as a **Free Model Aggregator**, but the long-term goal is to evolve into a **Token Factory / Model Supply Platform**.
+The project (now **Token Factory Initializr**) began as a free model aggregator; the long-term goal is to evolve into a **Model Supply Platform**.
 
 The core idea is:
 
@@ -51,7 +51,7 @@ The architecture intentionally separates:
 The planned evolution is:
 
 ```text
-Free Model Aggregator
+Token Factory Initializr
         │
         ▼
 Token Factory Initializr
@@ -70,7 +70,7 @@ Each stage should build on the previous stage instead of requiring a rewrite.
 
 ---
 
-# 3. Phase 1 — Free Model Aggregator
+# 3. Phase 1 — Free Model Aggregator *(completed)*
 
 ## Goal
 
@@ -966,7 +966,7 @@ The Token Factory becomes a **Model Supply Plane** rather than merely a model di
 
 | Phase | Product | Main Capability |
 |---|---|---|
-| 1 | Free Model Aggregator | Discover and catalog free models |
+| 1 | Free Model Aggregator (Phase 1) | Discover and catalog free models *(completed)* |
 | 2 | Token Factory Initializr | Generate runtime-specific configurations |
 | 3 | Model Subscription | Continuously receive model-list updates |
 | 4 | Model Supply Protocol | Standardize Gateway ↔ Token Factory communication |
@@ -1075,5 +1075,5 @@ The project should evolve toward this architecture without prematurely implement
 
 The immediate objective remains:
 
-> **Build a reliable Free Model Aggregator first, then turn its model catalog into a Model Supply Plane through Initializr, Subscription, and Artifact APIs.**
+> **Build a reliable Token Factory Initializr, then evolve its model catalog into a Model Supply Plane through Subscription and Artifact APIs.**
 ::

@@ -1,6 +1,6 @@
-# Free Model Aggregator
+# Token Factory Initializr
 
-A lightweight **Free Model Aggregator** that discovers, normalizes, stores, and exposes currently available free AI model endpoints from multiple providers.
+A lightweight **Token Factory Initializr** that discovers, normalizes, stores, and exposes currently available free AI model endpoints from multiple providers.
 
 ## Runtime Overview
 
@@ -26,7 +26,7 @@ A lightweight **Free Model Aggregator** that discovers, normalizes, stores, and 
 ## Project Structure
 
 ```
-free-model-aggregator/
+token-factory-initializr/
 ├── data/
 │   ├── providers/
 │   │   ├── nvidia.py

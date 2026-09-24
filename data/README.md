@@ -1,4 +1,4 @@
-# Free Model Aggregator — Data Pipeline
+# Token Factory Initializr — Data Pipeline
 
 Offline ingestion pipeline that discovers free AI model endpoints from
 multiple providers, normalizes them into a canonical schema, validates

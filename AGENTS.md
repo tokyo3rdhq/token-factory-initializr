@@ -1,8 +1,8 @@
-# Free Model Aggregator — Architecture & Implementation Prompt
+# Token Factory Initializr — Architecture & Implementation Prompt
 
 ## 0. Project Overview
 
-Build a lightweight **Free Model Aggregator** that discovers, normalizes, stores, and exposes currently available free AI model endpoints from multiple providers.
+Build a lightweight **Token Factory Initializr** that discovers, normalizes, stores, and exposes currently available free AI model endpoints from multiple providers.
 
 Initial providers:
 
@@ -29,7 +29,7 @@ The project is an **MVP**, so prioritize simplicity, reliability, and low operat
 Use a **monorepo**, but strictly separate runtime responsibilities.
 
 ```text
-free-model-aggregator/
+token-factory-initializr/
 │
 ├── data/                       # Python data ingestion pipeline
 │   ├── providers/
@@ -1157,7 +1157,7 @@ The web application should never need to know how NVIDIA, AMD, or Hugging Face d
 The initial implementation should converge toward:
 
 ```text
-free-model-aggregator/
+token-factory-initializr/
 │
 ├── data/
 │   ├── providers/
