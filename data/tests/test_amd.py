@@ -375,6 +375,35 @@ def test_build_endpoint_dict_description_is_none_when_missing():
     assert result["description"] is None
 
 
+def test_build_endpoint_dict_emits_structured_modalities():
+    """Modalities go in the top-level 'modalities' field as {input, output}.
+
+    AMD exposes both natively (input from provider_pricing flags, output
+    from model.output), so we mirror the data structure directly.
+    """
+    detail = {
+        "model": {
+            "id": "model_gateway:VL",
+            "label": "VL",
+            "model": "vl",
+            "output": ["text"],
+            "description": "Vision-language model",
+            "token_factory": {
+                "status": {"key": "free_endpoint"},
+                "capability": {"key": "vision"},
+                "publisher": {"name": "AMD"},
+            },
+            "provider_pricing": [{"vision": True}],
+            "context_length": 8192,
+        }
+    }
+    result = build_endpoint_dict(detail)
+    assert result["modalities"] == {"input": ["text", "image"], "output": ["text"]}
+    # The old flat fields must NOT leak into metadata anymore.
+    assert "input_modalities" not in result["metadata"]
+    assert "output_modalities" not in result["metadata"]
+
+
 def test_build_endpoint_dict_free_false_when_status_not_free_endpoint():
     detail = {
         "model": {
@@ -413,7 +442,7 @@ def test_build_endpoint_dict_adds_image_input_for_vision_pricing():
         }
     }
     result = build_endpoint_dict(detail)
-    assert "image" in result["metadata"]["input_modalities"]
+    assert "image" in result["modalities"]["input"]
 
 
 def test_build_endpoint_dict_adds_image_input_for_ocr_pricing():
@@ -433,7 +462,7 @@ def test_build_endpoint_dict_adds_image_input_for_ocr_pricing():
         }
     }
     result = build_endpoint_dict(detail)
-    assert "image" in result["metadata"]["input_modalities"]
+    assert "image" in result["modalities"]["input"]
 
 
 def test_build_endpoint_dict_input_modalities_always_includes_text():
@@ -453,7 +482,7 @@ def test_build_endpoint_dict_input_modalities_always_includes_text():
         }
     }
     result = build_endpoint_dict(detail)
-    assert "text" in result["metadata"]["input_modalities"]
+    assert "text" in result["modalities"]["input"]
 
 
 def test_build_endpoint_dict_falls_back_to_model_id_for_name():
@@ -512,7 +541,7 @@ def test_build_endpoint_dict_handles_missing_provider_pricing():
         }
     }
     result = build_endpoint_dict(detail)
-    assert "text" in result["metadata"]["input_modalities"]
+    assert "text" in result["modalities"]["input"]
 
 
 # ---------------------------------------------------------------------------

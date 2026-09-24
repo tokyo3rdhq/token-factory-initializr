@@ -166,10 +166,15 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
             "name": name,
             "description": None,
             "capabilities": capabilities,
+            # HF's router API exposes modalities directly via the
+            # ``architecture`` block — emit them at the canonical schema
+            # layer so consumers don't have to dig into metadata.
+            "modalities": {
+                "input": list(input_modalities),
+                "output": list(output_modalities),
+            },
             "metadata": {
                 "owned_by": model_group["owned_by"],
-                "input_modalities": input_modalities,
-                "output_modalities": output_modalities,
                 "router_provider": fp["provider"],
                 "context_length": fp["context_length"],
                 "supports_tools": fp["supports_tools"],

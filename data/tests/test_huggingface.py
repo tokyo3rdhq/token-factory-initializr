@@ -443,6 +443,22 @@ def test_to_endpoint_dicts_provider_metadata_forwarded():
     assert meta["first_token_latency_ms"] == 123.0
 
 
+def test_to_endpoint_dicts_emits_structured_modalities():
+    """Modalities go in the top-level 'modalities' field as {input, output}."""
+    group = {
+        "model_id": "owner/vision",
+        "owned_by": "owner",
+        "input_modalities": ["text", "image"],
+        "output_modalities": ["text"],
+        "free_providers": [_fp()],
+    }
+    eps = to_endpoint_dicts(group)
+    assert eps[0]["modalities"] == {"input": ["text", "image"], "output": ["text"]}
+    # Old flat fields must NOT leak into metadata anymore.
+    assert "input_modalities" not in eps[0]["metadata"]
+    assert "output_modalities" not in eps[0]["metadata"]
+
+
 # ---------------------------------------------------------------------------
 # fetch_huggingface_models (high-level)
 # ---------------------------------------------------------------------------

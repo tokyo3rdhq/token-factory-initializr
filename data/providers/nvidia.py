@@ -147,6 +147,18 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
                 }
             metadata["labels"] = meta_labels
 
+    # Derive output_modalities from capabilities. NIM doesn't expose
+    # explicit modality metadata, but chat models emit text and tool-
+    # calling models emit text + tool_calls.
+    output_modalities: List[str] = []
+    if capabilities.get("chat"):
+        output_modalities.append("text")
+    if capabilities.get("tool_calling"):
+        if "text" not in output_modalities:
+            output_modalities.append("text")
+        output_modalities.append("tool_calls")
+    modalities = {"input": [], "output": output_modalities} if output_modalities else None
+
     return ModelEndpoint(
         provider="nvidia",
         model_id=model_id,
@@ -159,6 +171,7 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         name=name,
         description=obj.get("description", ""),
         capabilities=capabilities,
+        modalities=modalities,
         metadata=metadata,
     )
 
