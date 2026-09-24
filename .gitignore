@@ -1,0 +1,23 @@
+node_modules/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+*.log
+*.db
+*.sqlite
+dist/
+build/
+.env.local
+
+# Python test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Cloudflare / Wrangler local cache (deploy artifacts, account metadata)
+.wrangler/
+
+# IDE / editor
+.idea/
+.vscode/

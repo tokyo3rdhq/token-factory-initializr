@@ -1,0 +1,76 @@
+name: Fetch Free Models
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  fetch-models:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e data
+
+      - name: Run tests
+        run: |
+          cd data
+          pytest tests/ -v
+
+      - name: Fetch models
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_KV_NAMESPACE_ID: ${{ secrets.CLOUDFLARE_KV_NAMESPACE_ID }}
+        run: |
+          cd data
+          python main.py
+
+      - name: Validate results
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_KV_NAMESPACE_ID: ${{ secrets.CLOUDFLARE_KV_NAMESPACE_ID }}
+        run: |
+          # Confirm the pipeline actually wrote today's manifest to KV. We
+          # use the dated key (tfi:manifest:YYYY-MM-DD) instead of
+          # tfi:manifest:latest because the latter could still hold a previous
+          # run's data if the current run failed silently.
+          cd data
+          python -c "
+          import os, sys, urllib.request, urllib.error, json
+          from datetime import datetime, timezone
+          account = os.environ['CLOUDFLARE_ACCOUNT_ID']
+          token = os.environ['CLOUDFLARE_API_TOKEN']
+          ns = os.environ['CLOUDFLARE_KV_NAMESPACE_ID']
+          today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+          dated_key = f'tfi:manifest:{today}'
+          url = f'https://api.cloudflare.com/client/v4/accounts/{account}/storage/kv/namespaces/{ns}/values/{dated_key}'
+          req = urllib.request.Request(url, headers={'Authorization': f'Bearer {token}'})
+          try:
+              with urllib.request.urlopen(req, timeout=15) as resp:
+                  manifest = json.loads(resp.read())
+          except urllib.error.HTTPError as e:
+              if e.code == 404:
+                  print(f'::error::{dated_key} not found in KV (404)')
+                  sys.exit(1)
+              raise
+          total = manifest.get('total', 0)
+          providers = manifest.get('providers', {})
+          failed = [name for name, info in providers.items() if info.get('status') == 'failed']
+          print(f\"{dated_key} -> total={total} providers={list(providers.keys())} failed={failed}\")
+          if total == 0:
+              print('::error::manifest reports zero endpoints — pipeline likely produced nothing')
+              sys.exit(1)
+          if failed:
+              print(f'::warning::providers with status=failed: {failed}')
+          "
