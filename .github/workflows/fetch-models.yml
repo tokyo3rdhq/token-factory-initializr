@@ -51,9 +51,12 @@ jobs:
           python -c "
           import os, sys, urllib.request, urllib.error, json
           from datetime import datetime, timezone
-          account = os.environ['CLOUDFLARE_ACCOUNT_ID']
-          token = os.environ['CLOUDFLARE_API_TOKEN']
-          ns = os.environ['CLOUDFLARE_KV_NAMESPACE_ID']
+          # Strip env values: Cloudflare IDs/tokens are hex/alphanumeric with
+          # no legitimate whitespace. Trailing newlines occasionally sneak in
+          # when secrets are pasted into GitHub's secret UI textarea.
+          account = os.environ['CLOUDFLARE_ACCOUNT_ID'].strip()
+          token = os.environ['CLOUDFLARE_API_TOKEN'].strip()
+          ns = os.environ['CLOUDFLARE_KV_NAMESPACE_ID'].strip()
           today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
           dated_key = f'tfi:manifest:{today}'
           url = f'https://api.cloudflare.com/client/v4/accounts/{account}/storage/kv/namespaces/{ns}/values/{dated_key}'

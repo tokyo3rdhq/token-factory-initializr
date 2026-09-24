@@ -127,10 +127,17 @@ class KVStorage:
 
     @classmethod
     def from_env(cls) -> "KVStorage":
-        """Build a KVStorage from env vars. Raises RuntimeError if any is missing."""
-        account_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
-        api_token = os.environ.get("CLOUDFLARE_API_TOKEN", "")
-        namespace_id = os.environ.get("CLOUDFLARE_KV_NAMESPACE_ID", "")
+        """Build a KVStorage from env vars. Raises RuntimeError if any is missing.
+
+        Values are stripped of surrounding whitespace; Cloudflare IDs and
+        tokens are short hex / alphanumeric strings that never legitimately
+        contain newlines. This guards against trailing-newline artifacts
+        introduced when secrets are pasted into GitHub Secrets / .env files
+        via UI textareas.
+        """
+        account_id = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
+        api_token = os.environ.get("CLOUDFLARE_API_TOKEN", "").strip()
+        namespace_id = os.environ.get("CLOUDFLARE_KV_NAMESPACE_ID", "").strip()
         if not account_id or not api_token or not namespace_id:
             raise RuntimeError(
                 "CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, and "

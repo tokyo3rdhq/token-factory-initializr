@@ -63,6 +63,28 @@ def test_kvstorage_from_env_returns_instance_when_all_set():
         assert kv.namespace_id == "test-ns"
 
 
+def test_kvstorage_from_env_strips_whitespace():
+    """Trailing whitespace/newlines (from GitHub Secrets UI paste) must
+    not leak into URL paths or auth headers."""
+    with patch.dict(
+        os.environ,
+        {
+            "CLOUDFLARE_ACCOUNT_ID": "  test-account  \n",
+            "CLOUDFLARE_API_TOKEN": "test-token\n",
+            "CLOUDFLARE_KV_NAMESPACE_ID": "\ttest-ns",
+        },
+        clear=True,
+    ):
+        kv = KVStorage.from_env()
+        assert kv.account_id == "test-account"
+        assert kv.api_token == "test-token"
+        assert kv.namespace_id == "test-ns"
+        # And the URL it constructs must not contain control characters.
+        url = kv._url("any:key")
+        for ch in ("\n", "\r", "\t"):
+            assert ch not in url, f"control char {ch!r} leaked into URL: {url!r}"
+
+
 # ---------------------------------------------------------------------------
 # KVStorage.put_snapshot / get_snapshot (with mocked backend)
 # ---------------------------------------------------------------------------
