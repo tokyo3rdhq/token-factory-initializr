@@ -16,21 +16,23 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      # Production install: only the runtime dependencies declared in
+      # [project.dependencies] (currently just `requests`). Dev extras
+      # (pytest, hypothesis, ruff, ...) are NOT installed here — those
+      # belong on a separate PR-time CI workflow that runs against every
+      # push, not on the deployed data ingestion job.
+      - name: Install runtime dependencies
         run: |
           pip install --upgrade pip
-          pip install -e "data[dev]"
-
-      - name: Run tests
-        run: |
-          cd data
-          pytest tests/ -v
+          pip install ./data
 
       - name: Fetch models
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_KV_NAMESPACE_ID: ${{ secrets.CLOUDFLARE_KV_NAMESPACE_ID }}
+          # Optional: Feishu webhook for failure alerts.
+          FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
         run: |
           cd data
           python main.py

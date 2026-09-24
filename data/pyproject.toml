@@ -61,6 +61,6 @@ indent-style = "space"
 skip-magic-trailing-comma = true
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["data*"]
-exclude = ["tests*", "fixtures*"]
+where = [".."]
+include = ["data", "data.*"]
+exclude = ["data.tests*"]
