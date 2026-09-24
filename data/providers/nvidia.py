@@ -28,7 +28,25 @@ from data.models.schema import ModelEndpoint
 logger = logging.getLogger(__name__)
 
 # Request headers for WAF compatibility
-BASE_URL = "https://build.nvidia.com/models"
+#
+# Matches the URL the public web UI uses when "Free models" is
+# selected: ``https://build.nvidia.com/models?filters=nimType%3Anim_type_preview``.
+# The server appears to ignore the query string at the RSC layer
+# (we still get the full catalog back in the response), but using
+# this URL:
+#
+#   1. Documents intent — readers of the code see we're hitting the
+#      free-models view, not the unfiltered view.
+#   2. Aligns the scraper with the web UI's URL bar for trace
+#      correlation.
+#
+# Filtering of paid vs. free still happens locally via the
+# ``free`` flag computed in ``_normalize_model`` (from
+# ``labels.nimType.values``) and dropped by ``FilterFreeStage`` —
+# see ``data/providers/free_filter.py``.
+BASE_URL = (
+    "https://build.nvidia.com/models?filters=nimType%3Anim_type_preview"
+)
 
 # WAF cooldown: server returns 202 after first page, needs retry with delay
 WAIT_AFTER_202 = 35  # seconds

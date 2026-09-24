@@ -30,6 +30,20 @@ from data.providers.nvidia import (
 # ---------------------------------------------------------------------------
 
 
+def test_base_url_targets_free_models_view():
+    """The fetch URL must match the web UI's free-models filter.
+
+    The upstream server appears to ignore the ``filters`` query
+    parameter at the RSC layer (full catalog is returned regardless),
+    but the URL documents intent and matches what the web UI sends
+    when "Free models" is selected. Pinning this prevents accidental
+    regression to the unfiltered URL.
+    """
+    assert BASE_URL == (
+        "https://build.nvidia.com/models?filters=nimType%3Anim_type_preview"
+    )
+
+
 def test_find_json_end_simple_object():
     text = '{"a": 1}'
     assert _find_json_end(text, 0) == 7
