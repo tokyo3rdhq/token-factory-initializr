@@ -129,12 +129,19 @@ def _ep(obj):
 
 
 def test_normalize_model_free_via_list_labels_real_api_shape():
-    """Real NVIDIA API: labels is a list of {key, values, unresolvedValues}."""
+    """Real NVIDIA API: labels is a list of {key, values, unresolvedValues}.
+
+    When the publisher label is present, model_id is derived from
+    ``labels.publisher.values[0] / displayName`` — NOT from
+    ``resourceId`` (which is the NIM internal namespace
+    ``qc69jvmznzxy/<slug>`` on the live API).
+    """
     obj = {
         "resourceId": "qc69jvmznzxy/deepseek-v4.1-flash",
         "displayName": "DeepSeek V4.1 Flash",
         "labels": [
             {"key": "nimType", "values": ["Free Endpoint"], "unresolvedValues": []},
+            {"key": "publisher", "values": ["deepseek-ai"], "unresolvedValues": []},
             {"key": "general", "values": ["chat"], "unresolvedValues": []},
         ],
         "attributes": [
@@ -143,11 +150,52 @@ def test_normalize_model_free_via_list_labels_real_api_shape():
     }
     ep = _ep(obj)
     assert ep.free is True
-    assert ep.model_id == "qc69jvmznzxy/deepseek-v4.1-flash"
+    assert ep.model_id == "deepseek-ai/DeepSeek V4.1 Flash"
     assert ep.name == "DeepSeek V4.1 Flash"
     # metadata.labels is normalized to dict keyed by label name
     assert "nimType" in ep.metadata["labels"]
     assert ep.metadata["labels"]["nimType"]["values"] == ["Free Endpoint"]
+
+
+def test_normalize_model_uses_publisher_label_for_model_id():
+    """``labels.publisher.values[0]`` is the canonical org for model_id."""
+    obj = {
+        "resourceId": "qc69jvmznzxy/some-slug",
+        "displayName": "Some Model",
+        "labels": [
+            {"key": "publisher", "values": ["anthropic"], "unresolvedValues": []},
+            {"key": "nimType", "values": ["Free Endpoint"], "unresolvedValues": []},
+        ],
+        "attributes": [],
+    }
+    assert _ep(obj).model_id == "anthropic/Some Model"
+
+
+def test_normalize_model_model_id_falls_back_when_no_publisher_label():
+    """No publisher label + non-slash resourceId → legacy synthesis.
+
+    When the live payload omits the publisher label AND resourceId
+    has no slash, we fall back to the NIM namespace prefix to keep
+    the model_id distinguishable (matches the pre-fix behavior).
+    """
+    obj = {
+        "resourceId": "bare-slug",
+        "displayName": "Bare Slug",
+        "labels": [],
+        "attributes": [],
+    }
+    assert _ep(obj).model_id == "qc69jvmznzxy/Bare Slug"
+
+
+def test_normalize_model_model_id_uses_resource_id_when_no_publisher():
+    """ResourceId has slash but no publisher label → fall back to resourceId."""
+    obj = {
+        "resourceId": "legacy-org/legacy-slug",
+        "displayName": "Legacy Slug",
+        "labels": [],
+        "attributes": [],
+    }
+    assert _ep(obj).model_id == "legacy-org/legacy-slug"
 
 
 def test_normalize_model_free_via_dict_labels_legacy_shape():
@@ -272,6 +320,132 @@ def test_normalize_model_architecture_is_none_when_no_capabilities():
         "attributes": [],
     }
     assert _ep(obj).architecture is None
+
+
+def test_normalize_model_architecture_from_labels_playground_chat():
+    """``labels.playgroundType == "chat"`` → chat → text output."""
+    obj = {
+        "resourceId": "x/y",
+        "displayName": "X",
+        "labels": [
+            {"key": "playgroundType", "values": ["chat"], "unresolvedValues": []},
+        ],
+        "attributes": [],
+    }
+    assert _ep(obj).architecture == {"input": [], "output": ["text"]}
+
+
+def test_normalize_model_architecture_from_labels_usecase_text_to_embedding():
+    """``labels.usecase == "Text-to-Embedding"`` → embedding output."""
+    obj = {
+        "resourceId": "x/y-emb",
+        "displayName": "X Emb",
+        "labels": [
+            {"key": "usecase", "values": ["Text-to-Embedding"], "unresolvedValues": []},
+        ],
+        "attributes": [],
+    }
+    assert _ep(obj).architecture == {"input": ["text"], "output": ["embedding"]}
+
+
+def test_normalize_model_architecture_from_labels_usecase_image_generation():
+    """``labels.usecase == "Image Generation"`` → text in, image out."""
+    obj = {
+        "resourceId": "x/y-img",
+        "displayName": "X Img",
+        "labels": [
+            {"key": "usecase", "values": ["Image Generation"], "unresolvedValues": []},
+        ],
+        "attributes": [],
+    }
+    assert _ep(obj).architecture == {"input": ["text"], "output": ["image"]}
+
+
+def test_normalize_model_architecture_from_labels_usecase_text_to_speech():
+    """``labels.usecase == "Text-to-Speech"`` → audio output."""
+    obj = {
+        "resourceId": "x/y-tts",
+        "displayName": "X TTS",
+        "labels": [
+            {"key": "usecase", "values": ["Text-to-Speech"], "unresolvedValues": []},
+        ],
+        "attributes": [],
+    }
+    assert _ep(obj).architecture == {"input": ["text"], "output": ["audio"]}
+
+
+def test_normalize_model_architecture_from_labels_general_vision():
+    """``labels.general`` containing "Vision Language Model" → image input."""
+    obj = {
+        "resourceId": "x/y-vlm",
+        "displayName": "X VLM",
+        "labels": [
+            {"key": "general", "values": ["Vision Language Model"], "unresolvedValues": []},
+        ],
+        "attributes": [],
+    }
+    assert _ep(obj).architecture == {"input": ["image"], "output": []}
+
+
+def test_normalize_model_architecture_from_labels_multimodal_moe():
+    """``labels.general`` containing "Multimodal MOE" → image input."""
+    obj = {
+        "resourceId": "x/y-moe",
+        "displayName": "X MoE",
+        "labels": [
+            {"key": "general", "values": ["Multimodal MOE"], "unresolvedValues": []},
+        ],
+        "attributes": [],
+    }
+    assert _ep(obj).architecture == {"input": ["image"], "output": []}
+
+
+def test_normalize_model_architecture_chat_plus_vision():
+    """Chat playgroundType + Vision Language Model → text output + image input."""
+    obj = {
+        "resourceId": "x/y-vlm",
+        "displayName": "X VLM",
+        "labels": [
+            {"key": "playgroundType", "values": ["chat"], "unresolvedValues": []},
+            {"key": "general", "values": ["Vision Language Model"], "unresolvedValues": []},
+        ],
+        "attributes": [],
+    }
+    assert _ep(obj).architecture == {"input": ["image"], "output": ["text"]}
+
+
+def test_normalize_model_architecture_no_label_signals():
+    """No playgroundType / usecase / general signals → architecture stays None."""
+    obj = {
+        "resourceId": "x/y",
+        "displayName": "X",
+        "labels": [
+            {"key": "nimType", "values": ["Free Endpoint"], "unresolvedValues": []},
+        ],
+        "attributes": [],
+    }
+    assert _ep(obj).architecture is None
+
+
+def test_normalize_model_pricing_and_context_length_remain_none():
+    """NVIDIA's RSC payload does not expose pricing or context_length.
+
+    Documenting the contract: these fields are intentionally left as
+    ``None`` because the upstream ``build.nvidia.com/models`` RSC
+    payload does not carry per-token prices or context window size.
+    Downstream code must treat ``None`` as "unknown", not as "free".
+    """
+    obj = {
+        "resourceId": "x/y",
+        "displayName": "X",
+        "labels": [
+            {"key": "publisher", "values": ["x"], "unresolvedValues": []},
+        ],
+        "attributes": [],
+    }
+    ep = _ep(obj)
+    assert ep.context_length is None
+    assert ep.pricing is None
 
 
 def test_normalize_model_skips_non_dict_label_entries():

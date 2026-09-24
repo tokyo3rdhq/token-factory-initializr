@@ -521,6 +521,118 @@ def test_build_endpoint_dict_handles_missing_provider_pricing():
     assert "text" in result["architecture"]["input"]
 
 
+def test_build_endpoint_dict_lifts_provider_pricing_prices():
+    """``model.provider_pricing[0].pricing`` must be lifted to top-level.
+
+    AMD's live detail payloads carry per-token prices at
+    ``provider_pricing[0].pricing`` with keys like ``prompt``,
+    ``completion``, ``input_cache_read``. Values are strings in
+    scientific notation — must be preserved verbatim, not coerced
+    to float (precision loss at small magnitudes).
+    """
+    detail = {
+        "model": {
+            "id": "model_gateway:PP",
+            "label": "PP",
+            "model": "pp",
+            "output": ["text"],
+            "token_factory": {
+                "status": {"key": "free_endpoint"},
+                "capability": {"key": "chat"},
+                "publisher": {"name": "AMD"},
+            },
+            "context_length": 4096,
+            "provider_pricing": [{
+                "providerId": "self-dploy",
+                "pricing": {
+                    "prompt": "1.4e-7",
+                    "completion": "2.8e-7",
+                    "input_cache_read": "2.8e-9",
+                },
+                "vision": False,
+                "ocr": False,
+                "tools": True,
+            }],
+        }
+    }
+    result = build_endpoint_dict(detail)
+    assert result["pricing"] == {
+        "prompt": "1.4e-7",
+        "completion": "2.8e-7",
+        "input_cache_read": "2.8e-9",
+    }
+
+
+def test_build_endpoint_dict_pricing_none_when_absent():
+    """Missing ``provider_pricing[0].pricing`` → ``pricing=None``."""
+    detail = {
+        "model": {
+            "id": "model_gateway:NOP",
+            "label": "NOP",
+            "model": "nop",
+            "output": ["text"],
+            "token_factory": {
+                "status": {"key": "free_endpoint"},
+                "capability": {"key": "chat"},
+                "publisher": {"name": "AMD"},
+            },
+            "context_length": 4096,
+            # No provider_pricing at all.
+        }
+    }
+    result = build_endpoint_dict(detail)
+    assert result["pricing"] is None
+
+
+def test_build_endpoint_dict_pricing_none_when_provider_pricing_has_no_pricing_subkey():
+    """``provider_pricing[0]`` present but no nested ``pricing`` → ``None``."""
+    detail = {
+        "model": {
+            "id": "model_gateway:NEST",
+            "label": "NEST",
+            "model": "nest",
+            "output": ["text"],
+            "token_factory": {
+                "status": {"key": "free_endpoint"},
+                "capability": {"key": "chat"},
+                "publisher": {"name": "AMD"},
+            },
+            "context_length": 4096,
+            "provider_pricing": [{
+                "providerId": "self-dploy",
+                "vision": True,
+                # No ``pricing`` sub-key.
+            }],
+        }
+    }
+    result = build_endpoint_dict(detail)
+    assert result["pricing"] is None
+
+
+def test_build_endpoint_dict_pricing_drops_empty_dict():
+    """An empty nested ``pricing`` dict is treated as missing → None."""
+    detail = {
+        "model": {
+            "id": "model_gateway:EMPTY",
+            "label": "EMPTY",
+            "model": "empty",
+            "output": ["text"],
+            "token_factory": {
+                "status": {"key": "free_endpoint"},
+                "capability": {"key": "chat"},
+                "publisher": {"name": "AMD"},
+            },
+            "context_length": 4096,
+            "provider_pricing": [{
+                "providerId": "self-dploy",
+                "pricing": {},  # explicitly empty
+            }],
+        }
+    }
+    result = build_endpoint_dict(detail)
+    assert result["pricing"] is None
+
+
 # ---------------------------------------------------------------------------
 # fetch_amd_models (high-level)
 # ---------------------------------------------------------------------------

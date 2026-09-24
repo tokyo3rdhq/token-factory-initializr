@@ -153,7 +153,13 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
     input_modalities: list[str] = []
     output_modalities: list[str] = m.get("output", [])
 
-    # Populate input_modalities from provider_pricing if available
+    # Populate input_modalities from provider_pricing if available.
+    # AMD's ``provider_pricing[0]`` block carries feature flags AND a
+    # nested ``pricing`` sub-dict with per-token prices (e.g.
+    # ``{"prompt": "1.4e-7", "completion": "2.8e-7",
+    # "input_cache_read": "2.8e-9"}``). The feature flags are read for
+    # ``architecture.input``; the per-token prices are lifted to the
+    # top-level ``pricing`` field.
     pp = (m.get("provider_pricing") or [{}])[0]
     if pp.get("vision"):
         input_modalities.append("image")
@@ -162,6 +168,21 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
     # Add text as minimum input modality
     if "text" not in input_modalities:
         input_modalities.insert(0, "text")
+
+    # Per-token prices (only set when AMD's payload actually carries
+    # them — older fixtures may not). String values are kept verbatim
+    # because AMD expresses very small magnitudes in scientific notation
+    # (e.g. ``"1.4e-7"``) that ``float()`` would lose precision on.
+    raw_pricing = pp.get("pricing")
+    if isinstance(raw_pricing, dict) and raw_pricing:
+        # Coerce to the union of string / float — most keys are strings
+        # from the AMD API but tolerate floats too (defensive).
+        pricing: dict[str, Any] = {}
+        for key, value in raw_pricing.items():
+            if isinstance(value, (str, int, float)):
+                pricing[key] = value
+    else:
+        pricing = None
 
     free_status = tf.get("status", {}).get("key")
     is_free = free_status == "free_endpoint"
@@ -188,6 +209,15 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
             "output": output_modalities,
         },
         "lab": tf.get("publisher", {}).get("name"),
+        # Per-token prices lifted from
+        # ``model.provider_pricing[0].pricing``. ``None`` when the
+        # upstream payload doesn't carry the block (older fixtures,
+        # or non-token-priced endpoints like free ones — AMD uses the
+        # same ``provider_pricing`` shape for both paid and free, so
+        # free endpoints may still have non-zero prices; the
+        # ``free`` flag is the authoritative signal of cost, not
+        # this field).
+        "pricing": pricing,
         "metadata": {
             "family": tf.get("publisher", {}).get("name") or m.get("family", "unknown"),
             "context_length": m.get("context_length", 0),

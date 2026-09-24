@@ -23,6 +23,41 @@ class ModelEndpoint:
     name: Optional[str] = None
     description: Optional[str] = None
     capabilities: dict = field(default_factory=dict)
+
+    # ``metadata`` is a per-provider context dictionary for fields that
+    # do not yet warrant their own top-level field on the canonical
+    # schema. The fields are NOT shared across providers — each
+    # provider stamps a different shape:
+    #
+    # * AMD: ``{family, context_length, free_status, original_id}``.
+    #   ``family`` is the publisher name; ``context_length`` is also
+    #   lifted to the top-level ``context_length`` field (the
+    #   metadata copy stays for back-compat); ``free_status`` is the
+    #   raw ``tf.status.key`` value (e.g. ``"free_endpoint"`` /
+    #   ``"paid"``); ``original_id`` preserves AMD's gateway-prefixed
+    #   id (e.g. ``"model_gateway:MiMo-V2.6-Flash"``) so the stripped
+    #   ``model_id`` can be disambiguated.
+    # * Hugging Face: ``{router_provider, context_length,
+    #   supports_tools, first_token_latency_ms, throughput}``.
+    #   ``router_provider`` is the specific HF router provider
+    #   (e.g. ``"huggingface"`` / ``"cloudflare"``) — one model may
+    #   appear under multiple providers as separate endpoints;
+    #   ``context_length`` is also lifted to the top-level field.
+    # * NVIDIA: ``{raw_obj?, attributes?, labels?}``. All three keys
+    #   are optional and only present when the upstream RSC payload
+    #   carries them. ``raw_obj`` is the full RSC object (debug /
+    #   enrichment use; can be large — keep an eye on KV size);
+    #   ``attributes`` and ``labels`` are the normalized NVIDIA
+    #   catalog labels/attributes (each label value is shaped as
+    #   ``{"values": [...], "unresolved": [...]}``).
+    #
+    # Because the three providers stamp different shapes, any
+    # consumer that wants a specific metadata key MUST branch on
+    # ``ep.provider`` first. There is currently no production
+    # consumer of these keys outside of the normalize / validate
+    # stages; the metadata dict exists primarily so per-provider
+    # debug data survives the KV round-trip via
+    # :func:`endpoint_to_dict`.
     metadata: dict = field(default_factory=dict)
 
     # ``architecture`` carries the input/output modalities in the same shape
@@ -49,6 +84,16 @@ class ModelEndpoint:
     context_length: Optional[int] = None
     license: Optional[str] = None
     quantization: Optional[str] = None
+
+    # Per-token prices lifted from the upstream provider payload.
+    # AMD stamps these at ``model.provider_pricing[0].pricing`` with
+    # keys like ``prompt``, ``completion``, ``input_cache_read``
+    # (string-encoded scientific notation, e.g. ``"1.4e-7"`` — kept
+    # verbatim because float() would lose precision at that scale).
+    # HF and NVIDIA do not emit per-token prices today; for them
+    # this stays ``None``. The ``free`` flag is the authoritative
+    # signal of cost — a non-None ``pricing`` field does NOT imply
+    # the endpoint is paid.
     pricing: Optional[dict] = None
     endpoint_url: Optional[str] = None
     region: Optional[str] = None

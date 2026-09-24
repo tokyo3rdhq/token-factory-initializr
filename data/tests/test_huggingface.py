@@ -20,10 +20,12 @@ from data.providers import huggingface as hf
 from data.providers.huggingface import (
     ROUTER_URL,
     SOCKS_PROXY_ENV,
+    _group_models_by_id,
+    _is_free_provider,
     UA,
     fetch_huggingface_models,
     fetch_router_json,
-    filter_free_providers,
+    parse_huggingface_models,
     to_endpoint_dicts,
 )
 
@@ -206,227 +208,23 @@ def test_fetch_router_json_proxy_empty_string_falls_back_to_urllib(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# filter_free_providers
-# ---------------------------------------------------------------------------
-
-
-def test_filter_free_providers_drops_paid_providers():
-    """A provider with pricing != 0 must be filtered out."""
-    payload = {
-        "data": [
-            {
-                "id": "meta/paid-model",
-                "owned_by": "meta",
-                "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
-                "providers": [
-                    {"provider": "huggingface", "pricing": {"input": 0.001, "output": 0.002}, "status": "live"},
-                ],
-            }
-        ]
-    }
-    assert filter_free_providers(payload) == []
-
-
-def test_filter_free_providers_drops_non_live_status():
-    """A provider with status != 'live' must be filtered out."""
-    payload = {
-        "data": [
-            {
-                "id": "meta/dead",
-                "owned_by": "meta",
-                "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
-                "providers": [
-                    {"provider": "huggingface", "pricing": {"input": 0, "output": 0}, "status": "staging"},
-                ],
-            }
-        ]
-    }
-    assert filter_free_providers(payload) == []
-
-
-def test_filter_free_providers_drops_models_without_providers():
-    """A model with no providers at all must be dropped."""
-    payload = {
-        "data": [
-            {
-                "id": "meta/lonely",
-                "owned_by": "meta",
-                "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
-                "providers": [],
-            }
-        ]
-    }
-    assert filter_free_providers(payload) == []
-
-
-def test_filter_free_providers_keeps_model_with_at_least_one_free():
-    """If ≥1 provider is free+live, the model survives (others dropped)."""
-    payload = {
-        "data": [
-            {
-                "id": "meta/mixed",
-                "owned_by": "meta",
-                "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
-                "providers": [
-                    {"provider": "huggingface", "pricing": {"input": 0, "output": 0}, "status": "live"},
-                    {"provider": "paidco", "pricing": {"input": 0.5, "output": 0.5}, "status": "live"},
-                ],
-            }
-        ]
-    }
-    out = filter_free_providers(payload)
-    assert len(out) == 1
-    assert len(out[0]["free_providers"]) == 1
-    assert out[0]["free_providers"][0]["provider"] == "huggingface"
-
-
-def test_filter_free_providers_owned_by_defaults_to_first_path_segment():
-    """If 'owned_by' is missing, owned_by defaults to the org segment of model_id."""
-    payload = {
-        "data": [
-            {
-                "id": "fallback-org/some-model",
-                "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
-                "providers": [
-                    {"provider": "huggingface", "pricing": {"input": 0, "output": 0}, "status": "live"},
-                ],
-            }
-        ]
-    }
-    out = filter_free_providers(payload)
-    assert out[0]["owned_by"] == "fallback-org"
-
-
-def test_filter_free_providers_handles_missing_pricing_field():
-    """Provider entry with no 'pricing' key is treated as paid (drop)."""
-    payload = {
-        "data": [
-            {
-                "id": "meta/x",
-                "owned_by": "meta",
-                "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
-                "providers": [{"provider": "huggingface", "status": "live"}],
-            }
-        ]
-    }
-    assert filter_free_providers(payload) == []
-
-
-def test_filter_free_providers_handles_empty_data():
-    """Missing 'data' key → empty result (no crash)."""
-    assert filter_free_providers({"data": []}) == []
-    assert filter_free_providers({}) == []
-
-
-def test_filter_free_providers_falls_back_to_model_level_context_length():
-    """Per-provider context_length is sometimes null. When it's null, fall
-    back to the model-level context_length so downstream consumers don't
-    see null when the data is actually known.
-    """
-    payload = {
-        "data": [
-            {
-                "id": "org/model",
-                "owned_by": "org",
-                "context_length": 32768,  # model-level value
-                "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
-                "providers": [
-                    # Per-provider context_length is null — common in real
-                    # HF router API responses. Should fall back to 32768.
-                    {"provider": "huggingface", "pricing": {"input": 0, "output": 0}, "status": "live", "context_length": None},
-                ],
-            }
-        ]
-    }
-    out = filter_free_providers(payload)
-    assert len(out) == 1
-    assert out[0]["free_providers"][0]["context_length"] == 32768
-
-
-def test_filter_free_providers_prefers_per_provider_context_length():
-    """When both per-provider and model-level are present, prefer per-provider."""
-    payload = {
-        "data": [
-            {
-                "id": "org/model",
-                "owned_by": "org",
-                "context_length": 32768,  # model-level (less specific)
-                "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
-                "providers": [
-                    {"provider": "huggingface", "pricing": {"input": 0, "output": 0}, "status": "live", "context_length": 131072},  # per-provider wins
-                ],
-            }
-        ]
-    }
-    out = filter_free_providers(payload)
-    assert out[0]["free_providers"][0]["context_length"] == 131072
-
-
-def test_filter_free_providers_context_length_none_when_neither_set():
-    """Both null → stays null (real data gap, not a fallback case)."""
-    payload = {
-        "data": [
-            {
-                "id": "org/model",
-                "owned_by": "org",
-                # no model-level context_length
-                "architecture": {"input_modalities": ["text"], "output_modalities": ["text"]},
-                "providers": [
-                    {"provider": "huggingface", "pricing": {"input": 0, "output": 0}, "status": "live"},  # no context_length
-                ],
-            }
-        ]
-    }
-    out = filter_free_providers(payload)
-    assert out[0]["free_providers"][0]["context_length"] is None
-
-
-def test_filter_free_providers():
-    with open(str(FIXTURES / "huggingface_router.json"), encoding="utf-8") as f:
-        payload = json.load(f)
-    free_groups = filter_free_providers(payload)
-    assert len(free_groups) == 3
-    model_ids = {g["model_id"] for g in free_groups}
-    assert model_ids == {
-        "meta-llama/Llama-3.2-3B-Instruct",
-        "google/gemma-2-9b-it",
-        "stabilityai/stable-diffusion-3-medium",
-    }
-
 
 # ---------------------------------------------------------------------------
 # to_endpoint_dicts
 # ---------------------------------------------------------------------------
 
 
-def test_to_endpoint_dicts_single_model():
-    with open(str(FIXTURES / "huggingface_router.json"), encoding="utf-8") as f:
-        payload = json.load(f)
-    free_groups = filter_free_providers(payload)
-    llama_group = next(g for g in free_groups if g["model_id"] == "meta-llama/Llama-3.2-3B-Instruct")
-    endpoints = to_endpoint_dicts(llama_group)
-    assert len(endpoints) == 2
-    for ep in endpoints:
-        assert ep["provider"] == "huggingface"
-        assert ep["free"] is True
-        assert ep["model_id"] == "meta-llama/Llama-3.2-3B-Instruct"
-        assert "chat" in ep["capabilities"]
+def _provider(provider: str = "huggingface", **overrides) -> dict:
+    """Build a minimal HF router provider entry for to_endpoint_dicts.
 
-
-def test_to_endpoint_dicts_image_model():
-    with open(str(FIXTURES / "huggingface_router.json"), encoding="utf-8") as f:
-        payload = json.load(f)
-    free_groups = filter_free_providers(payload)
-    sd_group = next(g for g in free_groups if g["model_id"] == "stabilityai/stable-diffusion-3-medium")
-    endpoints = to_endpoint_dicts(sd_group)
-    assert len(endpoints) == 1
-    assert "vision" in endpoints[0]["capabilities"]
-
-
-def _fp(provider: str = "huggingface", **overrides) -> dict:
-    """Build a minimal free_providers dict that satisfies to_endpoint_dicts."""
+    The new contract accepts a ``providers`` list of upstream-shaped
+    provider dicts (not a ``free_providers`` list of pre-filtered dicts).
+    Pricing is preserved verbatim; ``status`` defaults to ``"live"``.
+    """
     base = {
         "provider": provider,
+        "status": "live",
+        "pricing": {"input": 0.0, "output": 0.0},
         "context_length": 1024,
         "supports_tools": False,
         "supports_structured_output": False,
@@ -437,121 +235,249 @@ def _fp(provider: str = "huggingface", **overrides) -> dict:
     return base
 
 
-def test_to_endpoint_dicts_embedding_model():
-    """Output modalities contains 'embedding' -> capabilities.embedding = true."""
-    group = {
-        "model_id": "x/y-emb",
-        "owned_by": "x",
-        "input_modalities": ["text"],
-        "output_modalities": ["embedding"],
-        "free_providers": [_fp()],
+def _group(
+    providers: list,
+    model_id: str = "owner/y",
+    input_modalities=None,
+    output_modalities=None,
+    model_level_context_length=None,
+    owned_by: str = "owner",
+) -> dict:
+    """Build a minimal ``_group_models_by_id``-shaped dict."""
+    return {
+        "model_id": model_id,
+        "owned_by": owned_by,
+        "input_modalities": input_modalities or ["text"],
+        "output_modalities": output_modalities or ["text"],
+        "model_level_context_length": model_level_context_length,
+        "providers": providers,
     }
+
+
+def test_to_endpoint_dicts_emits_one_endpoint_per_provider():
+    """One canonical endpoint dict per provider in the group (free + paid)."""
+    group = _group([
+        _provider(provider="novita"),
+        _provider(provider="cloudflare"),
+    ])
+    eps = to_endpoint_dicts(group)
+    assert len(eps) == 2
+    assert [ep["provider"] for ep in eps] == ["novita", "cloudflare"]
+
+
+def test_to_endpoint_dicts_provider_field_uses_real_name_not_huggingface():
+    """The top-level ``provider`` must be the upstream router name, not
+    a hardcoded ``"huggingface"``.
+
+    Regression: previously ``to_endpoint_dicts`` hardcoded
+    ``"huggingface"`` for every emitted endpoint regardless of
+    upstream, hiding the real router provider under
+    ``metadata.router_provider``.
+    """
+    eps = to_endpoint_dicts(_group([
+        _provider(provider="novita"),
+        _provider(provider="fireworks-ai"),
+        _provider(provider="together"),
+    ]))
+    assert {ep["provider"] for ep in eps} == {"novita", "fireworks-ai", "together"}
+
+
+def test_to_endpoint_dicts_pricing_lifted_per_provider():
+    """Real per-token prices from upstream end up in the top-level
+    ``pricing`` field. Old behavior hardcoded ``{input: 0, output: 0}``.
+    """
+    eps = to_endpoint_dicts(_group([
+        _provider(provider="novita", pricing={"input": 0.3, "output": 1.2}),
+        _provider(provider="together", pricing={"input": 0.5, "output": 2.0}),
+    ]))
+    by_provider = {ep["provider"]: ep["pricing"] for ep in eps}
+    assert by_provider["novita"] == {"input": 0.3, "output": 1.2}
+    assert by_provider["together"] == {"input": 0.5, "output": 2.0}
+
+
+def test_to_endpoint_dicts_context_length_per_provider():
+    """Per-provider context_length is honored (no fallback to model-level)."""
+    eps = to_endpoint_dicts(_group(
+        [_provider(provider="a", context_length=4096),
+         _provider(provider="b", context_length=8192)],
+        model_level_context_length=131072,
+    ))
+    by_provider = {ep["provider"]: ep["context_length"] for ep in eps}
+    assert by_provider["a"] == 4096
+    assert by_provider["b"] == 8192
+
+
+def test_to_endpoint_dicts_falls_back_to_model_level_context_length():
+    """When per-provider context_length is None, fall back to model-level."""
+    eps = to_endpoint_dicts(_group(
+        [_provider(provider="a", context_length=None)],
+        model_level_context_length=131072,
+    ))
+    assert eps[0]["context_length"] == 131072
+
+
+def test_to_endpoint_dicts_context_length_none_when_neither_set():
+    """No per-provider and no model-level context_length - stays None."""
+    eps = to_endpoint_dicts(_group(
+        [_provider(provider="a", context_length=None)],
+        model_level_context_length=None,
+    ))
+    assert eps[0]["context_length"] is None
+
+
+def test_to_endpoint_dicts_free_flag_per_provider():
+    """``free`` is computed per-provider via the price+status rule."""
+    eps = to_endpoint_dicts(_group([
+        _provider(provider="free", pricing={"input": 0, "output": 0}),
+        _provider(provider="paid", pricing={"input": 0.3, "output": 1.2}),
+    ]))
+    by_provider = {ep["provider"]: ep["free"] for ep in eps}
+    assert by_provider["free"] is True
+    assert by_provider["paid"] is False
+
+
+def test_to_endpoint_dicts_non_live_status_is_not_free():
+    """``status != "live"`` makes the endpoint non-free even with price=0."""
+    eps = to_endpoint_dicts(_group([
+        _provider(provider="offline", pricing={"input": 0, "output": 0}, status="offline"),
+    ]))
+    assert eps[0]["free"] is False
+
+
+def test_to_endpoint_dicts_drops_providers_without_name():
+    """A provider entry with empty/missing ``provider`` is silently dropped."""
+    eps = to_endpoint_dicts(_group([
+        _provider(provider="real"),
+        {"provider": "", "status": "live", "pricing": {"input": 0, "output": 0}},
+        {"status": "live", "pricing": {"input": 0, "output": 0}},  # no provider key
+    ]))
+    assert [ep["provider"] for ep in eps] == ["real"]
+
+
+def test_to_endpoint_dicts_capabilities_chat_for_text_output():
+    group = _group([_provider()], output_modalities=["text"])
+    eps = to_endpoint_dicts(group)
+    assert "chat" in eps[0]["capabilities"]
+
+
+def test_to_endpoint_dicts_capabilities_embedding_for_embedding_output():
+    group = _group([_provider()], output_modalities=["embedding"])
     eps = to_endpoint_dicts(group)
     assert eps[0]["capabilities"] == {"embedding": True}
 
 
-def test_to_endpoint_dicts_audio_output_sets_speech():
-    """Output modalities containing 'audio' -> capabilities.speech = true."""
-    group = {
-        "model_id": "x/tts",
-        "owned_by": "x",
-        "input_modalities": ["text"],
-        "output_modalities": ["audio"],
-        "free_providers": [_fp()],
-    }
+def test_to_endpoint_dicts_capabilities_audio_for_audio_output():
+    group = _group([_provider()], output_modalities=["audio"])
     eps = to_endpoint_dicts(group)
     assert eps[0]["capabilities"].get("speech") is True
 
 
+def test_to_endpoint_dicts_capabilities_vision_for_image_input():
+    group = _group([_provider()], input_modalities=["text", "image"])
+    eps = to_endpoint_dicts(group)
+    assert "vision" in eps[0]["capabilities"]
+
+
 def test_to_endpoint_dicts_name_is_last_segment_of_model_id():
-    """The endpoint 'name' is the segment after the first '/'."""
-    group = {
-        "model_id": "owner/cool-model-v2",
-        "owned_by": "owner",
-        "input_modalities": ["text"],
-        "output_modalities": ["text"],
-        "free_providers": [_fp()],
-    }
+    group = _group([_provider()], model_id="owner/cool-model-v2")
     eps = to_endpoint_dicts(group)
     assert eps[0]["name"] == "cool-model-v2"
 
 
 def test_to_endpoint_dicts_name_defaults_to_full_model_id_without_slash():
-    """A model_id without '/' uses the full string as name."""
-    group = {
-        "model_id": "no-slash",
-        "owned_by": "owner",
-        "input_modalities": ["text"],
-        "output_modalities": ["text"],
-        "free_providers": [_fp()],
-    }
+    group = _group([_provider()], model_id="no-slash")
     eps = to_endpoint_dicts(group)
     assert eps[0]["name"] == "no-slash"
 
 
-def test_to_endpoint_dicts_provider_metadata_forwarded():
-    """Per-provider metadata (context_length, supports_tools, etc.) must be preserved."""
-    group = {
-        "model_id": "x/y",
-        "owned_by": "x",
-        "input_modalities": ["text"],
-        "output_modalities": ["text"],
-        "free_providers": [
-            {
-                "provider": "huggingface",
-                "context_length": 8192,
-                "supports_tools": True,
-                "supports_structured_output": False,
-                "first_token_latency_ms": 123.0,
-                "throughput": 45.0,
-            }
-        ],
-    }
-    eps = to_endpoint_dicts(group)
-    meta = eps[0]["metadata"]
-    assert meta["context_length"] == 8192
-    assert meta["supports_tools"] is True
-    assert meta["first_token_latency_ms"] == 123.0
-
-
 def test_to_endpoint_dicts_emits_structured_architecture():
     """Modalities go in the top-level 'architecture' field as {input, output}."""
-    group = {
-        "model_id": "owner/vision",
-        "owned_by": "owner",
-        "input_modalities": ["text", "image"],
-        "output_modalities": ["text"],
-        "free_providers": [_fp()],
-    }
+    group = _group(
+        [_provider()],
+        input_modalities=["text", "image"],
+        output_modalities=["text"],
+    )
     eps = to_endpoint_dicts(group)
     assert eps[0]["architecture"] == {"input": ["text", "image"], "output": ["text"]}
-    # Old flat fields must NOT leak into metadata anymore.
-    assert "input_modalities" not in eps[0]["metadata"]
-    assert "output_modalities" not in eps[0]["metadata"]
 
 
-# ---------------------------------------------------------------------------
+def test_to_endpoint_dicts_metadata_preserves_per_provider_metrics():
+    """supports_tools / throughput / latency flow into metadata."""
+    eps = to_endpoint_dicts(_group([
+        _provider(
+            provider="novita",
+            supports_tools=True,
+            first_token_latency_ms=1371.4,
+            throughput=80.5,
+        ),
+    ]))
+    meta = eps[0]["metadata"]
+    assert meta["supports_tools"] is True
+    assert meta["first_token_latency_ms"] == 1371.4
+    assert meta["throughput"] == 80.5
+    # router_provider must NOT be in metadata - it's now the top-level
+    # ``provider`` field.
+    assert "router_provider" not in meta
+
+
+def test_to_endpoint_dicts_metadata_keeps_is_model_author():
+    """The HF-specific is_model_author flag survives into metadata."""
+    eps = to_endpoint_dicts(_group([
+        _provider(provider="author", is_model_author=True),
+    ]))
+    assert eps[0]["metadata"]["is_model_author"] is True
+
+
+def test_to_endpoint_dicts_on_curated_fixture():
+    """End-to-end: real curated fixture - per-provider expansion with
+    correct provider names, free flags, and pricing.
+    """
+    with open(str(FIXTURES / "huggingface_router.json"), encoding="utf-8") as f:
+        payload = json.load(f)
+    endpoints = parse_huggingface_models(payload)
+    # The fixture has 4 models / 5 providers -> 5 endpoints (paid openai
+    # endpoint still emitted, marked free=False).
+    assert len(endpoints) == 5
+    by_id_provider = {(ep["model_id"], ep["provider"]): ep for ep in endpoints}
+    # Llama has 2 providers: huggingface + cloudflare (both free).
+    llama_hf = by_id_provider[("meta-llama/Llama-3.2-3B-Instruct", "huggingface")]
+    assert llama_hf["free"] is True
+    assert llama_hf["provider"] == "huggingface"
+    assert "router_provider" not in llama_hf["metadata"]
+    # gpt-4-turbo is paid (pricing != 0).
+    gpt = by_id_provider[("openai/gpt-4-turbo", "huggingface")]
+    assert gpt["free"] is False
+    assert gpt["pricing"] == {"input": 0.01, "output": 0.03}
+
+
 # fetch_huggingface_models (high-level)
 # ---------------------------------------------------------------------------
 
 
 def test_fetch_huggingface_models():
+    """fetch_huggingface_models now emits ALL (model, provider) pairs.
+
+    The free-only filter has moved to FilterFreeStage. The
+    high-level wrapper still emits everything (paid endpoints
+    included); ``free`` is computed per-provider.
+    """
     with open(str(FIXTURES / "huggingface_router.json"), encoding="utf-8") as f:
         payload = json.load(f)
 
     with patch("data.providers.huggingface.fetch_router_json") as mock_router:
         mock_router.return_value = payload
         result = fetch_huggingface_models()
-        assert len(result) == 4
-        model_ids = {ep["model_id"] for ep in result}
-        assert model_ids == {
-            "meta-llama/Llama-3.2-3B-Instruct",
-            "google/gemma-2-9b-it",
-            "stabilityai/stable-diffusion-3-medium",
-        }
-        for ep in result:
-            assert ep["provider"] == "huggingface"
-            assert ep["free"] is True
+        # 4 models, 5 providers (Llama has 2) -> 5 endpoints.
+        assert len(result) == 5
+        # Providers are no longer hardcoded to "huggingface".
+        providers = {ep["provider"] for ep in result}
+        assert providers == {"huggingface", "cloudflare"}
+        # gpt-4-turbo (paid) survives — the filter stage drops it.
+        assert any(ep["free"] is False for ep in result)
+        # Free providers carry pricing lifted verbatim.
+        free_endpoints = [ep for ep in result if ep["free"]]
+        for ep in free_endpoints:
+            assert ep["pricing"] is not None
 
 
 def test_fetch_huggingface_models_empty_payload_returns_empty():

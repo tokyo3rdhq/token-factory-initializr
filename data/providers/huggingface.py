@@ -122,58 +122,48 @@ def _fetch_via_requests(proxy_url: str, timeout: int) -> str:
     return resp.text
 
 
-def filter_free_providers(payload: dict) -> List[Dict[str, Any]]:
-    """Group free providers per model; keep only models with ≥1 free provider.
+def _is_free_provider(provider_entry: Dict[str, Any]) -> bool:
+    """Decide whether a single HF router provider entry is free.
 
-    Returns list of dicts keyed by model id; each entry's providers field is
-    a flat list of one ModelEndpoint-worthy dict per free provider.
+    The HF router API surfaces per-token prices at
+    ``provider.pricing.{input, output}`` and a status flag at
+    ``provider.status``. A provider is "free" iff:
+
+      * ``status == "live"``, AND
+      * ``pricing.input == 0`` AND ``pricing.output == 0``
+
+    The upstream also carries an ``is_free: bool`` flag but it's been
+    observed to disagree with the price field on real data (e.g. live
+    ``is_free: false`` with ``pricing: {input: 0, output: 0}``), so
+    the price rule is the authoritative signal. The bool flag, when
+    present, is preserved in metadata but does not affect this
+    decision.
     """
-    by_model: Dict[str, Dict[str, Any]] = {}
-
-    for m in payload.get("data", []):
-        model_id = m.get("id", "")
-        owned_by = m.get("owned_by", model_id.split("/", 1)[0])
-        arch = m.get("architecture", {})
-        input_modalities: List[str] = arch.get("input_modalities", [])
-        output_modalities: List[str] = arch.get("output_modalities", [])
-        # Per-provider context_length is sometimes null even for live free
-        # providers. Fall back to the model-level value when present; only
-        # leave it None if neither is set (real data gap on HF side).
-        model_level_ctx = m.get("context_length")
-        free_providers: List[dict] = []
-        for p in m.get("providers", []):
-            pricing = p.get("pricing") or {}
-            if pricing.get("input") != 0 or pricing.get("output") != 0:
-                continue
-            if p.get("status") != "live":
-                continue
-            provider_ctx = p.get("context_length")
-            effective_ctx = provider_ctx if provider_ctx is not None else model_level_ctx
-            free_providers.append({
-                "provider": p.get("provider", ""),
-                "context_length": effective_ctx,
-                "supports_tools": bool(p.get("supports_tools", False)),
-                "supports_structured_output": bool(p.get("supports_structured_output", False)),
-                "first_token_latency_ms": p.get("first_token_latency_ms"),
-                "throughput": p.get("throughput"),
-                "pricing": {"input": 0.0, "output": 0.0},
-                "status": "live",
-            })
-        if not free_providers:
-            continue
-        by_model[model_id] = {
-            "model_id": model_id,
-            "owned_by": owned_by,
-            "input_modalities": input_modalities,
-            "output_modalities": output_modalities,
-            "free_providers": free_providers,
-        }
-
-    return list(by_model.values())
+    if provider_entry.get("status") != "live":
+        return False
+    pricing = provider_entry.get("pricing") or {}
+    try:
+        return float(pricing.get("input", 0)) == 0 and float(pricing.get("output", 0)) == 0
+    except (TypeError, ValueError):
+        return False
 
 
 def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
-    """Expand a single model+providers group into per-provider endpoint dicts."""
+    """Expand a single model+providers group into per-provider endpoint dicts.
+
+    Pure expansion: emits one canonical endpoint dict per provider in
+    ``model_group["providers"]``, regardless of free/paid status. The
+    ``free`` flag is computed per-provider via the HF pricing rule;
+    :func:`data.providers.free_filter.filter_huggingface_free` (i.e.
+    the pipeline FilterFreeStage) drops the non-free ones.
+
+    Each emitted endpoint carries the real provider name at the
+    top-level ``provider`` field (was previously hidden in
+    ``metadata.router_provider``). The actual upstream price values
+    are also lifted to the top-level ``pricing`` field — the previous
+    implementation hardcoded ``{"input": 0.0, "output": 0.0}`` and
+    lost per-token prices entirely.
+    """
     model_id = model_group["model_id"]
     name = model_id.split("/", 1)[-1] if "/" in model_id else model_id
     input_modalities = model_group["input_modalities"]
@@ -188,12 +178,42 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
     if "embedding" in output_modalities:
         capabilities["embedding"] = True
 
+    architecture = {
+        "input": list(input_modalities),
+        "output": list(output_modalities),
+    }
+
     endpoints: List[dict[str, Any]] = []
-    for fp in model_group["free_providers"]:
+    for p in model_group["providers"]:
+        provider_name = p.get("provider", "") or ""
+        if not provider_name:
+            continue  # malformed entry — drop silently
+
+        # Per-provider context_length with fallback to model-level.
+        provider_ctx = p.get("context_length")
+        model_level_ctx = model_group.get("model_level_context_length")
+        effective_ctx = provider_ctx if provider_ctx is not None else model_level_ctx
+
+        # Per-provider pricing — preserved as raw values from upstream
+        # (typically floats). Empty / missing treated as None.
+        raw_pricing = p.get("pricing") or {}
+        pricing: Optional[Dict[str, Any]] = None
+        if raw_pricing:
+            pricing = {
+                k: v for k, v in raw_pricing.items()
+                if isinstance(v, (str, int, float))
+            } or None
+
+        # Free flag derived from price + status (single source of
+        # truth — see _is_free_provider docstring).
+        free = _is_free_provider(p)
+
         endpoints.append({
-            "provider": "huggingface",
+            # The actual provider name (was hardcoded to "huggingface"
+            # in the old design — bug fixed: see roadmap discussion).
+            "provider": provider_name,
             "model_id": model_id,
-            "free": True,
+            "free": free,
             "fetched_at": datetime.now(timezone.utc).isoformat(),
             "name": name,
             "description": None,
@@ -201,59 +221,89 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
             # HF's router API exposes modalities under ``architecture``;
             # we keep the same key in our canonical schema so consumers can
             # read the field name verbatim.
-            "architecture": {
-                "input": list(input_modalities),
-                "output": list(output_modalities),
-            },
+            "architecture": architecture,
             "lab": model_group["owned_by"],
+            # Real per-token pricing lifted from upstream. ``None`` when
+            # the provider entry doesn't carry a pricing block.
+            "pricing": pricing,
+            "context_length": effective_ctx,
             "metadata": {
-                "router_provider": fp["provider"],
-                "context_length": fp["context_length"],
-                "supports_tools": fp["supports_tools"],
-                "first_token_latency_ms": fp["first_token_latency_ms"],
-                "throughput": fp["throughput"],
+                # Per-provider metrics that don't fit any top-level
+                # field. ``router_provider`` was removed — the provider
+                # name is at the top-level ``provider`` field now.
+                "supports_tools": bool(p.get("supports_tools", False)),
+                "supports_structured_output": bool(p.get("supports_structured_output", False)),
+                "first_token_latency_ms": p.get("first_token_latency_ms"),
+                "throughput": p.get("throughput"),
+                "is_model_author": bool(p.get("is_model_author", False)),
             },
         })
     return endpoints
 
 
 def parse_huggingface_models(payload: dict) -> List[dict[str, Any]]:
-    """Parse the raw HF router payload into provider endpoint dicts.
+    """Parse the raw HF router payload into per-provider endpoint dicts.
 
     Pure parser — takes the raw router JSON and returns a flat list of
-    canonical endpoint dicts, one per (model, free provider) pair.
-
-    Note on free filtering (asymmetric with NVIDIA/AMD):
-        HF's free rule operates at **provider granularity** within a
-        model (``provider.pricing.input == 0 AND
-        provider.pricing.output == 0 AND provider.status == "live"``),
-        not at endpoint granularity like NVIDIA's "Free Endpoint"
-        label set or AMD's ``status.key == "free_endpoint"`` boolean.
-        Paid providers must be filtered BEFORE per-provider expansion
-        — otherwise a model with 5 providers (3 free, 2 paid) would
-        emit 5 endpoints, and dropping the 2 paid ones post-expansion
-        would discard legitimate per-provider metadata. The HF free
-        rule therefore stays in the parse layer (``filter_free_providers``
-        here). :func:`data.providers.free_filter.filter_huggingface_free`
-        exists as a uniform contract across providers but is a
-        pass-through for HF since free-only is already enforced here.
+    canonical endpoint dicts, **one per (model, provider) pair**. All
+    providers are emitted (free and paid); the free-only filter is
+    the FilterFreeStage's job. The router-level per-provider price
+    rule (``pricing.input == 0 AND pricing.output == 0 AND
+    status == "live"``) is what determines ``ep.free`` per endpoint.
 
     Args:
         payload: the dict returned by :func:`fetch_router_json`.
 
     Returns:
-        List of endpoint dicts (free-only by construction) ready for
-        ``data.models.normalize.normalize_endpoints``.
+        List of endpoint dicts ready for
+        ``data.models.normalize.normalize_endpoints``. Each entry has
+        the actual upstream provider name at the top-level ``provider``
+        field (e.g. ``"novita"`` / ``"cloudflare"`` / ``"huggingface"``),
+        not a hardcoded ``"huggingface"``.
     """
-    free_groups = filter_free_providers(payload)
-    logger.info("Models with ≥1 free provider: %d", len(free_groups))
+    by_model = _group_models_by_id(payload)
+    logger.info("Models with ≥1 provider: %d", len(by_model))
 
     all_endpoints: List[dict[str, Any]] = []
-    for group in free_groups:
+    for group in by_model:
         all_endpoints.extend(to_endpoint_dicts(group))
 
     logger.info("Expanded into %d provider endpoints", len(all_endpoints))
     return all_endpoints
+
+
+def _group_models_by_id(payload: dict) -> List[Dict[str, Any]]:
+    """Group the raw HF router ``data[]`` items by model id.
+
+    Returns a list of per-model dicts shaped as
+    ``{model_id, owned_by, input_modalities, output_modalities,
+    model_level_context_length, providers: [...]}`` — the input
+    contract of :func:`to_endpoint_dicts`. Model-level fields
+    (``architecture``, ``context_length``, ``owned_by``) are flattened
+    onto each group so the per-provider expander doesn't need to know
+    about the outer model structure.
+    """
+    groups: List[Dict[str, Any]] = []
+    for m in payload.get("data", []):
+        model_id = m.get("id", "")
+        if not model_id:
+            continue
+        owned_by = m.get("owned_by", model_id.split("/", 1)[0])
+        arch = m.get("architecture", {})
+        input_modalities: List[str] = arch.get("input_modalities", [])
+        output_modalities: List[str] = arch.get("output_modalities", [])
+        providers = m.get("providers") or []
+        if not providers:
+            continue
+        groups.append({
+            "model_id": model_id,
+            "owned_by": owned_by,
+            "input_modalities": input_modalities,
+            "output_modalities": output_modalities,
+            "model_level_context_length": m.get("context_length"),
+            "providers": providers,
+        })
+    return groups
 
 
 def fetch_huggingface_models() -> List[dict[str, Any]]:

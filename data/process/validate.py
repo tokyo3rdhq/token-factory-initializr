@@ -53,9 +53,74 @@ def validate_endpoint(ep: ModelEndpoint) -> list[str]:
     if not isinstance(ep.metadata, dict):
         issues.append("metadata is not a dict")
 
-    ctx = ep.metadata.get("context_length") if isinstance(ep.metadata, dict) else None
-    if ctx is not None and not isinstance(ctx, int):
-        issues.append(f"metadata.context_length is not int: {type(ctx).__name__}")
+    # context_length is a top-level optional[int] field. None means
+    # "unknown / not provided"; any other non-int is an error.
+    if ep.context_length is not None and not isinstance(ep.context_length, int):
+        issues.append(
+            f"context_length must be int or None, got {type(ep.context_length).__name__}"
+        )
+
+    # Back-compat: providers historically put context_length in
+    # ``metadata`` (AMD/HF); some downstream code reads it from
+    # there directly. Validate the metadata copy's type too so a
+    # malformed payload surfaces as an issue here, not as a crash
+    # in a downstream consumer.
+    if isinstance(ep.metadata, dict):
+        meta_ctx = ep.metadata.get("context_length")
+        if meta_ctx is not None and not isinstance(meta_ctx, int):
+            issues.append(
+                f"metadata.context_length is not int: {type(meta_ctx).__name__}"
+            )
+
+    # architecture, if set, must be a {input: list[str], output: list[str]}
+    # dict. AMD and HF providers populate this; NVIDIA leaves it None
+    # (its modalities live under metadata-derived context). Mis-shaped
+    # values are errors so downstream readers don't crash on iteration.
+    arch = ep.architecture
+    if arch is not None:
+        if not isinstance(arch, dict):
+            issues.append(
+                f"architecture must be dict or None, got {type(arch).__name__}"
+            )
+        elif set(arch.keys()) != {"input", "output"}:
+            issues.append(
+                f"architecture keys must be exactly {{'input', 'output'}}, got {sorted(arch.keys())}"
+            )
+        else:
+            for key in ("input", "output"):
+                items = arch[key]
+                if not isinstance(items, list):
+                    issues.append(
+                        f"architecture['{key}'] must be list, got {type(items).__name__}"
+                    )
+                elif not all(isinstance(s, str) for s in items):
+                    issues.append(
+                        f"architecture['{key}'] must be list[str]; found non-string element"
+                    )
+
+    # pricing, if set, must be a non-empty dict with scalar values
+    # (AMD emits strings in scientific notation like ``"1.4e-7"``;
+    # the contract is "scalar number-like" so float / int / str all
+    # pass). Nested structures are an error.
+    price = ep.pricing
+    if price is not None:
+        if not isinstance(price, dict):
+            issues.append(
+                f"pricing must be dict or None, got {type(price).__name__}"
+            )
+        elif not price:
+            issues.append("pricing must not be an empty dict")
+        else:
+            for key, value in price.items():
+                if not isinstance(key, str):
+                    issues.append(
+                        f"pricing keys must be str, got {type(key).__name__}"
+                    )
+                if not isinstance(value, (str, int, float)):
+                    issues.append(
+                        f"pricing['{key}'] must be scalar (str/int/float), "
+                        f"got {type(value).__name__}"
+                    )
 
     return issues
 

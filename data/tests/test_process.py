@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
@@ -71,6 +73,152 @@ def test_normalize_endpoints_defaults():
     assert eps[0].name is None
 
 
+def test_normalize_lifts_context_length_from_metadata():
+    """``metadata.context_length`` must be lifted to the top-level field."""
+    raw = [{
+        "provider": "amd",
+        "model_id": "x/y",
+        "free": True,
+        "metadata": {"context_length": 8192},
+    }]
+    ep = normalize_endpoints(raw)[0]
+    assert ep.context_length == 8192
+    # And the metadata copy stays put for back-compat.
+    assert ep.metadata["context_length"] == 8192
+
+
+def test_normalize_context_length_none_when_absent():
+    """Missing context_length on both metadata and top-level → None."""
+    raw = [{"provider": "amd", "model_id": "x/y", "free": True}]
+    ep = normalize_endpoints(raw)[0]
+    assert ep.context_length is None
+
+
+def test_normalize_context_length_non_int_metadata_ignored():
+    """A non-int metadata.context_length is ignored (top-level stays None)."""
+    raw = [{
+        "provider": "amd",
+        "model_id": "x/y",
+        "free": True,
+        "metadata": {"context_length": "8192"},
+    }]
+    ep = normalize_endpoints(raw)[0]
+    assert ep.context_length is None
+    # But the metadata copy is preserved as-is (validator catches it).
+    assert ep.metadata["context_length"] == "8192"
+
+
+def test_normalize_lifts_architecture():
+    """``item['architecture']`` is copied onto the dataclass field."""
+    raw = [{
+        "provider": "amd",
+        "model_id": "x/y",
+        "free": True,
+        "architecture": {"input": ["text", "image"], "output": ["text"]},
+    }]
+    ep = normalize_endpoints(raw)[0]
+    assert ep.architecture == {
+        "input": ["text", "image"],
+        "output": ["text"],
+    }
+
+
+def test_normalize_architecture_none_when_missing():
+    """No architecture key in the raw dict → stays None."""
+    raw = [{"provider": "amd", "model_id": "x/y", "free": True}]
+    ep = normalize_endpoints(raw)[0]
+    assert ep.architecture is None
+
+
+def test_normalize_architecture_malformed_kept_as_none():
+    """Wrong shape (extra key / wrong value type) is dropped, not stored."""
+    bad_shapes = [
+        {"input": ["text"], "output": ["text"], "extra": "x"},
+        {"input": "text", "output": ["text"]},  # input not a list
+        {"input": [1, 2], "output": ["text"]},   # input not list[str]
+        {"outputs": ["text"]},                    # wrong key
+        "not-a-dict",
+    ]
+    for bad in bad_shapes:
+        raw = [{
+            "provider": "amd",
+            "model_id": "x/y",
+            "free": True,
+            "architecture": bad,
+        }]
+        ep = normalize_endpoints(raw)[0]
+        assert ep.architecture is None, f"should drop malformed arch: {bad!r}"
+
+
+def test_normalize_lifts_real_amd_fixture_architecture():
+    """End-to-end: real AMD fixture → architecture populated, context_length set."""
+    fixtures = Path(__file__).parent / "fixtures"
+    with open(fixtures / "amd_detail_ragdoll.json", encoding="utf-8") as f:
+        detail = json.load(f)
+
+    from data.providers.amd import build_endpoint_dict
+
+    raw = [build_endpoint_dict(detail)]
+    ep = normalize_endpoints(raw)[0]
+    # Fixture has model.output = ["text"]; build_endpoint_dict adds "text"
+    # to input and image (provider_pricing.vision = true). Verify the
+    # lifted dataclass field matches.
+    assert ep.architecture is not None
+    assert "text" in ep.architecture["input"]
+    assert "image" in ep.architecture["input"]
+    assert "text" in ep.architecture["output"]
+    # And context_length (1048576 in the fixture) lifts correctly.
+    assert ep.context_length == 1048576
+
+
+def test_normalize_lifts_pricing():
+    """``item['pricing']`` is copied onto the dataclass field."""
+    raw = [{
+        "provider": "amd",
+        "model_id": "x/y",
+        "free": True,
+        "pricing": {"prompt": "1.4e-7", "completion": "2.8e-7"},
+    }]
+    ep = normalize_endpoints(raw)[0]
+    assert ep.pricing == {"prompt": "1.4e-7", "completion": "2.8e-7"}
+
+
+def test_normalize_pricing_none_when_missing():
+    """No pricing key in the raw dict → stays None."""
+    raw = [{"provider": "amd", "model_id": "x/y", "free": True}]
+    ep = normalize_endpoints(raw)[0]
+    assert ep.pricing is None
+
+
+def test_normalize_pricing_empty_dict_stays_none():
+    """An empty pricing dict is treated as "no data" → None."""
+    raw = [{
+        "provider": "amd",
+        "model_id": "x/y",
+        "free": True,
+        "pricing": {},
+    }]
+    ep = normalize_endpoints(raw)[0]
+    assert ep.pricing is None
+
+
+def test_normalize_lifts_pricing_from_live_amd_fixture():
+    """End-to-end: live AMD fixture (MiMo) carries real per-token prices."""
+    fixtures = Path(__file__).parent / "fixtures"
+    with open(fixtures / "amd_detail_MiMo-V2.6-Flash_live.json", encoding="utf-8") as f:
+        detail = json.load(f)
+
+    from data.providers.amd import build_endpoint_dict
+
+    ep = normalize_endpoints([build_endpoint_dict(detail)])[0]
+    assert ep.pricing is not None
+    # Live AMD data has prompt / completion / input_cache_read keys.
+    assert "prompt" in ep.pricing
+    assert "completion" in ep.pricing
+    # String values preserved verbatim (precision loss risk).
+    assert isinstance(ep.pricing["prompt"], str)
+
+
 def test_endpoint_to_dict():
     ep = ModelEndpoint(
         provider="amd",
@@ -127,6 +275,95 @@ def test_validate_endpoint_bad_context_length():
     ep.metadata["context_length"] = "8192"  # type: ignore[assignment]
     issues = validate_endpoint(ep)
     assert any("context_length" in i for i in issues)
+
+
+def test_validate_endpoint_architecture_valid():
+    """A well-shaped architecture must produce no architecture-related issues."""
+    ep = _mk("amd", "x/y")
+    object.__setattr__(ep, "architecture", {"input": ["text"], "output": ["text"]})
+    issues = validate_endpoint(ep)
+    assert not any("architecture" in i for i in issues)
+
+
+def test_validate_endpoint_architecture_wrong_type():
+    """Non-dict architecture is rejected."""
+    ep = _mk("amd", "x/y")
+    object.__setattr__(ep, "architecture", "not-a-dict")  # type: ignore[arg-type]
+    issues = validate_endpoint(ep)
+    assert any("architecture must be dict or None" in i for i in issues)
+
+
+def test_validate_endpoint_architecture_wrong_keys():
+    """Extra / missing keys on architecture are rejected."""
+    ep = _mk("amd", "x/y")
+    object.__setattr__(ep, "architecture", {"input": ["text"], "output": ["text"], "extra": "x"})
+    issues = validate_endpoint(ep)
+    assert any("architecture keys must be exactly" in i for i in issues)
+
+
+def test_validate_endpoint_architecture_non_list_values():
+    """Non-list values inside architecture are rejected."""
+    ep = _mk("amd", "x/y")
+    object.__setattr__(ep, "architecture", {"input": "text", "output": ["text"]})
+    issues = validate_endpoint(ep)
+    assert any("architecture['input'] must be list" in i for i in issues)
+
+
+def test_validate_endpoint_architecture_non_string_elements():
+    """Non-string elements inside architecture lists are rejected."""
+    ep = _mk("amd", "x/y")
+    object.__setattr__(ep, "architecture", {"input": [1, 2], "output": ["text"]})
+    issues = validate_endpoint(ep)
+    assert any("architecture['input'] must be list[str]" in i for i in issues)
+
+
+def test_validate_endpoint_architecture_none_is_ok():
+    """architecture = None is the legitimate default for providers that
+    don't expose modalities (NVIDIA today). Must not produce issues."""
+    ep = _mk("nvidia", "x/y")
+    # _mk does not set architecture, so it stays at the dataclass default.
+    issues = validate_endpoint(ep)
+    assert not any("architecture" in i for i in issues)
+
+
+def test_validate_endpoint_pricing_valid():
+    """A well-shaped pricing dict (string/int/float values) is accepted."""
+    ep = _mk("amd", "x/y")
+    object.__setattr__(ep, "pricing", {"prompt": "1.4e-7", "completion": 0.0})
+    issues = validate_endpoint(ep)
+    assert not any("pricing" in i for i in issues)
+
+
+def test_validate_endpoint_pricing_none_is_ok():
+    """pricing = None is the legitimate default for providers without
+    per-token prices (HF, NVIDIA today). Must not produce issues."""
+    ep = _mk("huggingface", "x/y")
+    issues = validate_endpoint(ep)
+    assert not any("pricing" in i for i in issues)
+
+
+def test_validate_endpoint_pricing_wrong_type():
+    """Non-dict pricing is rejected."""
+    ep = _mk("amd", "x/y")
+    object.__setattr__(ep, "pricing", "free")  # type: ignore[arg-type]
+    issues = validate_endpoint(ep)
+    assert any("pricing must be dict or None" in i for i in issues)
+
+
+def test_validate_endpoint_pricing_empty_dict_rejected():
+    """An empty pricing dict is rejected (must be None or non-empty)."""
+    ep = _mk("amd", "x/y")
+    object.__setattr__(ep, "pricing", {})
+    issues = validate_endpoint(ep)
+    assert any("pricing must not be an empty dict" in i for i in issues)
+
+
+def test_validate_endpoint_pricing_nested_value_rejected():
+    """Nested structures inside pricing are rejected (only scalars allowed)."""
+    ep = _mk("amd", "x/y")
+    object.__setattr__(ep, "pricing", {"prompt": {"min": 0}})
+    issues = validate_endpoint(ep)
+    assert any("pricing['prompt'] must be scalar" in i for i in issues)
 
 
 def test_validate_all_splits_valid_invalid():

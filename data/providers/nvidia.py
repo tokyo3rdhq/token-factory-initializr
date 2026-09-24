@@ -90,27 +90,183 @@ def _parse_objects(rsc_payload: str) -> List[Dict]:
     return objects
 
 
+def _extract_publisher(obj: Dict) -> Optional[str]:
+    """Return the publisher name from ``labels.publisher.values[0]``.
+
+    NVIDIA's live RSC payload carries the publisher at
+    ``labels[].key == "publisher" -> values[0]`` (a list of strings like
+    ``"deepseek-ai"`` / ``"nvidia"``). ``resourceId`` is a NIM namespace
+    like ``"qc69jvmznzxy/<slug>"`` which is NOT useful as a public
+    ``model_id`` — the publisher label is the canonical org.
+
+    Returns ``None`` when the publisher label is absent or malformed;
+    callers should fall back to legacy heuristics in that case.
+    """
+    labels = obj.get("labels")
+    if not isinstance(labels, list):
+        return None
+    for lbl in labels:
+        if not isinstance(lbl, dict):
+            continue
+        if lbl.get("key") != "publisher":
+            continue
+        values = lbl.get("values") or []
+        if values:
+            return str(values[0])
+    return None
+
+
+def _labels_to_dict(labels: Any) -> Dict[str, Dict[str, Any]]:
+    """Normalize the labels payload to a ``{key: {"values": [...], "unresolved": [...]}}`` dict.
+
+    Live RSC uses a list of ``{key, values, unresolvedValues}`` objects;
+    legacy fixtures use a dict keyed by label name. Returns ``{}`` on
+    unknown shapes.
+    """
+    out: Dict[str, Dict[str, Any]] = {}
+    if isinstance(labels, dict):
+        for k, v in labels.items():
+            if isinstance(v, dict):
+                out[k] = {
+                    "values": list(v.get("values") or []),
+                    "unresolved": list(v.get("unresolvedValues") or []),
+                }
+            else:
+                out[k] = {"values": [], "unresolved": []}
+    elif isinstance(labels, list):
+        for lbl in labels:
+            if not isinstance(lbl, dict):
+                continue
+            k = lbl.get("key")
+            if not k:
+                continue
+            out[k] = {
+                "values": list(lbl.get("values") or []),
+                "unresolved": list(lbl.get("unresolvedValues") or []),
+            }
+    return out
+
+
+def _derive_architecture_from_labels(labels: Dict[str, Dict[str, Any]]) -> Optional[Dict[str, List[str]]]:
+    """Best-effort architecture from ``usecase`` + ``general`` labels.
+
+    NVIDIA's RSC payload does NOT carry explicit input/output_modalities
+    fields. The closest signals are:
+
+      * ``usecase`` values like ``"Text-to-Embedding"``,
+        ``"Image Generation"``, ``"Text-to-Speech"``, ``"Image-to-Text"``,
+        ``"Optical Character Recognition"``.
+      * ``general`` values like ``"Vision Language Model"`` or
+        ``"Multimodal MOE"``.
+
+    Returns ``None`` when the labels give no actionable signal (this is
+    common — many live endpoints have neither ``usecase`` nor a
+    ``general`` value indicating modality).
+    """
+    usecases: List[str] = labels.get("usecase", {}).get("values", []) or []
+    generals: List[str] = labels.get("general", {}).get("values", []) or []
+
+    inputs: List[str] = []
+    outputs: List[str] = []
+
+    # Output modality inference from usecase.
+    for uc in usecases:
+        if uc == "Text-to-Embedding":
+            outputs.append("embedding")
+        elif uc == "Image Generation":
+            outputs.append("image")
+        elif uc == "Text-to-Speech":
+            outputs.append("audio")
+        elif uc == "Optical Character Recognition":
+            outputs.append("text")
+        # Chat / RAG / Synthetic-Data / Translation → text output (covered below
+        # by the chat-from-playgroundType branch).
+        # Image-to-Text → text output (covered below).
+
+    # Chat inference from playgroundType (almost always "chat" on live data).
+    playground_types: List[str] = labels.get("playgroundType", {}).get("values", []) or []
+    if "chat" in playground_types:
+        if "text" not in outputs:
+            outputs.append("text")
+
+    # Input modality inference from usecase prefix.
+    for uc in usecases:
+        if uc.startswith("Image-to-") or uc.startswith("Image-to"):
+            if "image" not in inputs:
+                inputs.append("image")
+
+    # Vision hint from ``general`` (covers multimodal chat models that
+    # don't have a vision-specific usecase).
+    if "Vision Language Model" in generals and "image" not in inputs:
+        inputs.append("image")
+
+    # Multimodal input hint from ``general``.
+    if "Multimodal MOE" in generals and "image" not in inputs:
+        inputs.append("image")
+
+    # Text-to-Image: text in, image out.
+    if "Text-to-Image" in usecases:
+        if "text" not in inputs:
+            inputs.append("text")
+
+    # Image Generation: text in (prompt), image out. Also a text-input
+    # model — needs the same "text" prefix as Text-to-X usecases.
+    if "Image Generation" in usecases:
+        if "text" not in inputs:
+            inputs.append("text")
+
+    # Text-to-X usecases (Text-to-Embedding, Text-to-Speech, Text-to-Image)
+    # implicitly have ``text`` input. Adding this explicitly so the
+    # ``input`` field is accurate when the model takes text in and
+    # produces some other modality out.
+    if any(uc.startswith("Text-to-") for uc in usecases):
+        if "text" not in inputs:
+            inputs.append("text")
+
+    # Dedupe while preserving order.
+    seen = set()
+    dedup_inputs = [s for s in inputs if not (s in seen or seen.add(s))]
+    seen.clear()
+    dedup_outputs = [s for s in outputs if not (s in seen or seen.add(s))]
+
+    if not dedup_inputs and not dedup_outputs:
+        return None
+    return {"input": dedup_inputs, "output": dedup_outputs}
+
+
 def _normalize_model(obj: Dict) -> ModelEndpoint:
     """Convert raw ENDPOINT object to ModelEndpoint."""
     resource_id = obj.get("resourceId", "")
     name = obj.get("displayName", obj.get("name", ""))
-    model_id = resource_id if "/" in resource_id else f"qc69jvmznzxy/{name}"
+    publisher = _extract_publisher(obj)
+    if "/" in resource_id and publisher:
+        # Live RSC: resourceId is the NIM namespace prefix
+        # (e.g. "qc69jvmznzxy/deepseek-v4.1-flash"); the real org/name
+        # pair comes from publisher + displayName. Use the publisher
+        # as the org so model_ids stay consistent with HF/AMD
+        # (``org/name`` shape).
+        model_id = f"{publisher}/{name}" if name else resource_id
+    elif "/" in resource_id:
+        # Legacy / fallback: resourceId is already ``org/name``.
+        model_id = resource_id
+    else:
+        # No org info anywhere — legacy synthesis uses the NIM
+        # namespace prefix to avoid collisions.
+        model_id = f"qc69jvmznzxy/{name}"
 
-    # Determine free status: "Free Endpoint" in nimType.values → free=True.
-    # Real API returns labels as a LIST of {key, values, unresolvedValues};
-    # older payloads (and the test fixture) use a dict keyed by label name.
-    # Handle both shapes; unknown shapes degrade to not-free rather than crash.
+    # Normalize labels once for downstream readers (free detection,
+    # architecture derivation, and metadata.labels).
     labels = obj.get("labels", {})
-    nim_values: List[str] = []
-    if isinstance(labels, dict):
-        nim_values = labels.get("nimType", {}).get("values", []) or []
-    elif isinstance(labels, list):
-        for lbl in labels:
-            if isinstance(lbl, dict) and lbl.get("key") == "nimType":
-                nim_values = lbl.get("values", []) or []
-                break
+    labels_dict = _labels_to_dict(labels)
+
+    # Free detection: "Free Endpoint" in nimType.values → free=True.
+    nim_values: List[str] = labels_dict.get("nimType", {}).get("values", []) or []
     free = "Free Endpoint" in nim_values
 
+    # Capability detection from the legacy ``attributes`` shape
+    # (``CHAT_MODALITY`` / ``TOOL_CALLING``). Live RSC has stopped
+    # carrying these — see the label-driven architecture derivation
+    # below for the current path.
     attrs = obj.get("attributes", {})
     capabilities = {}
     if isinstance(attrs, dict):
@@ -125,6 +281,19 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
                     capabilities["chat"] = True
                 if a.get("key") == "TOOL_CALLING" and a.get("value") == "true":
                     capabilities["tool_calling"] = True
+
+    # Architecture derivation: try labels first (live data path),
+    # then fall back to the capability-based legacy path.
+    architecture = _derive_architecture_from_labels(labels_dict)
+    if architecture is None:
+        output_modalities: List[str] = []
+        if capabilities.get("chat"):
+            output_modalities.append("text")
+        if capabilities.get("tool_calling"):
+            if "text" not in output_modalities:
+                output_modalities.append("text")
+            output_modalities.append("tool_calls")
+        architecture = {"input": [], "output": output_modalities} if output_modalities else None
 
     metadata: Dict[str, Any] = {}
     if "raw_obj" in obj:
@@ -147,18 +316,6 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
                 }
             metadata["labels"] = meta_labels
 
-    # Derive output_modalities from capabilities. NIM doesn't expose
-    # explicit modality metadata, but chat models emit text and tool-
-    # calling models emit text + tool_calls.
-    output_modalities: List[str] = []
-    if capabilities.get("chat"):
-        output_modalities.append("text")
-    if capabilities.get("tool_calling"):
-        if "text" not in output_modalities:
-            output_modalities.append("text")
-        output_modalities.append("tool_calls")
-    architecture = {"input": [], "output": output_modalities} if output_modalities else None
-
     return ModelEndpoint(
         provider="nvidia",
         model_id=model_id,
@@ -172,6 +329,18 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         description=obj.get("description", ""),
         capabilities=capabilities,
         architecture=architecture,
+        # ``pricing`` and ``context_length`` are deliberately left as
+        # ``None`` — NVIDIA's RSC payload does not expose per-token
+        # prices or context window size. The schema contract treats
+        # these as optional fields (set when the upstream actually
+        # carries them; absent otherwise). Downstream code that needs
+        # NVIDIA-specific context window info can fall back to
+        # ``metadata.labels`` (some endpoints include ``general``
+        # values that hint at model class) or the canonical catalog
+        # page (https://build.nvidia.com/models/<slug>) which renders
+        # per-model details in HTML.
+        pricing=None,
+        context_length=None,
         metadata=metadata,
     )
 

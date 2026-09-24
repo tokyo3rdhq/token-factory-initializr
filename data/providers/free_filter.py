@@ -12,10 +12,10 @@ Each provider exposes its own rule for what counts as "free":
 * **Hugging Face** — ``provider.pricing.input == 0 AND
   provider.pricing.output == 0 AND provider.status == "live"`` per
   provider within a model. The HF parser
-  (:func:`data.providers.huggingface.parse_huggingface_models`) already
-  applies this rule via ``filter_free_providers``; the filter stage here
-  is a pass-through safety net that drops anything whose ``free`` flag
-  was unset (defensive against future parse changes).
+  (:func:`data.providers.huggingface.parse_huggingface_models`) emits
+  one endpoint per ``(model, provider)`` pair regardless of paid/free
+  status, computing the ``free`` flag via the rule above. The filter
+  stage drops endpoints where ``free=False``.
 
 The three rules are intentionally **separate functions**, not a single
 predicate: the rule shape itself differs (label set membership vs.
@@ -64,16 +64,16 @@ def filter_amd_free(endpoints: List[dict]) -> List[dict]:
 
 
 def filter_huggingface_free(endpoints: List[dict]) -> List[dict]:
-    """Pass-through for Hugging Face endpoints.
+    """Drop Hugging Face endpoints whose ``free`` flag is False.
 
-    The HF parser (:func:`data.providers.huggingface.parse_huggingface_models`)
-    already enforces the HF free rule
-    (``provider.pricing.input == 0 AND provider.pricing.output == 0
-    AND provider.status == "live"``) via ``filter_free_providers`` —
-    only free providers survive to ``to_endpoint_dicts``. The resulting
-    endpoint dicts all have ``free=True``, so this filter is a no-op
-    in practice. Kept as a uniform contract across providers and as a
-    defensive guard if the parser is ever refactored.
+    After the parse-side refactor (per-provider expansion of all
+    HF router providers, regardless of paid/free status), every
+    endpoint already has a correct ``free`` flag computed via the
+    HF pricing rule. The filter just enforces that contract — any
+    endpoint with ``free=False`` is dropped. (The HF parser
+    expands one endpoint per ``(model, provider)`` pair; a single
+    model can therefore yield multiple endpoints where some are
+    free and some are paid. The filter keeps only the free ones.)
     """
     return [ep for ep in endpoints if ep.get("free") is True]
 
