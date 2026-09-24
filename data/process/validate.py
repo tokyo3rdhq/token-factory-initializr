@@ -3,9 +3,18 @@
 This is a transform/pipeline stage — it lives under `data.process/`.
 
 Unlike normalize (shape conversion), validate
-checks *content sanity*: required fields non-empty, types correct, known
-enums respected.  Invalid records are returned separately, never dropped
-silently.
+checks *content sanity*: required fields non-empty, types correct.
+Invalid records are returned separately, never dropped silently.
+
+Provider allowlist (historical):
+    An earlier version of this module rejected ``provider`` values
+    outside ``{nvidia, amd, huggingface}``. That allowlist became
+    obsolete after the HF parse rewrite (which now emits one
+    ``ModelEndpoint`` per upstream router provider, carrying names
+    like ``"novita"`` / ``"fireworks-ai"`` / ``"together"`` /
+    ``"cloudflare"`` at the top-level ``provider`` field). The
+    field is now treated as opaque: any non-empty string is valid;
+    the downstream consumer / filter decides what to do with it.
 """
 
 from __future__ import annotations
@@ -16,7 +25,6 @@ from typing import Any
 
 from data.models.schema import ModelEndpoint
 
-KNOWN_PROVIDERS = {"nvidia", "amd", "huggingface"}
 # model_id must look like "<org>/<name>" or an opaque AMD gateway id
 _MODEL_ID_RE = re.compile(r"^\S+$")
 
@@ -32,10 +40,13 @@ def validate_endpoint(ep: ModelEndpoint) -> list[str]:
     """
     issues: list[str] = []
 
+    # Provider is now an opaque string. NVIDIA / AMD / HF carry
+    # their own semantic ("nvidia" / "amd" / "huggingface"); HF's
+    # per-provider expansion carries the actual upstream router name
+    # ("novita" / "fireworks-ai" / etc.). Whitespace-only / empty
+    # values are still rejected.
     if not ep.provider or not ep.provider.strip():
         issues.append("provider is empty")
-    elif ep.provider not in KNOWN_PROVIDERS:
-        issues.append(f"unknown provider '{ep.provider}'")
 
     if not ep.model_id or not ep.model_id.strip():
         issues.append("model_id is empty")

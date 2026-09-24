@@ -258,10 +258,19 @@ def test_validate_endpoint_empty_provider():
     assert any("provider is empty" in i for i in issues)
 
 
-def test_validate_endpoint_unknown_provider():
-    ep = _mk("openai", "x/y")
+def test_validate_endpoint_unknown_provider_removed_opaque_string_accepted():
+    """After the HF parse rewrite, ``provider`` is an opaque string.
+
+    Real HF router provider names (``"novita"`` / ``"fireworks-ai"`` /
+    ``"together"`` / ``"cloudflare"`` etc.) are valid; the validator
+    only rejects empty / whitespace-only values. Historical test
+    ``test_validate_endpoint_unknown_provider`` was removed because
+    the allowlist (``{nvidia, amd, huggingface}``) was obsolete.
+    """
+    ep = _mk("fireworks-ai", "x/y")
     issues = validate_endpoint(ep)
-    assert any("unknown provider" in i for i in issues)
+    # No "unknown provider" or "provider is empty" issue should fire.
+    assert not any("provider" in i for i in issues)
 
 
 def test_validate_endpoint_empty_model_id():
@@ -368,11 +377,11 @@ def test_validate_endpoint_pricing_nested_value_rejected():
 
 def test_validate_all_splits_valid_invalid():
     good = _mk("amd", "x/y")
-    bad = _mk("openai", "z/w")
+    bad = _mk("amd", "  ")  # whitespace-only model_id → invalid
     valid, invalid = validate_all([good, bad])
     assert len(valid) == 1
     assert len(invalid) == 1
-    assert invalid[0]["endpoint"]["provider"] == "openai"
+    assert invalid[0]["endpoint"]["model_id"] == "  "
     assert invalid[0]["issues"]
 
 

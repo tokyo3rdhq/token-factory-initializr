@@ -270,7 +270,7 @@ def test_normalize_stage_calls_normalize_endpoints_for_amd_dicts():
 
 def test_validate_stage_splits_valid_invalid():
     ctx = PipelineContext()
-    ctx.data["endpoints"] = [_mk_ep("amd", "good"), _mk_ep("openai", "bad")]
+    ctx.data["endpoints"] = [_mk_ep("amd", "good"), _mk_ep("amd", "bad id")]
     out = ValidateStage().execute(ctx)
     assert len(out.data["valid"]) == 1
     assert len(out.data["invalid"]) == 1
