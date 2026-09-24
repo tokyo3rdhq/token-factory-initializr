@@ -469,13 +469,26 @@ def test_fetch_with_cooldown_passes_base_url_and_params():
 
 
 def test_fetch_catalog_page():
+    """fetch_catalog_page composes fetch → parse → free-filter.
+
+    Mocks fetch_all_pages to return raw HTML and asserts the full
+    convenience pipeline: parse all endpoints (4 fixture entries →
+    3 unique after dedup), then drop the "Run Anywhere" mistral row
+    via ``filter_nvidia_free`` → 2 free endpoints.
+    """
     with open(str(FIXTURES / "nvidia_html.html"), encoding="utf-8") as f:
         html = f.read()
 
-    with patch("data.providers.nvidia.NvidiaCatalogParser.fetch_all_pages") as mock_fetch:
-        mock_fetch.return_value = parse_html(html)
+    with patch(
+        "data.providers.nvidia.NvidiaCatalogParser.fetch_all_pages"
+    ) as mock_fetch:
+        mock_fetch.return_value = [html]
         result = fetch_catalog_page()
-        assert len(result) == 3
+        # Fixture: gemma (free) + llama (free) + mistral×2 (Run Anywhere, not free)
+        # Dedup → 3 unique → filter → 2 free endpoints.
+        assert len(result) == 2
+        assert all(ep.provider == "nvidia" for ep in result)
+        assert all(ep.free for ep in result)
 
 
 def test_fetch_catalog_page_passes_filters_through():
@@ -492,14 +505,17 @@ def test_fetch_catalog_page_passes_filters_through():
 
 
 def test_parser_get_all_models_uses_preview_filter():
-    """get_all_models must call fetch_all_pages with nim_type_preview filter."""
+    """get_all_models must compose get_all_pages + parse_nvidia_pages."""
     from data.providers.nvidia import NvidiaCatalogParser
 
     parser = NvidiaCatalogParser()
-    with patch.object(parser, "fetch_all_pages") as mock_fetch:
-        mock_fetch.return_value = []
+    with patch.object(parser, "get_all_pages", return_value=[]) as mock_pages, \
+         patch(
+             "data.providers.nvidia.parse_nvidia_pages", return_value=[]
+         ) as mock_parse:
         parser.get_all_models()
-        mock_fetch.assert_called_once_with({"nimType": "nim_type_preview"})
+        mock_pages.assert_called_once_with()
+        mock_parse.assert_called_once_with([])
 
 
 def test_parser_fetch_all_pages_stops_on_empty_html():
@@ -515,14 +531,16 @@ def test_parser_fetch_all_pages_stops_on_empty_html():
 
 
 def test_parser_fetch_all_pages_collects_across_pages():
-    """Multiple non-empty pages extend the result list."""
+    """Multiple non-empty pages extend the result list of raw HTML.
+
+    ``fetch_all_pages`` is now a pure downloader: it returns the HTML
+    strings, NOT parsed endpoints. The parse side has moved to
+    :func:`parse_nvidia_pages`, which is tested separately.
+    """
     from data.providers.nvidia import NvidiaCatalogParser
 
-    ep1 = _ep({"resourceId": "a/1", "displayName": "A", "labels": [], "attributes": []})
-    ep2 = _ep({"resourceId": "b/2", "displayName": "B", "labels": [], "attributes": []})
-
     def fake_cooldown(session, params, **kwargs):
-        # page 1 → ep1, page 2 → ep2, page 3+ → empty (stops)
+        # page 1 → "page1", page 2 → "page2", page 3+ → empty (stops)
         page = int(params.get("page", "1"))
         if page == 1:
             return "page1"
@@ -532,50 +550,36 @@ def test_parser_fetch_all_pages_collects_across_pages():
 
     parser = NvidiaCatalogParser()
     with patch("data.providers.nvidia.fetch_with_cooldown", side_effect=fake_cooldown), \
-         patch("data.providers.nvidia.parse_html", side_effect=[[ep1], [ep2], []]), \
          patch("data.providers.nvidia.time.sleep"):
-        result = parser.fetch_all_pages(max_pages=5, free_only=False)
+        result = parser.fetch_all_pages(max_pages=5)
 
-    assert [e.model_id for e in result] == ["a/1", "b/2"]
+    assert result == ["page1", "page2"]
 
 
-def test_parser_fetch_all_pages_filters_non_free_by_default():
-    """Default free_only=True must drop endpoints with free=False (Run Anywhere).
+def test_parse_nvidia_pages_returns_all_endpoints_including_non_free():
+    """Pure parse: must return every recognized endpoint, free or not.
 
-    Regression: previously fetch_all_pages returned ALL endpoints because
-    no caller applied a free filter. Verify ModelEndpoint.free=False rows
-    (e.g. mistral / partner endpoints) are excluded by default.
+    After the free-filter refactor, ``parse_nvidia_pages`` does NOT
+    apply any filter — that's the :func:`filter_nvidia_free` job.
+    The fixture's "Run Anywhere" mistral endpoint comes through here,
+    with ``free=False`` set by :func:`_normalize_model`.
     """
-    from data.providers.nvidia import NvidiaCatalogParser
+    from data.providers.nvidia import parse_nvidia_pages
 
     with open(str(FIXTURES / "nvidia_html.html"), encoding="utf-8") as f:
         html = f.read()
 
-    parser = NvidiaCatalogParser()
-    with patch("data.providers.nvidia.fetch_with_cooldown", return_value=html), \
-         patch("data.providers.nvidia.time.sleep"):
-        result = parser.fetch_all_pages(max_pages=1)
-
+    result = parse_nvidia_pages([html])
     model_ids = {ep.model_id for ep in result}
-    assert "mistralai/Mistral-7B-Instruct-v0.3" not in model_ids
+    # The non-free "Run Anywhere" partner endpoint IS present — the
+    # filter stage is responsible for dropping it downstream.
+    assert "mistralai/Mistral-7B-Instruct-v0.3" in model_ids
     assert "google/gemma-4-31b-it" in model_ids
     assert "meta-llama/Llama-3.1-8B-Instruct" in model_ids
-
-
-def test_parser_fetch_all_pages_free_only_false_keeps_all():
-    """free_only=False preserves the historical "fetch everything" behaviour."""
-    from data.providers.nvidia import NvidiaCatalogParser
-
-    with open(str(FIXTURES / "nvidia_html.html"), encoding="utf-8") as f:
-        html = f.read()
-
-    parser = NvidiaCatalogParser()
-    with patch("data.providers.nvidia.fetch_with_cooldown", return_value=html), \
-         patch("data.providers.nvidia.time.sleep"):
-        result = parser.fetch_all_pages(max_pages=1, free_only=False)
-
-    model_ids = {ep.model_id for ep in result}
-    assert "mistralai/Mistral-7B-Instruct-v0.3" in model_ids
+    # And the free flag is correctly set on each row.
+    by_id = {ep.model_id: ep.free for ep in result}
+    assert by_id["google/gemma-4-31b-it"] is True
+    assert by_id["mistralai/Mistral-7B-Instruct-v0.3"] is False
 
 
 def test_parser_fetch_returns_text_for_filters():

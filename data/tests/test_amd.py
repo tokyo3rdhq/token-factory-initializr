@@ -18,7 +18,6 @@ from data.providers.amd import (
     DEFAULT_UA,
     TIMEOUT,
     _get_json,
-    _parse_bootstrap,
     _post_json,
     _strip_gateway_prefix,
     build_endpoint_dict,
@@ -147,28 +146,6 @@ def test_fetch_detail():
         mock_get.return_value = detail
         result = fetch_detail("model_gateway:MiMo-V2.6-Flash", "test-ua", timeout=5)
         assert result == detail
-
-
-# ---------------------------------------------------------------------------
-# _parse_bootstrap
-# ---------------------------------------------------------------------------
-
-
-def test_parse_bootstrap_flattens_to_id_section():
-    """Cards are normalized to {id, section} pairs."""
-    cards = [
-        {"id": "model_gateway:A", "section": "public_free", "extra": "ignored"},
-        {"id": "model_gateway:B", "section": "premium"},
-    ]
-    out = _parse_bootstrap(cards)
-    assert out == [
-        {"id": "model_gateway:A", "section": "public_free"},
-        {"id": "model_gateway:B", "section": "premium"},
-    ]
-
-
-def test_parse_bootstrap_empty():
-    assert _parse_bootstrap([]) == []
 
 
 # ---------------------------------------------------------------------------

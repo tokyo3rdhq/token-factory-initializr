@@ -262,51 +262,109 @@ class NvidiaCatalogParser:
         self,
         filters: Optional[Dict[str, str]] = None,
         max_pages: int = 5,
-        free_only: bool = True,
-    ) -> List[ModelEndpoint]:
-        """Fetch all pages of filtered/unfiltered catalog.
+    ) -> List[str]:
+        """Fetch all pages of filtered/unfiltered catalog as raw HTML.
 
-        ``free_only=True`` (default) drops any endpoint whose
-        ``ModelEndpoint.free`` is False. ``_normalize_model`` derives that
-        flag from ``labels.nimType.values contains "Free Endpoint"``;
-        "Run Anywhere" partner endpoints are therefore excluded, which
-        is what the free-model aggregator wants.
+        Pure download: returns a list of HTML strings, one per page.
+        Stops as soon as a page comes back empty (no WAF block, no more
+        data). Use :func:`parse_nvidia_pages` to turn the HTML into
+        ``ModelEndpoint`` objects.
+
+        Args:
+            filters: query filters, e.g. ``{"nimType": "nim_type_preview"}``.
+            max_pages: maximum pagination depth (default 5).
+
+        Returns:
+            List of HTML response bodies, one per page that returned
+            non-empty content. Empty pages terminate the loop.
         """
-        models: List[ModelEndpoint] = []
+        pages: List[str] = []
         for pg in range(1, max_pages + 1):
             params = {**(filters or {}), "page": str(pg)}
             html = fetch_with_cooldown(self.session, params)
             if html:
-                parsed = parse_html(html)
-                if free_only:
-                    parsed = [ep for ep in parsed if ep.free]
-                models.extend(parsed)
+                pages.append(html)
             else:
                 logger.warning(f"No data on page {pg}")
                 break
             time.sleep(1)
-        return models
-    def get_all_models(self) -> List[ModelEndpoint]:
-        """Fetch all filtered pages (preview/free endpoints) to get complete model set.
+        return pages
 
-        Uses nimType=nim_type_preview filter across all 5 pages.
+    def get_all_pages(
+        self,
+        filters: Optional[Dict[str, str]] = None,
+        max_pages: int = 5,
+    ) -> List[str]:
+        """Convenience: fetch all filtered pages (default preview/free).
+
+        Equivalent to ``fetch_all_pages({"nimType": "nim_type_preview"}, max_pages)``.
         """
-        return self.fetch_all_pages({"nimType": "nim_type_preview"})
+        return self.fetch_all_pages(
+            {"nimType": "nim_type_preview"} if filters is None else filters,
+            max_pages=max_pages,
+        )
+
+    def get_all_models(self) -> List[ModelEndpoint]:
+        """Convenience: fetch all preview pages and parse them.
+
+        Equivalent to ``parse_nvidia_pages(parser.get_all_pages())``.
+        Kept for backwards compatibility — new code should call the
+        fetch + parse functions directly.
+        """
+        return parse_nvidia_pages(self.get_all_pages())
+
+
+def parse_nvidia_pages(
+    html_pages: List[str],
+) -> List[ModelEndpoint]:
+    """Parse one or more NVIDIA catalog HTML pages into ``ModelEndpoint`` objects.
+
+    Pure parser: takes raw HTML (typically the list returned by
+    :meth:`NvidiaCatalogParser.fetch_all_pages`) and returns the
+    canonical endpoint objects. No network access, no filtering —
+    every endpoint the parser recognizes is returned, including
+    "Run Anywhere" partner endpoints (``ModelEndpoint.free=False``).
+    Use :func:`data.providers.free_filter.filter_nvidia_free` (or the
+    ``FilterFreeStage`` pipeline stage) to keep only the free subset.
+
+    Args:
+        html_pages: HTML bodies, one per page.
+
+    Returns:
+        Concatenated, deduplicated list of endpoints across all pages.
+        The ``ModelEndpoint.free`` flag is set by :func:`_normalize_model`
+        based on ``labels.nimType.values contains "Free Endpoint"``;
+        callers decide whether to keep the non-free rows.
+    """
+    endpoints: List[ModelEndpoint] = []
+    for html in html_pages:
+        endpoints.extend(parse_html(html))
+    return endpoints
 
 
 def fetch_catalog_page(filters: Optional[Dict[str, str]] = None) -> List[ModelEndpoint]:
-    """
-    Convenience function: fetch and parse catalog page.
+    """Convenience: fetch, parse, and free-filter the NVIDIA catalog.
 
-    Args:
-        filters: Query filters, e.g. {"nimType": "nim_type_preview"} (free models)
-        session: Optional requests.Session for cookie persistence
+    Thin composition of three steps:
+
+        parser = NvidiaCatalogParser()
+        pages = parser.fetch_all_pages(filters)        # raw HTML
+        endpoints = parse_nvidia_pages(pages)          # parse only
+        return filter_nvidia_free(endpoints)           # drop non-free
+
+    The free filter is applied here so existing callers that expect a
+    free-only list keep working. Pipeline code should call the three
+    functions separately (Fetch → Parse → FilterFreeStage) so the
+    filter step is observable as its own pipeline stage.
 
     Returns:
-        List of ModelEndpoint objects
+        List of free ``ModelEndpoint`` objects.
     """
+    from data.providers.free_filter import filter_nvidia_free
+
     parser = NvidiaCatalogParser()
-    return parser.fetch_all_pages(filters)
+    pages = parser.fetch_all_pages(filters)
+    return filter_nvidia_free(parse_nvidia_pages(pages))
 
 
 if __name__ == "__main__":

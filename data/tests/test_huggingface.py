@@ -14,12 +14,13 @@ import json
 import urllib.error
 from unittest.mock import Mock, patch
 
+import pytest
+
 from data.providers import huggingface as hf
 from data.providers.huggingface import (
     ROUTER_URL,
     SOCKS_PROXY_ENV,
     UA,
-    _apply_socks_proxy,
     fetch_huggingface_models,
     fetch_router_json,
     filter_free_providers,
@@ -46,92 +47,15 @@ def test_user_agent_is_chrome_153():
 # ---------------------------------------------------------------------------
 
 
-def test_apply_socks_proxy_noop_when_env_unset(monkeypatch):
-    """No SOCKS5_PROXY env → no proxy installed."""
-    monkeypatch.delenv(SOCKS_PROXY_ENV, raising=False)
-    # Reset any prior install
-    _apply_socks_proxy._installed = False
-    with patch.object(hf.socket, "socket") as mock_socket:
-        _apply_socks_proxy()
-        # socket.socket must NOT be replaced
-        mock_socket.assert_not_called()
-    assert getattr(_apply_socks_proxy, "_installed", False) is False
-
-
-def test_apply_socks_proxy_installs_socket_once(monkeypatch):
-    """SOCKS5_PROXY set + PySocks available -> socket.socket gets replaced."""
-    monkeypatch.setenv(SOCKS_PROXY_ENV, "socks5h://127.0.0.1:7897")
-    _apply_socks_proxy._installed = False
-
-    # Patch socks module into sys.modules so the import inside _apply_socks_proxy resolves.
-    fake_socks = Mock()
-    fake_socks.SOCKS5 = 5
-    original_socket = hf.socket.socket  # save to restore later
-
-    try:
-        with patch.dict(sys.modules, {"socks": fake_socks}):
-            _apply_socks_proxy()
-        assert hf.socket.socket is fake_socks.socksocket, "socket.socket should be replaced"
-        assert _apply_socks_proxy._installed is True
-        # socks.set_default_proxy must be called with parsed host/port + SOCKS5
-        fake_socks.set_default_proxy.assert_called_once_with(
-            fake_socks.SOCKS5, "127.0.0.1", 7897, rdns=True,
-        )
-    finally:
-        # Restore socket.socket to avoid leaking into other tests.
-        hf.socket.socket = original_socket
-        _apply_socks_proxy._installed = False
-
-
-def test_apply_socks_proxy_is_idempotent(monkeypatch):
-    """Calling twice does not re-install the socket attribute."""
-    monkeypatch.setenv(SOCKS_PROXY_ENV, "socks5h://127.0.0.1:7897")
-    fake_socks = Mock()
-    fake_socks.SOCKS5 = 5
-    with patch.dict(sys.modules, {"socks": fake_socks}):
-        with patch.object(hf.socket, "socket", create=True) as mock_socket_attr:
-            _apply_socks_proxy()
-            first_attr = mock_socket_attr
-            # Reset mock to see if 2nd call touches it
-            mock_socket_attr.reset_mock()
-            _apply_socks_proxy()
-            # 2nd call should NOT call mock_socket_attr (= attr setter)
-            mock_socket_attr.assert_not_called()
-
-
-def test_apply_socks_proxy_warns_when_pysocks_missing(monkeypatch, caplog):
-    """SOCKS5_PROXY set + PySocks missing -> warn and fall back to direct."""
-    monkeypatch.setenv(SOCKS_PROXY_ENV, "socks5h://127.0.0.1:7897")
-    # Reset the install guard so this test actually runs the install path.
-    _apply_socks_proxy._installed = False
-    # Make socks import fail by injecting None into sys.modules.
-    with patch.dict(sys.modules, {"socks": None}):
-        with caplog.at_level("WARNING"):
-            _apply_socks_proxy()
-    # Verify warning was emitted with the expected message text.
-    messages = [r.getMessage() for r in caplog.records]
-    assert any("PySocks is not installed" in m for m in messages)
-
-
-def test_apply_socks_proxy_handles_invalid_url(monkeypatch, caplog):
-    """Malformed SOCKS5_PROXY must not crash — just warn and fall back."""
-    monkeypatch.setenv(SOCKS_PROXY_ENV, "not-a-url")
-    _apply_socks_proxy._installed = False
-    fake_socks = Mock()
-    fake_socks.SOCKS5 = 5
-    with patch.dict(sys.modules, {"socks": fake_socks}):
-        with caplog.at_level("WARNING"):
-            _apply_socks_proxy()
-    messages = [r.getMessage() for r in caplog.records]
-    assert any("Invalid SOCKS5_PROXY" in m for m in messages)
-
-
 # ---------------------------------------------------------------------------
 # fetch_router_json (HTTP transport)
 # ---------------------------------------------------------------------------
 
 
-def test_fetch_router_json():
+def test_fetch_router_json(monkeypatch):
+    """Load the curated fixture JSON via the urllib fallback path."""
+    # Force the urllib path even when a previous test left SOCKS5_PROXY set.
+    monkeypatch.delenv("SOCKS5_PROXY", raising=False)
     with open(str(FIXTURES / "huggingface_router.json"), encoding="utf-8") as f:
         payload = json.load(f)
 
@@ -145,22 +69,9 @@ def test_fetch_router_json():
         assert len(result["data"]) == 4
 
 
-def test_fetch_router_json_applies_socks_proxy_before_request(monkeypatch):
-    """Every fetch_router_json call must trigger proxy setup (idempotent)."""
-    monkeypatch.setenv(SOCKS_PROXY_ENV, "socks5h://127.0.0.1:7897")
-    _apply_socks_proxy._installed = False
-
-    with patch("data.providers.huggingface.urllib.request.urlopen") as mock_urlopen, \
-         patch("data.providers.huggingface._apply_socks_proxy") as mock_apply:
-        mock_resp = Mock()
-        mock_resp.read.return_value = b'{"data": []}'
-        mock_urlopen.return_value.__enter__.return_value = mock_resp
-        fetch_router_json(timeout=5)
-    mock_apply.assert_called_once()
-
-
-def test_fetch_router_json_raises_runtimeerror_on_network_failure():
+def test_fetch_router_json_raises_runtimeerror_on_network_failure(monkeypatch):
     """URLError must be wrapped in RuntimeError so callers can detect network issues."""
+    monkeypatch.delenv("SOCKS5_PROXY", raising=False)
     with patch("data.providers.huggingface.urllib.request.urlopen") as mock_urlopen:
         mock_urlopen.side_effect = urllib.error.URLError("connection refused")
         try:
@@ -171,8 +82,9 @@ def test_fetch_router_json_raises_runtimeerror_on_network_failure():
             raise AssertionError("expected RuntimeError")
 
 
-def test_fetch_router_json_sends_correct_headers():
+def test_fetch_router_json_sends_correct_headers(monkeypatch):
     """Verify URL and Accept/User-Agent headers are set as expected."""
+    monkeypatch.delenv("SOCKS5_PROXY", raising=False)
     with open(str(FIXTURES / "huggingface_router.json"), encoding="utf-8") as f:
         payload = json.load(f)
 
@@ -195,6 +107,102 @@ def test_fetch_router_json_sends_correct_headers():
     headers_lower = {k.lower(): v for k, v in captured["headers"].items()}
     assert headers_lower.get("user-agent") == UA
     assert "application/json" in headers_lower.get("accept", "")
+
+
+# ---------------------------------------------------------------------------
+# fetch_router_json via SOCKS5 proxy (uses requests)
+# ---------------------------------------------------------------------------
+
+
+def test_fetch_router_json_uses_requests_when_proxy_set(monkeypatch):
+    """When ``SOCKS5_PROXY`` is set, ``fetch_router_json`` must use
+    ``requests`` (not urllib) and pass the proxy URL through."""
+    monkeypatch.setenv("SOCKS5_PROXY", "socks5h://127.0.0.1:7897")
+
+    captured: dict = {}
+
+    class FakeResponse:
+        status_code = 200
+        text = json.dumps({"object": "list", "data": []})
+
+        def __init__(self):
+            self.content = self.text.encode()
+
+    def fake_get(*args, **kwargs):
+        captured["url"] = args[0] if args else kwargs.get("url")
+        captured["proxies"] = kwargs.get("proxies")
+        captured["headers"] = kwargs.get("headers")
+        captured["timeout"] = kwargs.get("timeout")
+        return FakeResponse()
+
+    fake_requests = type("FakeRequests", (), {"get": staticmethod(fake_get)})
+    monkeypatch.setitem(__import__("sys").modules, "requests", fake_requests)
+
+    result = fetch_router_json(timeout=42)
+    assert result == {"object": "list", "data": []}
+    assert captured["url"] == ROUTER_URL
+    assert captured["proxies"] == {
+        "http": "socks5h://127.0.0.1:7897",
+        "https": "socks5h://127.0.0.1:7897",
+    }
+    assert captured["headers"]["User-Agent"] == UA
+    assert captured["timeout"] == 42
+
+
+def test_fetch_router_json_proxy_path_raises_runtimeerror_on_requests_failure(monkeypatch):
+    """A ``requests.exceptions.RequestException`` from the proxy path
+    must be wrapped in ``RuntimeError`` like the urllib path."""
+    import requests as real_requests
+
+    monkeypatch.setenv("SOCKS5_PROXY", "socks5h://127.0.0.1:7897")
+
+    def fake_get(*_args, **_kwargs):
+        raise real_requests.exceptions.ConnectionError("proxy unreachable")
+
+    monkeypatch.setattr(real_requests, "get", fake_get)
+
+    with pytest.raises(RuntimeError, match="Network error fetching HF models"):
+        fetch_router_json(timeout=5)
+
+
+def test_fetch_router_json_proxy_path_raises_on_non_200(monkeypatch):
+    """A non-200 HTTP response via the proxy must surface as
+    ``RuntimeError`` carrying the status code (not silently return [])."""
+    import requests as real_requests
+
+    monkeypatch.setenv("SOCKS5_PROXY", "socks5h://127.0.0.1:7897")
+
+    class FakeResponse:
+        status_code = 503
+        text = "Service Unavailable"
+        content = b"Service Unavailable"
+
+    monkeypatch.setattr(
+        real_requests, "get", lambda *_a, **_kw: FakeResponse()
+    )
+
+    with pytest.raises(RuntimeError, match="HTTP 503"):
+        fetch_router_json(timeout=5)
+
+
+def test_fetch_router_json_proxy_empty_string_falls_back_to_urllib(monkeypatch):
+    """An empty ``SOCKS5_PROXY`` is treated as unset (falls back to urllib)."""
+    monkeypatch.setenv("SOCKS5_PROXY", "   ")
+
+    urlopen_called = {"v": False}
+
+    def fake_urlopen(req, timeout=None):
+        urlopen_called["v"] = True
+        resp = Mock()
+        resp.read.return_value = b'{"object":"list","data":[]}'
+        resp.__enter__ = Mock(return_value=resp)
+        resp.__exit__ = Mock(return_value=False)
+        return resp
+
+    with patch("data.providers.huggingface.urllib.request.urlopen", side_effect=fake_urlopen):
+        fetch_router_json(timeout=5)
+
+    assert urlopen_called["v"], "empty SOCKS5_PROXY should fall back to urllib"
 
 
 # ---------------------------------------------------------------------------
@@ -544,20 +552,6 @@ def test_fetch_huggingface_models():
         for ep in result:
             assert ep["provider"] == "huggingface"
             assert ep["free"] is True
-
-
-def test_fetch_huggingface_models_applies_socks_proxy(monkeypatch):
-    """fetch_huggingface_models must call _apply_socks_proxy at entry."""
-    monkeypatch.setenv(SOCKS_PROXY_ENV, "socks5h://127.0.0.1:7897")
-    _apply_socks_proxy._installed = False
-
-    with open(str(FIXTURES / "huggingface_router.json"), encoding="utf-8") as f:
-        payload = json.load(f)
-
-    with patch("data.providers.huggingface.fetch_router_json", return_value=payload), \
-         patch("data.providers.huggingface._apply_socks_proxy") as mock_apply:
-        fetch_huggingface_models()
-    mock_apply.assert_called_once()
 
 
 def test_fetch_huggingface_models_empty_payload_returns_empty():

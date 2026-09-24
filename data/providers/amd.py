@@ -67,31 +67,6 @@ def _get_json(url: str, ua: str, timeout: int = 30) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
-def _parse_bootstrap(cards: list[dict]) -> list[dict]:
-    """Parse bootstrap response into a flat card list.
-
-    Reference bootstrap response shape:
-      {
-        "object": "list",
-        "data": [
-          {"id": "...", "family": "...", "publisher": "...", "section": "public_free"},
-          ...
-        ],
-        "cards": {
-          "public_free": [
-            {"id": "...", "section": "public_free"},
-            ...
-          ],
-          ...
-        }
-      }
-    """
-    result: list[dict] = []
-    for card in cards:
-        result.append({"id": card["id"], "section": card["section"]})
-    return result
-
-
 def fetch_bootstrap(ua: str, timeout: int = TIMEOUT) -> list[dict]:
     """Fetch the full bootstrap list of model cards."""
     url = f"{BASE}/radeon/api/tokenfactory/bootstrap?directory=true"
@@ -237,12 +212,12 @@ def fetch_amd_models() -> List[dict[str, Any]]:
     # Real shape: cards is a flat list of {key, id, detail_url} dicts — no section nesting.
     for card in cards:
         model_id = card["id"]
-        print(f"  GET detail {model_id} ...", file=sys.stderr)
+        logger.info("Fetching AMD detail for %s", model_id)
         detail = fetch_detail(model_id, DEFAULT_UA)
         ep = build_endpoint_dict(detail)
         available.append(ep)
 
-    print(f"Fetched {len(available)} endpoints", file=sys.stderr)
+    logger.info("Fetched %d AMD endpoints", len(available))
     return available
 
 

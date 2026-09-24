@@ -61,6 +61,66 @@ Or as a module:
 python -m data.main
 ```
 
+### Refresh Raw Provider Fixtures
+
+`tests/download_fixtures.py` re-fetches the **unfiltered** raw payloads
+(HTML / JSON) from each provider and writes them under
+`tests/fixtures/` so the offline test suites can replay real-world
+shapes without network access.
+
+By default it uses the suffix `_live` so the curated fixtures
+(`nvidia_html.html`, `amd_bootstrap.json`, `amd_detail_*.json`,
+`huggingface_router.json` — which exercise specific edge cases) are
+**never overwritten**:
+
+```bash
+cd data
+python -m tests.download_fixtures                                # all three providers
+python -m tests.download_fixtures --provider amd --max-details 10  # one provider, more detail pages
+python -m tests.download_fixtures --provider nvidia                # only NVIDIA
+```
+
+To deliberately overwrite the curated fixtures (rare — usually only
+when refreshing canonical test data on purpose), pass an empty suffix:
+
+```bash
+cd data
+python -m tests.download_fixtures --live-suffix ""
+```
+
+Exit code is `0` when every requested provider succeeded, `1` otherwise.
+Per-provider failures (e.g. `router.huggingface.co` unreachable behind
+a firewall) are reported individually and do not block the others.
+
+The downloader is also exercised by `tests/test_download_fixtures.py`
+under `RUN_INTEGRATION_TESTS=1`, so a regression in the live HTTP path
+shows up at refresh time, not later in unrelated offline tests.
+
+### SOCKS5 Proxy (Hugging Face)
+
+`router.huggingface.co` is unreachable from some networks, so the HF
+fetcher normally routes through `SOCKS5_PROXY`. The HF downloader
+auto-loads `./.env` or `data/.env` (whichever exists) so a developer
+who has set `SOCKS5_PROXY` in `data/.env` doesn't need to export it
+manually:
+
+```bash
+# data/.env
+SOCKS5_PROXY=socks5h://127.0.0.1:7897
+```
+
+```bash
+cd data && python -m tests.download_fixtures --provider huggingface
+```
+
+Real environment variables (CI secrets, shell exports) always win over
+`.env` entries — they are not overwritten. Pass `--env-file path/to/.env`
+to point at a non-default location, or `--env-file /dev/null` to skip
+auto-loading entirely.
+
+PySocks is only needed when the proxy is actually configured
+(`pip install ".[socks]"`).
+
 ## Environment Variables
 
 Copy `.env.example` to `.env` and fill in:

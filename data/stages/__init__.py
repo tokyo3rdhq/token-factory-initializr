@@ -10,6 +10,7 @@ dependency: main → pipeline → stages → ...).
 
 from data.stages.enrich import EnrichStage
 from data.stages.fetch import FetchStage, PROVIDER_FETCHERS
+from data.stages.filter_free import FilterFreeStage
 from data.stages.normalize import NormalizeStage
 from data.stages.notify import NotifyStage
 from data.stages.parse import ParseStage
@@ -23,12 +24,16 @@ def build_default_pipeline() -> "Pipeline":
 
     Per docs/arch_models_intelligence_layer_evo.md §2:
 
-        fetch → parse → normalize → validate → enrich
+        fetch → parse → filter_free → normalize → validate → enrich
         → summarize → store → notify
 
     ``SummarizeStage`` runs before ``StoreStage`` so the manifest written
     to KV reflects the actual endpoints being persisted (rather than an
     empty placeholder computed before validation/enrichment).
+
+    ``FilterFreeStage`` dispatches per-provider free filtering; the
+    rule shape is provider-specific (see
+    :mod:`data.providers.free_filter`).
 
     ``EnrichStage`` is a placeholder (no enrichers wired yet). The
     ``DeduplicateStage`` was removed per doc §12 — model identity and
@@ -41,6 +46,7 @@ def build_default_pipeline() -> "Pipeline":
         Pipeline()
         .then(FetchStage())
         .then(ParseStage())
+        .then(FilterFreeStage())
         .then(NormalizeStage())
         .then(ValidateStage())
         .then(EnrichStage())
@@ -54,6 +60,7 @@ def build_default_pipeline() -> "Pipeline":
 __all__ = [
     "FetchStage",
     "ParseStage",
+    "FilterFreeStage",
     "NormalizeStage",
     "ValidateStage",
     "EnrichStage",

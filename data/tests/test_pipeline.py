@@ -89,7 +89,7 @@ def test_pipeline_end_returns_pipeline():
 def test_default_pipeline_has_eight_stages_in_canonical_order():
     p = build_default_pipeline()
     assert [s.name for s in p.stages] == [
-        "fetch", "parse", "normalize", "validate", "enrich",
+        "fetch", "parse", "filter_free", "normalize", "validate", "enrich",
         "summarize", "store", "notify",
     ]
 

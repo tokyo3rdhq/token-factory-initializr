@@ -17,7 +17,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import socket
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -38,62 +37,89 @@ ACCEPT_LANGUAGE = "en-US,en;q=0.9"
 ACCEPT_ENCODING = "gzip, deflate, br"
 TIMEOUT = 30
 
-# Local dev may route HF traffic through a SOCKS5 proxy (router.huggingface.co
-# is unreachable from some networks). Set SOCKS5_PROXY=socks5h://host:port.
-# GitHub Actions runs direct — leave unset there.
+# Local dev may route HF traffic through a SOCKS5 proxy
+# (router.huggingface.co is unreachable from some networks). Set
+# SOCKS5_PROXY=socks5h://host:port. GitHub Actions runs direct (no proxy).
+#
+# Implementation note: we use ``requests`` with native SOCKS5h proxy
+# support instead of monkey-patching ``socket.socket``. The
+# monkey-patching approach breaks TLS handshakes on Python 3.10+
+# because the ssl module's internal socket-type checks reject the
+# patched class. ``requests`` (already a hard dep) routes through the
+# proxy cleanly via urllib3 + PySocks.
 SOCKS_PROXY_ENV = "SOCKS5_PROXY"
 
 
-def _apply_socks_proxy() -> None:
-    """If SOCKS5_PROXY is set, route urllib/socket traffic through that proxy.
-
-    Idempotent: installs PySocks' ``socksocket`` as the global socket only
-    once via a module-level guard. Requires PySocks (optional dependency).
-
-    Returns without error when the env var is unset or PySocks is missing —
-    direct connection is the fallback.
-    """
-    proxy_url = os.getenv(SOCKS_PROXY_ENV)
-    if not proxy_url:
-        return
-    if getattr(_apply_socks_proxy, "_installed", False):
-        return
-    try:
-        import socks  # type: ignore[import-not-found]
-    except ImportError:
-        logger.warning(
-            "SOCKS5_PROXY set but PySocks is not installed; using direct connection"
-        )
-        return
-    try:
-        cleaned = proxy_url.split("://", 1)[-1]
-        host, _, port_s = cleaned.rpartition(":")
-        port = int(port_s)
-        socks.set_default_proxy(socks.SOCKS5, host, port, rdns=True)
-        socket.socket = socks.socksocket  # type: ignore[assignment]
-        _apply_socks_proxy._installed = True
-        logger.info("Routing HF provider through SOCKS5 proxy %s", proxy_url)
-    except (ValueError, OSError):
-        logger.warning("Invalid SOCKS5_PROXY=%r; using direct connection", proxy_url)
 def fetch_router_json(timeout: int = TIMEOUT) -> dict:
     """GET the Hugging Face Inference Router model list.
 
     Local dev may route HF traffic through a SOCKS5 proxy via the
-    ``SOCKS5_PROXY`` environment variable. The proxy setup is idempotent.
-    GitHub Actions runs direct (no proxy).
+    ``SOCKS5_PROXY`` environment variable. GitHub Actions runs direct
+    (no proxy).
+
+    Two code paths:
+      * **With SOCKS5_PROXY**: use ``requests`` with native SOCKS5h
+        proxy support. urllib + global ``socket`` monkey-patching
+        (``_apply_socks_proxy``) breaks TLS handshakes on Python 3.10+
+        because the patched ``socksocket`` doesn't survive the ssl
+        module's internal socket-type checks.
+      * **Without proxy**: use stdlib ``urllib`` (zero extra deps; same
+        path GitHub Actions uses).
+
+    Returns the decoded JSON payload as a dict. Raises ``RuntimeError``
+    on network failure so callers can distinguish it from parse errors.
     """
-    _apply_socks_proxy()
+    proxy_url = os.getenv(SOCKS_PROXY_ENV, "").strip()
+    if proxy_url:
+        body = _fetch_via_requests(proxy_url, timeout=timeout)
+    else:
+        body = _fetch_via_urllib(timeout=timeout)
+    return json.loads(body)
+
+
+def _fetch_via_urllib(timeout: int) -> str:
+    """Direct HTTP fetch via stdlib urllib (no proxy)."""
     req = urllib.request.Request(ROUTER_URL, headers={
         "User-Agent": UA,
         "Accept": "application/json",
     })
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read().decode("utf-8")
+            return resp.read().decode("utf-8")
     except urllib.error.URLError as exc:
         logger.error("Failed to fetch HF router: %s", exc)
         raise RuntimeError(f"Network error fetching HF models: {exc}") from exc
-    return json.loads(body)
+
+
+def _fetch_via_requests(proxy_url: str, timeout: int) -> str:
+    """HTTP fetch through a SOCKS5 proxy using ``requests``.
+
+    ``requests`` is already a hard dependency (NVIDIA provider uses
+    it), so no new packages are required. SOCKS5h gives us remote DNS
+    resolution through the proxy — matching the previous urllib path's
+    behaviour exactly.
+    """
+    try:
+        import requests  # noqa: WPS433 — local import; requests is a hard dep
+    except ImportError as exc:
+        raise RuntimeError(
+            "SOCKS5_PROXY is set but 'requests' is not installed; "
+            "pip install requests"
+        ) from exc
+
+    proxies = {"http": proxy_url, "https": proxy_url}
+    headers = {"User-Agent": UA, "Accept": "application/json"}
+    try:
+        resp = requests.get(ROUTER_URL, proxies=proxies, headers=headers, timeout=timeout)
+    except requests.exceptions.RequestException as exc:
+        logger.error("Failed to fetch HF router via proxy: %s", exc)
+        raise RuntimeError(f"Network error fetching HF models: {exc}") from exc
+
+    if resp.status_code != 200:
+        raise RuntimeError(
+            f"HF router returned HTTP {resp.status_code}: {resp.text[:200]}"
+        )
+    return resp.text
 
 
 def filter_free_providers(payload: dict) -> List[Dict[str, Any]]:
@@ -191,18 +217,34 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
     return endpoints
 
 
-def fetch_huggingface_models() -> List[dict[str, Any]]:
-    """Fetch and return free Hugging Face inference model endpoints.
+def parse_huggingface_models(payload: dict) -> List[dict[str, Any]]:
+    """Parse the raw HF router payload into provider endpoint dicts.
 
-    Local dev may route HF traffic through a SOCKS5 proxy via the
-    ``SOCKS5_PROXY`` environment variable. The proxy setup is idempotent.
-    GitHub Actions runs direct (no proxy).
+    Pure parser — takes the raw router JSON and returns a flat list of
+    canonical endpoint dicts, one per (model, free provider) pair.
+
+    Note on free filtering (asymmetric with NVIDIA/AMD):
+        HF's free rule operates at **provider granularity** within a
+        model (``provider.pricing.input == 0 AND
+        provider.pricing.output == 0 AND provider.status == "live"``),
+        not at endpoint granularity like NVIDIA's "Free Endpoint"
+        label set or AMD's ``status.key == "free_endpoint"`` boolean.
+        Paid providers must be filtered BEFORE per-provider expansion
+        — otherwise a model with 5 providers (3 free, 2 paid) would
+        emit 5 endpoints, and dropping the 2 paid ones post-expansion
+        would discard legitimate per-provider metadata. The HF free
+        rule therefore stays in the parse layer (``filter_free_providers``
+        here). :func:`data.providers.free_filter.filter_huggingface_free`
+        exists as a uniform contract across providers but is a
+        pass-through for HF since free-only is already enforced here.
+
+    Args:
+        payload: the dict returned by :func:`fetch_router_json`.
+
+    Returns:
+        List of endpoint dicts (free-only by construction) ready for
+        ``data.models.normalize.normalize_endpoints``.
     """
-    _apply_socks_proxy()
-    logger.info("Fetching Hugging Face router catalog: %s", ROUTER_URL)
-    payload = fetch_router_json()
-    total_models = len(payload.get("data", []))
-    logger.info("Total models in HF router: %d", total_models)
     free_groups = filter_free_providers(payload)
     logger.info("Models with ≥1 free provider: %d", len(free_groups))
 
@@ -212,6 +254,25 @@ def fetch_huggingface_models() -> List[dict[str, Any]]:
 
     logger.info("Expanded into %d provider endpoints", len(all_endpoints))
     return all_endpoints
+
+
+def fetch_huggingface_models() -> List[dict[str, Any]]:
+    """Fetch and return free Hugging Face inference model endpoints.
+
+    Thin wrapper: fetches the raw router payload via
+    :func:`fetch_router_json` (which applies the optional ``SOCKS5_PROXY``)
+    and delegates parsing to :func:`parse_huggingface_models`. Keeping
+    fetch and parse separate lets callers download the raw payload once
+    and parse it under multiple policies (e.g. free-only vs. all), and
+    lets unit tests exercise the parser without hitting the network.
+
+    GitHub Actions runs direct (no proxy).
+    """
+    logger.info("Fetching Hugging Face router catalog: %s", ROUTER_URL)
+    payload = fetch_router_json()
+    total_models = len(payload.get("data", []))
+    logger.info("Total models in HF router: %d", total_models)
+    return parse_huggingface_models(payload)
 
 
 if __name__ == "__main__":
