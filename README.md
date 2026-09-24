@@ -2,35 +2,16 @@
 
 A lightweight **Free Model Aggregator** that discovers, normalizes, stores, and exposes currently available free AI model endpoints from multiple providers.
 
-## Architecture
+## Runtime Overview
 
-```
-                    GitHub Repository
-                           │
-             ┌─────────────┴─────────────┐
-             │                           │
-             ▼                           ▼
-       GitHub Actions               Cloudflare Pages
-             │                           │
-             ▼                           ▼
-       Python data/                  web/
-             │                           │
-             │                           ├── UI
-             │                           └── Pages Functions
-             │                              │
-             └──────────────┐               │
-                           ▼               │
-                     Cloudflare KV ◄──────────┘
-```
+- **Data Runtime** (`data/`) — Python data pipeline (offline scheduled job, GitHub Actions daily 02:00) → normalize → validate → deduplicate → Cloudflare KV
+- **Web Runtime** (`web/`) — Cloudflare Pages application reads the catalog from KV and provides the online user experience
 
-- **Data Runtime**: Python data pipeline (offline scheduled job, GitHub Actions daily 02:00) → normalize → validate → deduplicate → Cloudflare KV
-- **Web Runtime**: Cloudflare Pages application reads the catalog from KV and provides the online user experience
+## Providers
 
-## Components
-
-- **NVIDIA provider**: Parses build.nvidia.com model catalog (RSC/Flight payloads)
-- **AMD provider**: Parses AMD Radeon AI Platform API
-- **Hugging Face provider**: Discovers models via router.huggingface.co and HF Hub metadata
+- **NVIDIA NIM** — Parses build.nvidia.com model catalog (RSC/Flight payloads)
+- **AMD Radeon AI Platform** — Parses AMD Radeon AI Platform API
+- **Hugging Face Inference** — Discovers models via router.huggingface.co and HF Hub metadata
 
 ## MVP Features
 
@@ -66,7 +47,7 @@ free-model-aggregator/
 │   │   ├── pages/
 │   │   └── functions/
 │   │       ├── api/
-│   │       ├── generated/
+│   │       └── generated/
 │   ├── package.json
 ├── shared/
 │   └── schema/
@@ -79,4 +60,4 @@ free-model-aggregator/
 
 ## License
 
-See AGENTS.md for license and implementation guidelines.
+See `AGENTS.md` for license and implementation guidelines.
