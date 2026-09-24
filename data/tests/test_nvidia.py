@@ -200,6 +200,24 @@ def test_normalize_model_resource_id_without_slash_falls_back():
     assert _ep(obj).model_id == "qc69jvmznzxy/Bare Slug"
 
 
+def test_normalize_model_sets_fetched_at_to_datetime():
+    """NVIDIA parser yields ModelEndpoint directly from parse_html — fetched_at
+    must be stamped here, otherwise ValidateStage rejects every NVIDIA endpoint.
+
+    Regression test for the bug that caused tfi:models:nvidia:latest to be
+    empty in production (validate_all returned 99 invalid records, all
+    flagged 'fetched_at is not a datetime').
+    """
+    from datetime import datetime, timezone
+    before = datetime.now(timezone.utc)
+    ep = _ep({"resourceId": "x/y", "displayName": "X", "labels": [], "attributes": []})
+    after = datetime.now(timezone.utc)
+    assert isinstance(ep.fetched_at, datetime), (
+        f"expected datetime, got {type(ep.fetched_at).__name__}"
+    )
+    assert before <= ep.fetched_at <= after, "fetched_at should be UTC now"
+
+
 def test_normalize_model_attributes_list_chat_modality():
     obj = {
         "resourceId": "x/y",

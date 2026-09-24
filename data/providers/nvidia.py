@@ -16,6 +16,7 @@ import logging
 import re
 import time
 from dataclasses import asdict
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 try:
@@ -150,7 +151,11 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         provider="nvidia",
         model_id=model_id,
         free=free,
-        fetched_at=None,  # set by caller
+        # AMD/HF providers stamp fetched_at when they build the endpoint dict;
+        # NVIDIA yields ModelEndpoint objects directly from parse_html, so
+        # we set it here. Without this, ValidateStage rejects every NVIDIA
+        # endpoint as 'fetched_at is not a datetime' (see validate.py).
+        fetched_at=datetime.now(timezone.utc),
         name=name,
         description=obj.get("description", ""),
         capabilities=capabilities,
