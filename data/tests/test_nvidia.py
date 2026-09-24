@@ -534,9 +534,48 @@ def test_parser_fetch_all_pages_collects_across_pages():
     with patch("data.providers.nvidia.fetch_with_cooldown", side_effect=fake_cooldown), \
          patch("data.providers.nvidia.parse_html", side_effect=[[ep1], [ep2], []]), \
          patch("data.providers.nvidia.time.sleep"):
-        result = parser.fetch_all_pages(max_pages=5)
+        result = parser.fetch_all_pages(max_pages=5, free_only=False)
 
     assert [e.model_id for e in result] == ["a/1", "b/2"]
+
+
+def test_parser_fetch_all_pages_filters_non_free_by_default():
+    """Default free_only=True must drop endpoints with free=False (Run Anywhere).
+
+    Regression: previously fetch_all_pages returned ALL endpoints because
+    no caller applied a free filter. Verify ModelEndpoint.free=False rows
+    (e.g. mistral / partner endpoints) are excluded by default.
+    """
+    from data.providers.nvidia import NvidiaCatalogParser
+
+    with open(str(FIXTURES / "nvidia_html.html"), encoding="utf-8") as f:
+        html = f.read()
+
+    parser = NvidiaCatalogParser()
+    with patch("data.providers.nvidia.fetch_with_cooldown", return_value=html), \
+         patch("data.providers.nvidia.time.sleep"):
+        result = parser.fetch_all_pages(max_pages=1)
+
+    model_ids = {ep.model_id for ep in result}
+    assert "mistralai/Mistral-7B-Instruct-v0.3" not in model_ids
+    assert "google/gemma-4-31b-it" in model_ids
+    assert "meta-llama/Llama-3.1-8B-Instruct" in model_ids
+
+
+def test_parser_fetch_all_pages_free_only_false_keeps_all():
+    """free_only=False preserves the historical "fetch everything" behaviour."""
+    from data.providers.nvidia import NvidiaCatalogParser
+
+    with open(str(FIXTURES / "nvidia_html.html"), encoding="utf-8") as f:
+        html = f.read()
+
+    parser = NvidiaCatalogParser()
+    with patch("data.providers.nvidia.fetch_with_cooldown", return_value=html), \
+         patch("data.providers.nvidia.time.sleep"):
+        result = parser.fetch_all_pages(max_pages=1, free_only=False)
+
+    model_ids = {ep.model_id for ep in result}
+    assert "mistralai/Mistral-7B-Instruct-v0.3" in model_ids
 
 
 def test_parser_fetch_returns_text_for_filters():

@@ -258,21 +258,34 @@ class NvidiaCatalogParser:
 
         return r.text
 
-    def fetch_all_pages(self, filters: Optional[Dict[str, str]] = None, max_pages: int = 5) -> List[ModelEndpoint]:
-        """Fetch all pages of filtered/unfiltered catalog."""
+    def fetch_all_pages(
+        self,
+        filters: Optional[Dict[str, str]] = None,
+        max_pages: int = 5,
+        free_only: bool = True,
+    ) -> List[ModelEndpoint]:
+        """Fetch all pages of filtered/unfiltered catalog.
+
+        ``free_only=True`` (default) drops any endpoint whose
+        ``ModelEndpoint.free`` is False. ``_normalize_model`` derives that
+        flag from ``labels.nimType.values contains "Free Endpoint"``;
+        "Run Anywhere" partner endpoints are therefore excluded, which
+        is what the free-model aggregator wants.
+        """
         models: List[ModelEndpoint] = []
         for pg in range(1, max_pages + 1):
             params = {**(filters or {}), "page": str(pg)}
             html = fetch_with_cooldown(self.session, params)
             if html:
                 parsed = parse_html(html)
+                if free_only:
+                    parsed = [ep for ep in parsed if ep.free]
                 models.extend(parsed)
             else:
                 logger.warning(f"No data on page {pg}")
                 break
             time.sleep(1)
         return models
-
     def get_all_models(self) -> List[ModelEndpoint]:
         """Fetch all filtered pages (preview/free endpoints) to get complete model set.
 
