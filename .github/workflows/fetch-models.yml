@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -e data
+          pip install -e "data[dev]"
 
       - name: Run tests
         run: |
