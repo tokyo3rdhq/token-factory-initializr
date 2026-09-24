@@ -20,6 +20,7 @@ from data.providers.amd import (
     _get_json,
     _parse_bootstrap,
     _post_json,
+    _strip_gateway_prefix,
     build_endpoint_dict,
     derive_use_case,
     fetch_amd_models,
@@ -233,6 +234,33 @@ def test_derive_use_case_no_token_factory_returns_none():
 
 
 # ---------------------------------------------------------------------------
+# _strip_gateway_prefix
+# ---------------------------------------------------------------------------
+
+
+def test_strip_gateway_prefix_strips_model_gateway():
+    from data.providers.amd import _strip_gateway_prefix
+
+    assert _strip_gateway_prefix("model_gateway:MiMo-V2.6-Flash") == "MiMo-V2.6-Flash"
+
+
+def test_strip_gateway_prefix_strips_any_gateway_suffix():
+    """Any *_gateway prefix should be stripped, not just model_gateway."""
+    from data.providers.amd import _strip_gateway_prefix
+
+    assert _strip_gateway_prefix("router_gateway:Foo") == "Foo"
+    assert _strip_gateway_prefix("chat_gateway:Bar") == "Bar"
+
+
+def test_strip_gateway_prefix_leaves_unknown_prefixes():
+    """Don't strip colons that aren't a known gateway prefix."""
+    from data.providers.amd import _strip_gateway_prefix
+
+    assert _strip_gateway_prefix("owner:Foo") == "owner:Foo"
+    assert _strip_gateway_prefix("no-prefix-here") == "no-prefix-here"
+
+
+# ---------------------------------------------------------------------------
 # build_endpoint_dict
 # ---------------------------------------------------------------------------
 
@@ -243,10 +271,16 @@ def test_build_endpoint_dict():
 
     result = build_endpoint_dict(detail)
     assert result["provider"] == "amd"
-    assert result["model_id"] == "model_gateway:MiMo-V2.6-Flash"
+    # model_id strips AMD's "model_gateway:" prefix to stay consistent with
+    # other providers (NVIDIA/HF use org/name without a gateway prefix).
+    assert result["model_id"] == "MiMo-V2.6-Flash"
     assert result["free"] is True
     assert result["name"] == "MiMo-V2.6-Flash"
     assert result["metadata"]["context_length"] == 1048576
+    # Description comes from the AMD detail response (not hardcoded None).
+    assert result["description"] == "Dynamic sglang-router service managed by Model Ops"
+    # Original AMD id (with prefix) is kept in metadata for traceability.
+    assert result["metadata"]["original_id"] == "model_gateway:MiMo-V2.6-Flash"
 
 
 def test_build_endpoint_dict_includes_use_case_in_capabilities():
@@ -254,6 +288,91 @@ def test_build_endpoint_dict_includes_use_case_in_capabilities():
         detail = json.load(f)
     result = build_endpoint_dict(detail)
     assert "use_case" in result["capabilities"]
+
+
+def test_build_endpoint_dict_strips_other_gateway_prefixes():
+    """Any *_gateway: prefix should be stripped, not just model_gateway:."""
+    detail = {
+        "model": {
+            "id": "router_gateway:Some-Model",
+            "label": "Some Model",
+            "model": "Some-Model",
+            "output": ["text"],
+            "description": "Test",
+            "token_factory": {
+                "status": {"key": "free_endpoint"},
+                "capability": {"key": "chat"},
+                "publisher": {"name": "AMD"},
+            },
+            "provider_pricing": [{}],
+            "context_length": 4096,
+        }
+    }
+    result = build_endpoint_dict(detail)
+    assert result["model_id"] == "Some-Model"
+    assert result["metadata"]["original_id"] == "router_gateway:Some-Model"
+
+
+def test_build_endpoint_dict_keeps_id_without_known_prefix():
+    """An id without a recognized gateway prefix is preserved as-is."""
+    detail = {
+        "model": {
+            "id": "no-prefix-here",
+            "label": "Plain",
+            "output": ["text"],
+            "description": "Test",
+            "token_factory": {
+                "status": {"key": "free_endpoint"},
+                "capability": {"key": "chat"},
+                "publisher": {"name": "AMD"},
+            },
+            "provider_pricing": [{}],
+            "context_length": 4096,
+        }
+    }
+    result = build_endpoint_dict(detail)
+    assert result["model_id"] == "no-prefix-here"
+
+
+def test_build_endpoint_dict_pulls_description_from_model():
+    """description should come from model.description, not be hardcoded None."""
+    detail = {
+        "model": {
+            "id": "model_gateway:X",
+            "label": "X",
+            "output": ["text"],
+            "description": "A custom description from AMD's API",
+            "token_factory": {
+                "status": {"key": "free_endpoint"},
+                "capability": {"key": "chat"},
+                "publisher": {"name": "AMD"},
+            },
+            "provider_pricing": [{}],
+            "context_length": 4096,
+        }
+    }
+    result = build_endpoint_dict(detail)
+    assert result["description"] == "A custom description from AMD's API"
+
+
+def test_build_endpoint_dict_description_is_none_when_missing():
+    detail = {
+        "model": {
+            "id": "model_gateway:X",
+            "label": "X",
+            "output": ["text"],
+            # no description field
+            "token_factory": {
+                "status": {"key": "free_endpoint"},
+                "capability": {"key": "chat"},
+                "publisher": {"name": "AMD"},
+            },
+            "provider_pricing": [{}],
+            "context_length": 4096,
+        }
+    }
+    result = build_endpoint_dict(detail)
+    assert result["description"] is None
 
 
 def test_build_endpoint_dict_free_false_when_status_not_free_endpoint():
@@ -338,7 +457,7 @@ def test_build_endpoint_dict_input_modalities_always_includes_text():
 
 
 def test_build_endpoint_dict_falls_back_to_model_id_for_name():
-    """When label and model are missing, model_id is used as the name."""
+    """When label and model are missing, the stripped model_id is used as the name."""
     detail = {
         "model": {
             "id": "model_gateway:OnlyId",
@@ -353,7 +472,7 @@ def test_build_endpoint_dict_falls_back_to_model_id_for_name():
         }
     }
     result = build_endpoint_dict(detail)
-    assert result["name"] == "model_gateway:OnlyId"
+    assert result["name"] == "OnlyId"
 
 
 def test_build_endpoint_dict_uses_label_when_present():
@@ -416,10 +535,14 @@ def test_fetch_amd_models():
         result = fetch_amd_models()
         assert len(result) == 2
         model_ids = {ep["model_id"] for ep in result}
+        # model_id has the gateway prefix stripped (consistent with NVIDIA/HF).
         assert model_ids == {
-            "model_gateway:MiMo-V2.6-Flash",
-            "model_gateway:DeepSeek-V4-Flash",
+            "MiMo-V2.6-Flash",
+            "DeepSeek-V4-Flash",
         }
+        # Original id is preserved in metadata.
+        for ep in result:
+            assert ep["metadata"]["original_id"].startswith("model_gateway:")
         for ep in result:
             assert ep["provider"] == "amd"
             assert ep["free"] is True

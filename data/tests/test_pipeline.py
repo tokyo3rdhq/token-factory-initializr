@@ -261,7 +261,7 @@ def test_normalize_stage_passes_nvidia_endpoints_through_unchanged():
 def test_normalize_stage_calls_normalize_endpoints_for_amd_dicts():
     ctx = PipelineContext()
     ctx.data["parsed"] = {
-        "amd": [{"provider": "amd", "model_id": "model_gateway:MiMo", "free": True}],
+        "amd": [{"provider": "amd", "model_id": "MiMo", "free": True}],
     }
     out = NormalizeStage().execute(ctx)
     assert len(out.data["endpoints"]) == 1
@@ -465,7 +465,7 @@ def test_dsl_full_run_with_mocked_providers():
     """End-to-end: every Stage runs, manifest is built, no exceptions raised."""
     fake_fetched = {
         "nvidia": [_mk_ep("nvidia", "google/gemma")],
-        "amd": [{"provider": "amd", "model_id": "model_gateway:MiMo", "free": True}],
+        "amd": [{"provider": "amd", "model_id": "MiMo", "free": True}],
         "huggingface": [{
             "provider": "huggingface",
             "model_id": "meta-llama/Llama-3.2-3B",

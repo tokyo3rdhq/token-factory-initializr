@@ -100,9 +100,11 @@ def test_integration_amd_full_pipeline():
     assert isinstance(models, list)
     assert len(models) >= 2
     ids = {m["model_id"] for m in models}
-    # Real IDs from developer.amd.com.cn/radeon/tokenfactory today
-    assert "model_gateway:MiMo-V2.6-Flash" in ids
-    assert "model_gateway:DeepSeek-V4-Flash" in ids
+    # Real IDs from developer.amd.com.cn/radeon/tokenfactory today.
+    # The gateway prefix is stripped in build_endpoint_dict; the original
+    # id is preserved in metadata.original_id.
+    assert "MiMo-V2.6-Flash" in ids
+    assert "DeepSeek-V4-Flash" in ids
     for m in models:
         assert m["provider"] == "amd"
         # free flag may be True OR False depending on filter; do not assert True

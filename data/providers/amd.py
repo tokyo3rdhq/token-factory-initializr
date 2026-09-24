@@ -130,6 +130,25 @@ def derive_use_case(model: dict) -> str | None:
     return None
 
 
+def _strip_gateway_prefix(model_id: str) -> str:
+    """Strip AMD's gateway namespace prefix from a model id.
+
+    Real AMD ``model.id`` values look like ``"model_gateway:MiMo-V2.6-Flash"``
+    — the ``model_gateway:`` part is AMD's gateway namespace, not part of the
+    actual model identifier. Other consumers (NVIDIA uses ``org/name``, HF
+    uses ``org/name``) don't have such a namespace prefix, so we strip it
+    here to keep model_ids consistent across providers.
+
+    If the id doesn't contain a colon, return as-is.
+    """
+    if ":" in model_id:
+        head, _, tail = model_id.partition(":")
+        # Only strip known gateway namespaces; otherwise leave the id alone.
+        if head.endswith("_gateway") or head == "model_gateway":
+            return tail
+    return model_id
+
+
 def build_endpoint_dict(detail: dict) -> dict[str, Any]:
     """Build a dict suitable for data.models.normalize.normalize_endpoints().
 
@@ -146,6 +165,11 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
 
     But AMD's detail response is richer — we flatten it into a single
     ModelEndpoint per model with capabilities derived from capabilities_key.
+
+    The raw AMD id includes a gateway namespace prefix (e.g.
+    ``"model_gateway:MiMo-V2.6-Flash"``). We strip it here so model_ids
+    are consistent across providers; the original id is kept in
+    ``metadata.original_id`` for traceability.
     """
     m = detail["model"]
     tf = m.get("token_factory", {})
@@ -167,13 +191,16 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
     free_status = tf.get("status", {}).get("key")
     is_free = free_status == "free_endpoint"
 
+    raw_id = m["id"]
+    clean_id = _strip_gateway_prefix(raw_id)
+
     return {
         "provider": "amd",
-        "model_id": m["id"],
+        "model_id": clean_id,
         "free": is_free,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
-        "name": m.get("label") or m.get("model") or m["id"],
-        "description": None,
+        "name": m.get("label") or m.get("model") or clean_id,
+        "description": m.get("description"),
         "capabilities": {
             "use_case": derive_use_case(detail),
         },
@@ -184,6 +211,9 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
             "input_modalities": input_modalities,
             "output_modalities": output_modalities,
             "free_status": free_status,
+            # Preserve the original AMD id (with gateway prefix) so callers can
+            # disambiguate if AMD introduces new gateways later.
+            "original_id": raw_id,
         },
     }
 
