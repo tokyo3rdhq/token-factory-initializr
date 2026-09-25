@@ -1,1 +1,0 @@
-"""Cloudflare Pages Functions generated artifacts."""

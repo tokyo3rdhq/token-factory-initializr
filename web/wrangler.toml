@@ -1,0 +1,36 @@
+name = "token-factory-initializr"
+compatibility_date = "2026-09-15"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "./dist"
+
+# KV namespace that the Python data pipeline writes to. The same
+# namespace is shared across local dev (``wrangler pages dev``)
+# and the deployed Pages project, so what you see locally matches
+# production.
+#
+# The KV id here MUST match the namespace the data pipeline uses
+# (see CLOUDFLARE_KV_NAMESPACE_ID in .github/workflows/fetch-models.yml).
+#
+# Note: Pages deploy does NOT interpolate ${ENV} inside the binding
+# id — the value is read literally. We hardcode the production id here
+# and document the matching env var so local dev (which DOES
+# interpolate via the .env loader) and production stay in sync.
+# Override this id only when running against a fresh namespace.
+[[kv_namespaces]]
+binding = "TFI_KV"
+id = "0d4734eae9ce4b5d9ad4fa32e6ef462c"
+
+[vars]
+# Default namespace for local dev. CI / production overrides via
+# the deployment environment.
+TFI_TTL_SECONDS = "300"
+# When set to "1", the API endpoints bypass KV and serve the
+# bundled fixture data (web/functions/lib/fixtures.ts). Production
+# deployments must leave this at "0" so a 404 from the API surfaces
+# as a real error rather than masking infrastructure breakage with
+# stale data.
+#
+# Local dev typically wants "1" (pass via ``npm run dev`` →
+# wrangler pages dev --var TFI_USE_LOCAL_FIXTURES=1). The
+# npm script in package.json does this for you.
+TFI_USE_LOCAL_FIXTURES = "0"
