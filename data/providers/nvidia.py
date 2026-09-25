@@ -30,14 +30,16 @@ logger = logging.getLogger(__name__)
 # Request headers for WAF compatibility
 #
 # Matches the URL the public web UI uses when "Free models" is
-# selected: ``https://build.nvidia.com/models?filters=nimType%3Anim_type_preview``.
-# The server appears to ignore the query string at the RSC layer
-# (we still get the full catalog back in the response), but using
-# this URL:
+# selected, with ``pageSize=96`` so the full free catalog fits in
+# a single fetch (free models rarely exceed 96 entries). The
+# upstream server appears to ignore the ``filters`` query parameter
+# at the RSC layer (we still get the full catalog back in the
+# response), so we drop pagination in the parser — see
+# ``fetch_all_pages`` below. Using this URL:
 #
-#   1. Documents intent — readers of the code see we're hitting the
+#   1. Documents intent — readers see we're hitting the
 #      free-models view, not the unfiltered view.
-#   2. Aligns the scraper with the web UI's URL bar for trace
+#   2. Aligns the scraper URL with the web UI's URL bar for trace
 #      correlation.
 #
 # Filtering of paid vs. free still happens locally via the
@@ -45,7 +47,8 @@ logger = logging.getLogger(__name__)
 # ``labels.nimType.values``) and dropped by ``FilterFreeStage`` —
 # see ``data/providers/free_filter.py``.
 BASE_URL = (
-    "https://build.nvidia.com/models?filters=nimType%3Anim_type_preview"
+    "https://build.nvidia.com/models"
+    "?pageSize=96&filters=nimType%3Anim_type_preview"
 )
 
 # WAF cooldown: server returns 202 after first page, needs retry with delay
@@ -453,13 +456,21 @@ class NvidiaCatalogParser:
         """Fetch all pages of filtered/unfiltered catalog as raw HTML.
 
         Pure download: returns a list of HTML strings, one per page.
-        Stops as soon as a page comes back empty (no WAF block, no more
-        data). Use :func:`parse_nvidia_pages` to turn the HTML into
+        The default ``BASE_URL`` (``?pageSize=96&filters=nimType:...``)
+        carries the entire free catalog in a single response, so
+        pagination is normally a no-op (page 2+ return empty or the
+        same data). We keep the loop as a defensive backstop in case
+        the catalog grows past ``pageSize`` or the upstream changes
+        behaviour.
+
+        Use :func:`parse_nvidia_pages` to turn the HTML into
         ``ModelEndpoint`` objects.
 
         Args:
             filters: query filters, e.g. ``{"nimType": "nim_type_preview"}``.
-            max_pages: maximum pagination depth (default 5).
+            max_pages: maximum pagination depth (default 5). With the
+                default ``BASE_URL`` the first fetch already returns
+                everything, so this is effectively unused.
 
         Returns:
             List of HTML response bodies, one per page that returned

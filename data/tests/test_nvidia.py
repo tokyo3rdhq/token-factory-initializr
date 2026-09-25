@@ -33,6 +33,9 @@ from data.providers.nvidia import (
 def test_base_url_targets_free_models_view():
     """The fetch URL must match the web UI's free-models filter.
 
+    Uses ``pageSize=96`` so the entire free catalog fits in a single
+    response — the scraper no longer needs to paginate.
+
     The upstream server appears to ignore the ``filters`` query
     parameter at the RSC layer (full catalog is returned regardless),
     but the URL documents intent and matches what the web UI sends
@@ -40,7 +43,8 @@ def test_base_url_targets_free_models_view():
     regression to the unfiltered URL.
     """
     assert BASE_URL == (
-        "https://build.nvidia.com/models?filters=nimType%3Anim_type_preview"
+        "https://build.nvidia.com/models"
+        "?pageSize=96&filters=nimType%3Anim_type_preview"
     )
 
 
