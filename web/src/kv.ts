@@ -75,6 +75,7 @@ export interface GenerateResponse {
   url: string;
   expires_at: number;
   yaml: string;
+  agent_prompt?: string;
 }
 
 export async function postGenerate(

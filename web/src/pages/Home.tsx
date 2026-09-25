@@ -1,196 +1,215 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-import { ModelCard } from "../components/ModelCard";
-import { useSelection } from "../components/SelectionContext";
-import {
-  fetchManifest,
-  fetchModels,
-  FIXTURES,
-  shouldUseLocalFixtures,
-} from "../kv";
-import type { Manifest, ModelEndpoint } from "../types";
+import type { ModelRequirement } from "../types";
 
 /**
- * Home / Browse page.
+ * Requirements form — the first page in the new flow.
  *
- * Loads the manifest + per-provider model snapshots from /api/*, lets
- * the user filter by provider, and lets them tap cards to add to
- * their Generate selection. The "Generate" pill in the top-right
- * carries the live count of selected endpoints.
+ * Replaces the previous "browse + click-to-select" home with a single
+ * form that captures the user's intent as a ``ModelRequirement``
+ * shape. On submit, the requirement is pushed to the next route
+ * (``/browse``), which evaluates it against the live catalog and
+ * presents a Recommended / Other split.
+ *
+ * Field shapes map 1:1 to ``shared/schema/model_requirement.schema.json``.
  */
 export function HomePage() {
-  const [manifest, setManifest] = useState<Manifest | null>(null);
-  const [models, setModels] = useState<ModelEndpoint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeProvider, setActiveProvider] = useState<string>("all");
-  const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
-  const selection = useSelection();
+  // --- form state ---
+  const [useCase, setUseCase] = useState("");
+  const [contextMin, setContextMin] = useState<'128k' | '32k' | '8k' | 'any'>(
+    '128k',
+  );
+  const [toolCalling, setToolCalling] = useState<'yes' | 'no'>('yes');
+  const [vision, setVision] = useState<'yes' | 'no'>('no');
+  const [cost, setCost] = useState<'free' | 'any'>('free');
+  const [providers, setProviders] = useState<string[]>(["nvidia", "huggingface"]);
+  const [endpointCount, setEndpointCount] = useState<number>(3);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const m = await fetchManifest();
-        const snap = await fetchModels();
-        if (cancelled) return;
-        setManifest(m);
-        setModels(snap.flatMap((s) => s.models));
-        setError(null);
-      } catch (e) {
-        if (cancelled) return;
-        const msg = e instanceof Error ? e.message : String(e);
-        setError(msg);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
+  const toggleProvider = (p: string) => {
+    setProviders((prev) =>
+      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p],
+    );
+  };
+
+  const onContinue = () => {
+    const req: ModelRequirement = {
+      capabilities: {
+        toolCalling: toolCalling === "yes",
+        vision: vision === "yes",
+      },
+      contextWindow: {
+        min: contextMin === "128k" ? 131072 : contextMin === "32k" ? 32768 : 8192,
+      },
+      pricing: {
+        free: cost === "free",
+      },
+      providers,
+      endpointCount,
     };
-  }, []);
-
-  const providers = manifest ? Object.keys(manifest.providers) : [];
-  const providerCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const m of models) {
-      counts[m.provider] = (counts[m.provider] ?? 0) + 1;
+    if (useCase.trim()) {
+      req.useCases = [useCase.trim()];
     }
-    return counts;
-  }, [models]);
-
-  const filtered = useMemo(() => {
-    const s = search.trim().toLowerCase();
-    return models
-      .filter((m) =>
-        activeProvider === "all" ? true : m.provider === activeProvider
-      )
-      .filter((m) => {
-        if (!s) return true;
-        return (
-          m.model_id.toLowerCase().includes(s) ||
-          (m.name ?? "").toLowerCase().includes(s) ||
-          (m.lab ?? "").toLowerCase().includes(s)
-        );
-      })
-      .sort((a, b) => {
-        // Free endpoints first; then alphabetical by name.
-        if (a.free !== b.free) return a.free ? -1 : 1;
-        const ax = a.name ?? a.model_id;
-        const bx = b.name ?? b.model_id;
-        return ax.localeCompare(bx);
-      });
-  }, [models, activeProvider, search]);
-
-  const total = manifest?.total ?? filtered.length;
-  const generatedAt = manifest?.generated_at;
-
-  // Detect fallback mode (KV empty + local fixtures active).
-  const usingFallback =
-    !loading &&
-    models.length === 0 &&
-    shouldUseLocalFixtures(import.meta.env.VITE_USE_LOCAL_FIXTURES);
-
-  // When the fetch above fails AND local fixtures are explicitly opted-in
-  // (env var set in wrangler.toml vars), fall back to FIXTURES so the
-  // UI still renders something useful (e.g. fresh clone before the
-  // data pipeline has run).
-  useEffect(() => {
-    if (!usingFallback) return;
-    setManifest(FIXTURES.manifest);
-    setModels(FIXTURES.models.flatMap((s) => s.models));
-  }, [usingFallback]);
+    navigate("/browse", { state: { requirement: req } });
+  };
 
   return (
-    <div className="layout-stack">
+    <div className="layout-stack" style={{ maxWidth: 560, margin: "0 auto" }}>
       <header>
-        <h1 style={{ margin: "0 0 4px 0", fontSize: 22 }}>
-          Free model endpoints
-        </h1>
+        <h1 style={{ margin: "0 0 4px 0", fontSize: 22 }}>What are you building?</h1>
         <p className="muted" style={{ margin: 0 }}>
-          {total} endpoints across {providers.length} providers.
-          {generatedAt && (
-            <>
-              {" "}Last refreshed:{" "}
-              <code>{generatedAt}</code>.
-            </>
-          )}
-          {" "}
-          <Link to="/generate" className="muted">
-            {selection.selected.length > 0
-              ? `→ ${selection.selected.length} selected`
-              : "select endpoints →"}
-          </Link>
+          Tell us what you're building. We'll pick the right free models for you.
         </p>
       </header>
 
-      {error && !usingFallback && (
-        <div className="banner error">
-          Could not load KV catalog: {error}. If this persists, run{" "}
-          <code>python -m data.main</code> against the namespace, or set{" "}
-          <code>TFI_USE_LOCAL_FIXTURES=1</code> for offline-mode browsing.
-        </div>
-      )}
-
-      {usingFallback && (
-        <div className="banner">
-          Showing local fixture data (TFI_USE_LOCAL_FIXTURES=1). The live
-          KV is empty; run the data pipeline to populate the real catalog.
-        </div>
-      )}
-
-      <div className="card">
-        <div className="layout-stack" style={{ gap: 12 }}>
+      <section className="card layout-stack" style={{ gap: 16 }}>
+        {/* Free-text use case */}
+        <label className="layout-stack" style={{ gap: 6 }}>
+          <span className="section-title">Project</span>
           <input
-            type="search"
-            placeholder="Search by name, id, or lab…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
             className="btn"
-            style={{ width: "100%" }}
+            style={{ width: "100%", textAlign: "left" }}
+            placeholder="e.g. Coding assistant"
+            value={useCase}
+            onChange={(e) => setUseCase(e.target.value)}
           />
+        </label>
 
+        <div className="muted" style={{ fontSize: 12, margin: "8px 0 0 0" }}>
+          Requirements
+        </div>
+
+        {/* Context Window */}
+        <Field label="Context">
           <div className="tabs">
-            <button
-              className={`tab ${activeProvider === "all" ? "active" : ""}`}
-              onClick={() => setActiveProvider("all")}
-            >
-              all <span className="count">{models.length}</span>
-            </button>
-            {providers.map((p) => (
+            {(["128k+", "32k+", "8k+", "any"] as const).map((opt) => (
               <button
-                key={p}
-                className={`tab ${activeProvider === p ? "active" : ""}`}
-                onClick={() => setActiveProvider(p)}
+                key={opt}
+                className={`tab ${
+                  contextMin ===
+                  (opt === "128k+" ? "128k" : opt === "32k+" ? "32k" : opt === "8k+" ? "8k" : "any")
+                    ? "active"
+                    : ""
+                }`}
+                onClick={() =>
+                  setContextMin(
+                    opt === "128k+" ? "128k" : opt === "32k+" ? "32k" : opt === "8k+" ? "8k" : "any",
+                  )
+                }
               >
-                {p}{" "}
-                <span className="count">{providerCounts[p] ?? 0}</span>
+                {opt}
               </button>
             ))}
           </div>
-        </div>
-      </div>
+        </Field>
 
-      {loading ? (
-        <div className="empty">
-          <span className="spinner" /> Loading…
+        {/* Tool Calling */}
+        <Field label="Tool Calling">
+          <div className="tabs">
+            {(["yes", "no"] as const).map((opt) => (
+              <button
+                key={opt}
+                className={`tab ${toolCalling === opt ? "active" : ""}`}
+                onClick={() => setToolCalling(opt)}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        {/* Vision */}
+        <Field label="Vision">
+          <div className="tabs">
+            {(["yes", "no"] as const).map((opt) => (
+              <button
+                key={opt}
+                className={`tab ${vision === opt ? "active" : ""}`}
+                onClick={() => setVision(opt)}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        {/* Cost */}
+        <Field label="Cost">
+          <div className="tabs">
+            {(["free", "any"] as const).map((opt) => (
+              <button
+                key={opt}
+                className={`tab ${cost === opt ? "active" : ""}`}
+                onClick={() => setCost(opt)}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        {/* Providers */}
+        <Field label="Providers">
+          <div className="tabs">
+            {["nvidia", "amd", "huggingface"].map((p) => (
+              <button
+                key={p}
+                className={`tab ${providers.includes(p) ? "active" : ""}`}
+                onClick={() => toggleProvider(p)}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        {/* Number of models */}
+        <Field label="Models">
+          <div className="tabs">
+            {[1, 3, 5, 10].map((n) => (
+              <button
+                key={n}
+                className={`tab ${endpointCount === n ? "active" : ""}`}
+                onClick={() => setEndpointCount(n)}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </Field>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+          <button className="btn btn-primary" onClick={onContinue}>
+            Continue →
+          </button>
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="empty">No models match this filter.</div>
-      ) : (
-        <div className="model-grid">
-          {filtered.map((m) => (
-            <ModelCard
-              key={`${m.provider}::${m.model_id}`}
-              endpoint={m}
-              selected={selection.isSelected(m)}
-              onToggle={selection.toggle}
-            />
-          ))}
-        </div>
-      )}
+      </section>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "110px 1fr",
+        gap: 12,
+        alignItems: "center",
+      }}
+    >
+      <span className="muted" style={{ fontSize: 13 }}>
+        {label}
+      </span>
+      <div>{children}</div>
     </div>
   );
 }

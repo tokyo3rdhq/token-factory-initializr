@@ -4,8 +4,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import { App } from "./App";
 import { HomePage } from "./pages/Home";
+import { BrowsePage } from "./pages/Browse";
 import { GeneratePage } from "./pages/Generate";
-import { GeneratedPage } from "./pages/Generated";
 import { SelectionProvider } from "./components/SelectionContext";
 
 import "./styles.css";
@@ -22,8 +22,8 @@ createRoot(rootEl).render(
         <Routes>
           <Route path="/" element={<App />}>
             <Route index element={<HomePage />} />
+            <Route path="browse" element={<BrowsePage />} />
             <Route path="generate" element={<GeneratePage />} />
-            <Route path="generated/:id" element={<GeneratedPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

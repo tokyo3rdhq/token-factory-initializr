@@ -1,3 +1,4 @@
+import { fmtContext, providerClass } from "./format";
 import type { ModelEndpoint } from "../types";
 
 interface ModelCardProps {
@@ -62,22 +63,9 @@ export function ModelCard({ endpoint, selected, onToggle }: ModelCardProps) {
           </span>
         ))}
         {endpoint.context_length && (
-          <span className="tag">{fmtCtx(endpoint.context_length)}</span>
+          <span className="tag">{fmtContext(endpoint.context_length) + " ctx"}</span>
         )}
       </div>
     </div>
   );
-}
-
-function providerClass(provider: string): string {
-  const p = provider.toLowerCase();
-  if (p === "nvidia") return "nvidia";
-  if (p === "amd") return "amd";
-  return "huggingface";
-}
-
-function fmtCtx(n: number): string {
-  if (n >= 1024 * 1024) return `${Math.round(n / (1024 * 1024))}M ctx`;
-  if (n >= 1024) return `${Math.round(n / 1024)}K ctx`;
-  return `${n} ctx`;
 }

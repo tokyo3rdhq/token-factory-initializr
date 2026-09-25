@@ -18,5 +18,6 @@
     "allowJs": true,
     "types": ["@cloudflare/workers-types", "vite/client"]
   },
-  "include": ["src", "functions"]
+  "include": ["src", "functions"],
+  "exclude": ["node_modules", "dist", "src/__tests__"]
 }

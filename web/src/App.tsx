@@ -18,6 +18,9 @@ export function App() {
         </Link>
         <nav className="nav">
           <NavLink to="/" end className="nav-link">
+            Start
+          </NavLink>
+          <NavLink to="/browse" className="nav-link">
             Browse
           </NavLink>
           <NavLink to="/generate" className="nav-link">

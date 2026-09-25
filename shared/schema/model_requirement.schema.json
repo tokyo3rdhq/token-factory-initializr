@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ModelRequirement",
+  "description": "User-facing requirement for selecting model endpoints from the catalog. Used by the web UI to filter / rank endpoints against what the user actually needs.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "useCases": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Use-case tags the user wants to satisfy. Free-form strings; matched against endpoint capabilities."
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Required capability flags. An endpoint matches a flag when the flag is set on its `capabilities` dict (or derived from architecture / use_case labels for AMD/NVIDIA/HF respectively).",
+      "properties": {
+        "vision": {
+          "type": "boolean",
+          "description": "Endpoint must accept image inputs (HF: `input_modalities` contains `image`; NVIDIA: `architecture.input` contains `image`; AMD: derived from `provider_pricing[0].vision`)."
+        },
+        "toolCalling": {
+          "type": "boolean",
+          "description": "Endpoint must support tool/function calling (NVIDIA: `capabilities.tool_calling`; HF: `metadata.supports_tools`; AMD: derived from `provider_pricing[0].tools`)."
+        },
+        "structuredOutput": {
+          "type": "boolean",
+          "description": "Endpoint must support structured output (HF: `metadata.supports_structured_output`; AMD: derived; NVIDIA: derived)."
+        },
+        "reasoning": {
+          "type": "boolean",
+          "description": "Endpoint advertises a reasoning/CoT capability. No provider exposes this directly today; the field is reserved for future provider metadata."
+        }
+      }
+    },
+    "contextWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Minimum acceptable context window length (in tokens). An endpoint matches when its `context_length` is >= `min` (or unknown / null).",
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Lower bound on context window size. Endpoints without a known context length are treated as matches."
+        }
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Pricing constraints. All sub-fields are AND-combined: an endpoint matches when every constraint here passes.",
+      "properties": {
+        "input": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum acceptable input price (USD per token, raw float). Endpoints without an `input` price field are treated as matches."
+        },
+        "output": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum acceptable output price (USD per token, raw float)."
+        },
+        "free": {
+          "type": "boolean",
+          "description": "If true, only `ModelEndpoint.free == true` endpoints match. If false, only paid endpoints match (`free == false`). If omitted, no constraint is applied (any free flag is accepted)."
+        }
+      }
+    },
+    "providers": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Whitelist of provider names. If non-empty, an endpoint matches only when its `provider` is in the list. If empty / omitted, all providers match."
+    },
+    "endpointCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Reserved for future use. Intended to express 'I need N endpoints that satisfy the rest of this requirement'. The current web UI does not enforce this field."
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Non-functional constraints. All providers currently leave these unset; the field is reserved for future provider metadata.",
+      "properties": {
+        "region": {
+          "type": "string",
+          "description": "Required geographic region (e.g. `us-east`, `eu-west`)."
+        },
+        "latency": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum acceptable first-token latency in milliseconds."
+        },
+        "throughput": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum acceptable throughput in tokens per second."
+        }
+      }
+    }
+  }
+}
