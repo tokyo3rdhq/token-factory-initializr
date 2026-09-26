@@ -2,6 +2,8 @@
 
 A lightweight **Token Factory Initializr** that discovers, normalizes, stores, and exposes currently available free AI model endpoints from multiple providers.
 
+Uses `@tokyo3rdhq/magi-design-system` for shared visual language.
+
 ## Runtime Overview
 
 - **Data Runtime** (`data/`) — Python data pipeline (offline scheduled job, GitHub Actions daily 02:00) → normalize → validate → deduplicate → Cloudflare KV

@@ -1,23 +1,19 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Container, Section, Stack, Button, Card } from "@tokyo3rdhq/magi-design-system";
 
 import { useSelection } from "../components/SelectionContext";
 import { postGenerate } from "../kv";
 
 /**
- * Token Factory — Generate page (replaces the old Generate + Generated
- * pair with a single in-page flow).
+ * Token Factory — Generate page.
  *
- * Flow:
- *   1. User picks models on /browse (carried in selection state).
- *   2. User selects a config format on /generate.
- *   3. User clicks Initialize → POST /api/generate → renders the YAML
- *      inline below with Copy / Download / Agent Prompt actions.
- *
- * The artifact is still stored in KV with a 5-min TTL; the page can
- * share the public URL via "Open shareable URL" if the user wants to
- * revisit it later (and an agent can curl the same URL to fetch the
- * YAML).
+ * Layout:
+ *   - developer-infrastructure summary (MODEL / PROVIDER / ID)
+ *   - format selector + Initialize button
+ *   - terminal-style code surface for the YAML
+ *   - copy / download / agent-prompt actions
+ *   - shareable URL as a small machine-friendly meta row
  */
 export function GeneratePage() {
   const selection = useSelection();
@@ -61,7 +57,7 @@ export function GeneratePage() {
       setCopied(key);
       window.setTimeout(() => setCopied(null), 1500);
     } catch {
-      // Clipboard API blocked (e.g. insecure context) — silently no-op.
+      /* clipboard unavailable in this context */
     }
   };
 
@@ -79,64 +75,86 @@ export function GeneratePage() {
   };
 
   return (
-    <div className="layout-stack" style={{ maxWidth: 720, margin: "0 auto" }}>
-      <header>
-        <h1 style={{ margin: "0 0 4px 0", fontSize: 22 }}>Token Factory</h1>
-        <p className="muted" style={{ margin: 0 }}>
-          {selection.selected.length > 0 ? (
-            <>
-              {selection.selected.length} selected model
-              {selection.selected.length === 1 ? "" : "s"} ready to
-              initialize.
-            </>
-          ) : (
-            <>No models selected.</>
-          )}
-        </p>
-      </header>
+    <Section spacing="lg">
+      <Container size="md">
+        <Stack gap="3" style={{ marginBottom: "var(--magi-space-10)" }}>
+          <span className="magi-eyebrow">Generate</span>
+          <h1 className="magi-h1">Token Factory</h1>
+          <p className="magi-body-lg" style={{ color: "var(--magi-text-secondary)" }}>
+            {selection.selected.length > 0
+              ? `${selection.selected.length} model${
+                  selection.selected.length === 1 ? "" : "s"
+                } ready to initialize.`
+              : "No models selected yet."}
+          </p>
+        </Stack>
 
-      {selection.selected.length === 0 ? (
-        <div className="empty">
-          Nothing selected yet. Head to{" "}
-          <Link to="/">the requirements form</Link>, then{" "}
-          <Link to="/browse">browse</Link> to pick models.
-        </div>
-      ) : (
-        <>
-          <section className="card layout-stack" style={{ gap: 16 }}>
-            <div className="row" style={{ alignItems: "center", gap: 12 }}>
-              <span style={{ fontWeight: 600, fontSize: 15 }}>
-                {selection.selected.length} model
-                {selection.selected.length === 1 ? "" : "s"}
-              </span>
-              <div style={{ flex: 1 }} />
-              <FormatSelect value={format} onChange={setFormat} />
-              <button
-                className="btn btn-primary"
-                onClick={onInitialize}
-                disabled={submitting}
+        {selection.selected.length === 0 ? (
+          <div className="tfi-empty">
+            Nothing selected. Head to{" "}
+            <Link to="/">the requirements form</Link>, then{" "}
+            <Link to="/browse">browse</Link> to pick models.
+          </div>
+        ) : (
+          <Stack gap="6">
+            {/* Selected models summary */}
+            <Card>
+              <span
+                className="magi-eyebrow"
+                style={{ display: "block", marginBottom: "var(--magi-space-4)" }}
               >
-                {submitting ? (
-                  <>
-                    <span className="spinner" /> Initializing…
-                  </>
-                ) : (
-                  "Initialize"
-                )}
-              </button>
-            </div>
+                Selection
+              </span>
+              <Stack gap="4">
+                {selection.selected.map((m) => (
+                  <div
+                    className="tfi-meta-grid"
+                    key={`${m.provider}::${m.model_id}`}
+                  >
+                    <span className="tfi-meta-key">Model</span>
+                    <span className="tfi-meta-value">{m.name || m.model_id}</span>
+                    <span className="tfi-meta-key">Provider</span>
+                    <span className="tfi-meta-value">{m.provider}</span>
+                    <span className="tfi-meta-key">ID</span>
+                    <span className="tfi-meta-value">{m.model_id}</span>
+                  </div>
+                ))}
+              </Stack>
+            </Card>
 
-            <div
-              className="muted"
-              style={{ fontSize: 12, textAlign: "center", margin: "8px 0" }}
-            >
-              ↓
-            </div>
+            {/* Format + Initialize */}
+            <Card>
+              <Stack direction="row" gap="4" align="center">
+                <div className="tfi-field" style={{ flex: 1 }}>
+                  <label className="tfi-field-label" htmlFor="format-select">
+                    Format
+                  </label>
+                  <select
+                    id="format-select"
+                    className="tfi-select"
+                    value={format}
+                    onChange={(e) => setFormat(e.target.value as "litellm")}
+                  >
+                    <option value="litellm">LiteLLM</option>
+                  </select>
+                </div>
+                <Button
+                  variant="primary"
+                  onClick={onInitialize}
+                  disabled={submitting}
+                  loading={submitting}
+                >
+                  {submitting ? "Initializing…" : "Initialize"}
+                </Button>
+              </Stack>
+            </Card>
 
-            {error && <div className="banner error">{error}</div>}
+            {error && (
+              <div className="tfi-banner error">{error}</div>
+            )}
 
             {!result ? (
-              <div className="empty">
+              <div className="tfi-empty">
                 {error ? "" : "Click Initialize to generate the config."}
               </div>
             ) : (
@@ -150,49 +168,28 @@ export function GeneratePage() {
                 onDownload={downloadYaml}
               />
             )}
-          </section>
 
-          <div style={{ display: "flex", gap: 8 }}>
-            <Link to="/browse" className="btn">
-              ← Back to picks
-            </Link>
-            {result && (
-              <button
-                className="btn"
-                onClick={() => {
-                  selection.clear();
-                  navigate("/");
-                }}
-              >
-                Start over
-              </button>
-            )}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function FormatSelect({
-  value,
-  onChange,
-}: {
-  value: "litellm";
-  onChange: (v: "litellm") => void;
-}) {
-  return (
-    <label className="row" style={{ alignItems: "center", gap: 8 }}>
-      <span className="muted" style={{ fontSize: 12 }}>Format</span>
-      <select
-        className="btn"
-        value={value}
-        onChange={(e) => onChange(e.target.value as "litellm")}
-        style={{ padding: "6px 10px" }}
-      >
-        <option value="litellm">LiteLLM</option>
-      </select>
-    </label>
+            <div className="tfi-action-bar">
+              <Link to="/browse" className="tfi-nav-link" style={{ paddingLeft: 0 }}>
+                ← Back to picks
+              </Link>
+              <div style={{ flex: 1 }} />
+              {result && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    selection.clear();
+                    navigate("/");
+                  }}
+                >
+                  Start over
+                </Button>
+              )}
+            </div>
+          </Stack>
+        )}
+      </Container>
+    </Section>
   );
 }
 
@@ -214,42 +211,40 @@ function ResultPanel({
   onDownload: () => void;
 }) {
   return (
-    <div className="layout-stack" style={{ gap: 12 }}>
-      <div className="row" style={{ alignItems: "center", gap: 8 }}>
-        <span className="muted" style={{ fontSize: 13 }}>
-          <code>{id}.yaml</code>
-        </span>
+    <Stack gap="4">
+      <div className="tfi-code-chrome">
+        <span className="tfi-code-filename">{id}.yaml</span>
+        <span className="tfi-code-status">Ready</span>
         <div style={{ flex: 1 }} />
-        <button className="btn" onClick={() => onCopy(yaml, "yaml")}>
-          {copied === "yaml" ? "Copied!" : "Copy"}
-        </button>
-        <button className="btn" onClick={onDownload}>
+        <Button size="sm" variant="secondary" onClick={() => onCopy(yaml, "yaml")}>
+          {copied === "yaml" ? "Copied" : "Copy"}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={onDownload}>
           Download
-        </button>
-        <button
-          className="btn"
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
           onClick={() => onCopy(agentPrompt ?? "", "prompt")}
         >
-          {copied === "prompt" ? "Copied!" : "Agent Prompt"}
-        </button>
+          {copied === "prompt" ? "Copied" : "Agent Prompt"}
+        </Button>
       </div>
-      <pre className="code" data-testid="yaml">
+      <pre className="magi-code tfi-code-surface" data-testid="yaml">
         {yaml}
       </pre>
-      <div className="row" style={{ alignItems: "center", gap: 8 }}>
-        <span className="muted" style={{ fontSize: 12 }}>
-          Shareable URL (5-min TTL):
+
+      <div className="tfi-meta-grid">
+        <span className="tfi-meta-key">URL</span>
+        <span className="tfi-meta-value">
+          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{url}</span>
+          <Button size="sm" variant="secondary" onClick={() => onCopy(url, "url")}>
+            {copied === "url" ? "Copied" : "Copy"}
+          </Button>
         </span>
-        <input
-          className="btn"
-          style={{ flex: 1, fontFamily: "ui-monospace, monospace", fontSize: 12 }}
-          readOnly
-          value={url}
-        />
-        <button className="btn" onClick={() => onCopy(url, "url")}>
-          {copied === "url" ? "Copied!" : "Copy URL"}
-        </button>
+        <span className="tfi-meta-key">TTL</span>
+        <span className="tfi-meta-value">5 minutes — by design</span>
       </div>
-    </div>
+    </Stack>
   );
 }

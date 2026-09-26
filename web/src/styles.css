@@ -1,349 +1,369 @@
-:root {
-  --bg: #0b0e14;
-  --bg-elevated: #131822;
-  --bg-card: #1a2030;
-  --border: #2a3142;
-  --text: #e7e9ee;
-  --text-dim: #9aa3b6;
-  --accent: #6db3ff;
-  --accent-strong: #4d8eff;
-  --good: #6dd58c;
-  --warn: #ffcb6d;
-  --bad: #ff7a7a;
-  --shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
-  --radius: 10px;
-  --radius-lg: 14px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-}
+/* ============================================================
+ * Product-specific styles for Token Factory Initializr.
+ *
+ * This file MUST NOT redefine tokens, button styles, or any
+ * primitives that @tokyo3rdhq/magi-design-system provides. Only
+ * product-specific patterns (topbar, model list, meta-grid,
+ * code surface chrome, segmented control, footer) live here.
+ *
+ * Token references use var(--magi-*) so the ProductTheme accent
+ * override propagates automatically.
+ * ============================================================ */
 
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  margin: 0;
-  padding: 0;
-  min-height: 100%;
-  background: var(--bg);
-  color: var(--text);
-}
-
-a {
-  color: var(--accent);
-  text-decoration: none;
-}
-a:hover {
-  text-decoration: underline;
-}
-
-.app {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.topbar {
+/* ----- Topbar (translucent, sticky, MAGI / Product mark) ----- */
+.tfi-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
-  background: var(--bg-elevated);
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  padding: var(--magi-space-4) var(--magi-space-6);
+  background: color-mix(in srgb, var(--magi-bg-base) 72%, transparent);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--magi-border);
 }
 
-.brand {
+.tfi-brand {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text);
-  font-weight: 600;
-  font-size: 16px;
-}
-.brand-mark {
-  font-size: 22px;
-  color: var(--accent);
-}
-.brand:hover {
-  text-decoration: none;
-}
-
-.nav {
-  display: flex;
-  gap: 12px;
-}
-.nav-link {
-  padding: 8px 12px;
-  border-radius: var(--radius);
-  color: var(--text-dim);
-  font-weight: 500;
-}
-.nav-link:hover {
-  color: var(--text);
-  background: var(--bg-card);
-  text-decoration: none;
-}
-.nav-link.active {
-  color: var(--text);
-  background: var(--bg-card);
-}
-
-.main {
-  flex: 1;
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.footer {
-  padding: 16px 24px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-elevated);
-  color: var(--text-dim);
-  font-size: 13px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* ----- Buttons ----- */
-.btn {
-  appearance: none;
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text);
-  padding: 8px 16px;
-  border-radius: var(--radius);
+  align-items: baseline;
+  gap: var(--magi-space-2);
+  font-family: var(--magi-font-sans, Inter, system-ui, sans-serif);
   font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  border: 0;
 }
-.btn:hover:not(:disabled) {
-  background: var(--bg-elevated);
-  border-color: var(--accent);
-}
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.btn-primary {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-  color: #fff;
-}
-.btn-primary:hover:not(:disabled) {
-  background: var(--accent);
-  border-color: var(--accent);
-}
+.tfi-brand:hover { border: 0; }
+.tfi-brand-parent { color: var(--magi-text-secondary); }
+.tfi-brand-slash { color: var(--magi-text-tertiary); margin: 0 2px; }
+.tfi-brand-product { color: var(--magi-text-primary); font-weight: 600; }
 
-/* ----- Cards / Pills ----- */
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  box-shadow: var(--shadow);
-}
-
-.provider-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-.provider-pill.nvidia {
-  background: rgba(109, 179, 255, 0.16);
-  color: var(--accent);
-}
-.provider-pill.amd {
-  background: rgba(255, 203, 109, 0.16);
-  color: var(--warn);
-}
-.provider-pill.huggingface {
-  background: rgba(255, 203, 109, 0.16);
-  color: var(--warn);
-}
-.provider-pill[data-router-provider] {
-  background: rgba(255, 122, 122, 0.16);
-  color: var(--bad);
-}
-
-.tag {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-right: 4px;
-  margin-bottom: 4px;
-}
-
-/* ----- Layout ----- */
-.layout-stack {
+.tfi-nav {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  gap: var(--magi-space-5);
 }
-
-.layout-grid {
-  display: grid;
-  gap: 16px;
-}
-
-.section-title {
+.tfi-nav-link {
   font-size: 13px;
-  letter-spacing: 0.06em;
+  color: var(--magi-text-secondary);
+  padding: var(--magi-space-2) 0;
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  text-decoration: none;
+  font-family: inherit;
+}
+.tfi-nav-link:hover { color: var(--magi-text-primary); text-decoration: none; }
+.tfi-nav-link.active {
+  color: var(--magi-text-primary);
+  border-bottom-color: var(--magi-text-primary);
+}
+
+/* ----- Footer (3-col structure, MAGI parent-brand pattern) ----- */
+.tfi-footer {
+  margin-top: var(--magi-space-12);
+  padding: var(--magi-space-10) var(--magi-space-6) var(--magi-space-6);
+  border-top: 1px solid var(--magi-border);
+}
+.tfi-footer-cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--magi-space-6);
+}
+.tfi-footer-col h4 {
+  font-size: 11px;
   text-transform: uppercase;
-  color: var(--text-dim);
-  margin: 0 0 8px 0;
+  letter-spacing: 0.08em;
+  color: var(--magi-text-tertiary);
+  font-weight: 500;
+  margin: 0 0 var(--magi-space-3) 0;
 }
-
-.muted {
-  color: var(--text-dim);
-}
-
-/* ----- Provider filter tabs ----- */
-.tabs {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
-}
-.tab {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  padding: 6px 12px;
-  border-radius: var(--radius);
-  cursor: pointer;
-  color: var(--text-dim);
-  font-size: 13px;
-}
-.tab.active {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
-  color: #fff;
-}
-.tab .count {
-  margin-left: 6px;
-  font-size: 11px;
-  opacity: 0.8;
-}
-
-/* ----- Model grid ----- */
-.model-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
-}
-.model-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px;
+.tfi-footer-col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  transition: border-color 0.15s;
+  gap: var(--magi-space-2);
+  font-size: 13px;
+}
+.tfi-footer-col li.tfi-muted { color: var(--magi-text-tertiary); }
+.tfi-footer-col a { color: var(--magi-text-secondary); border: 0; }
+.tfi-footer-col a:hover { color: var(--magi-text-primary); border: 0; }
+.tfi-footer-meta {
+  margin-top: var(--magi-space-6);
+  padding-top: var(--magi-space-5);
+  border-top: 1px solid var(--magi-border);
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--magi-text-tertiary);
+}
+
+/* ----- Form controls (segmented control) ----- */
+.tfi-segmented {
+  display: inline-flex;
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-md, 8px);
+  background: var(--magi-surface);
+  padding: 2px;
+  gap: 2px;
+}
+.tfi-segmented-item {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--magi-text-secondary);
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background var(--magi-duration-fast, 150ms) ease, color var(--magi-duration-fast, 150ms) ease;
+}
+.tfi-segmented-item:hover { color: var(--magi-text-primary); }
+.tfi-segmented-item.active {
+  background: var(--magi-surface-elevated);
+  color: var(--magi-text-primary);
+  box-shadow: inset 0 0 0 1px var(--magi-border);
+}
+.tfi-segmented-item.accent.active {
+  background: var(--magi-accent-soft);
+  color: var(--magi-accent);
+  box-shadow: inset 0 0 0 1px var(--magi-accent);
+}
+
+.tfi-field { display: flex; flex-direction: column; gap: var(--magi-space-2); }
+.tfi-field-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--magi-text-tertiary);
+  font-weight: 500;
+}
+.tfi-divider {
+  height: 1px;
+  background: var(--magi-border);
+  margin: var(--magi-space-7) 0;
+}
+.tfi-input {
+  width: 100%;
+  appearance: none;
+  background: var(--magi-surface);
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-md, 8px);
+  color: var(--magi-text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color var(--magi-duration-fast, 150ms) ease;
+}
+.tfi-input:focus { border-color: var(--magi-accent); }
+.tfi-input::placeholder { color: var(--magi-text-tertiary); }
+
+.tfi-select {
+  width: 100%;
+  appearance: none;
+  background: var(--magi-surface);
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-md, 8px);
+  color: var(--magi-text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+/* ----- Hero spacing tweaks (using design-system spacing tokens) ----- */
+.tfi-hero { display: flex; flex-direction: column; gap: var(--magi-space-6); max-width: 720px; }
+.tfi-hero-headline { max-width: 720px; }
+.tfi-hero-card { margin-top: var(--magi-space-10); max-width: 720px; }
+
+/* ----- Model list (developer-infrastructure pattern) ----- */
+.tfi-model-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-lg, 12px);
+  background: var(--magi-surface);
+  overflow: hidden;
+}
+.tfi-model-row {
+  display: grid;
+  grid-template-columns: 24px 120px 1fr 160px;
+  align-items: center;
+  gap: var(--magi-space-4);
+  padding: var(--magi-space-4) var(--magi-space-5);
+  border-bottom: 1px solid var(--magi-border);
+  cursor: pointer;
+  transition: background var(--magi-duration-fast, 150ms) ease;
+}
+.tfi-model-row:last-child { border-bottom: 0; }
+.tfi-model-row:hover { background: var(--magi-surface-elevated); }
+.tfi-model-row.selected { background: var(--magi-accent-soft); }
+.tfi-model-row.selected .tfi-model-name { color: var(--magi-accent); }
+.tfi-model-checkbox {
+  accent-color: var(--magi-accent);
   cursor: pointer;
 }
-.model-card:hover {
-  border-color: var(--accent);
+.tfi-model-provider {
+  font-family: var(--magi-font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--magi-text-secondary);
 }
-.model-card.selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-}
-.model-card .name {
-  font-weight: 600;
+.tfi-model-name {
   font-size: 14px;
-  color: var(--text);
+  font-weight: 500;
+  color: var(--magi-text-primary);
   word-break: break-word;
 }
-.model-card .id {
-  font-size: 11px;
-  color: var(--text-dim);
-  word-break: break-all;
-  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
-}
-.model-card .row {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-/* ----- Misc ----- */
-.empty {
-  padding: 32px;
-  text-align: center;
-  color: var(--text-dim);
-  background: var(--bg-card);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-lg);
-}
-
-.code {
-  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+.tfi-model-id {
+  color: var(--magi-text-tertiary);
   font-size: 12px;
-  background: #06080d;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px;
-  overflow: auto;
-  white-space: pre;
-  max-height: 600px;
-  color: #cfd8e3;
+  margin-top: 2px;
+  word-break: break-all;
+}
+.tfi-model-meta {
+  font-family: var(--magi-font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  color: var(--magi-text-tertiary);
+  text-align: right;
+  white-space: nowrap;
 }
 
-.copy-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.banner {
-  background: rgba(255, 203, 109, 0.1);
-  border: 1px solid rgba(255, 203, 109, 0.3);
-  color: var(--warn);
-  padding: 10px 14px;
-  border-radius: var(--radius);
+/* ----- Meta grid (developer-infrastructure MODEL / CONTEXT / PROVIDER / STATUS) ----- */
+.tfi-meta-grid {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  row-gap: var(--magi-space-2);
+  column-gap: var(--magi-space-4);
   font-size: 13px;
 }
-.banner.error {
-  background: rgba(255, 122, 122, 0.1);
-  border-color: rgba(255, 122, 122, 0.3);
-  color: var(--bad);
+.tfi-meta-key {
+  color: var(--magi-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  align-self: center;
+  font-weight: 500;
 }
-.banner.success {
-  background: rgba(109, 213, 140, 0.1);
-  border-color: rgba(109, 213, 140, 0.3);
-  color: var(--good);
+.tfi-meta-value {
+  color: var(--magi-text-primary);
+  font-family: var(--magi-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: var(--magi-space-2);
 }
 
-.spinner {
+/* ----- Code surface chrome (header strip + body) ----- */
+.tfi-code-chrome {
+  display: flex;
+  align-items: center;
+  gap: var(--magi-space-3);
+  padding: var(--magi-space-3) var(--magi-space-4);
+  background: var(--magi-surface);
+  border: 1px solid var(--magi-border);
+  border-bottom: 0;
+  border-top-left-radius: var(--magi-radius-lg, 12px);
+  border-top-right-radius: var(--magi-radius-lg, 12px);
+}
+.tfi-code-chrome .tfi-code-filename {
+  font-family: var(--magi-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--magi-text-secondary);
+}
+.tfi-code-status {
+  display: flex;
+  align-items: center;
+  gap: var(--magi-space-2);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--magi-text-tertiary);
+}
+.tfi-code-status::before {
+  content: "";
   display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--text-dim);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--magi-success);
+}
+
+.tfi-code-surface {
+  margin: -1px 0 0 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  max-height: 600px;
+}
+
+/* ----- Banners, empty states, helpers ----- */
+.tfi-banner {
+  background: var(--magi-surface);
+  border: 1px solid var(--magi-border);
+  border-left: 2px solid var(--magi-warning);
+  border-radius: var(--magi-radius-md, 8px);
+  color: var(--magi-text-primary);
+  padding: var(--magi-space-3) var(--magi-space-4);
+  font-size: 13px;
+}
+.tfi-banner.error { border-left-color: var(--magi-error); }
+.tfi-banner.success { border-left-color: var(--magi-success); }
+
+.tfi-empty {
+  padding: var(--magi-space-7);
+  text-align: center;
+  color: var(--magi-text-secondary);
+  background: var(--magi-surface);
+  border: 1px dashed var(--magi-border);
+  border-radius: var(--magi-radius-lg, 12px);
+  font-size: 14px;
+}
+
+.tfi-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--magi-text-tertiary);
   border-top-color: transparent;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: tfi-spin 0.8s linear infinite;
 }
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+@keyframes tfi-spin { to { transform: rotate(360deg); } }
+
+/* ----- Section heading strip ----- */
+.tfi-section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--magi-space-4);
+}
+
+/* ----- Action bar (bottom of pages) ----- */
+.tfi-action-bar {
+  display: flex;
+  gap: var(--magi-space-3);
+  margin-top: var(--magi-space-10);
+  padding-top: var(--magi-space-7);
+  border-top: 1px solid var(--magi-border);
+  align-items: center;
+}
+
+/* ----- Responsive ----- */
+@media (max-width: 720px) {
+  .tfi-topbar { padding: var(--magi-space-3) var(--magi-space-5); }
+  .tfi-footer-cols { grid-template-columns: 1fr; }
+  .tfi-footer-meta { flex-direction: column; gap: var(--magi-space-2); }
+  .tfi-model-row {
+    grid-template-columns: 24px 1fr;
+    gap: var(--magi-space-3);
   }
+  .tfi-model-provider { grid-column: 2; }
+  .tfi-model-meta { grid-column: 2; text-align: left; }
 }

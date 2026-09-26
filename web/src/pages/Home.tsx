@@ -1,23 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Container, Section, Stack, Button, Card } from "@tokyo3rdhq/magi-design-system";
 
 import type { ModelRequirement } from "../types";
 
 /**
- * Requirements form — the first page in the new flow.
+ * Home — the entry point.
  *
- * Replaces the previous "browse + click-to-select" home with a single
- * form that captures the user's intent as a ``ModelRequirement``
- * shape. On submit, the requirement is pushed to the next route
- * (``/browse``), which evaluates it against the live catalog and
- * presents a Recommended / Other split.
+ * Structure follows the MAGI hero pattern:
+ *   [eyebrow]
+ *   display headline
+ *   subhead
+ *   [requirements card]
  *
- * Field shapes map 1:1 to ``shared/schema/model_requirement.schema.json``.
+ * Layout primitives come from @tokyo3rdhq/magi-design-system
+ * (Container, Section, Stack, Button). Color and accent come from
+ * CSS custom properties via <ProductTheme accent="cyan">.
  */
 export function HomePage() {
   const navigate = useNavigate();
 
-  // --- form state ---
   const [useCase, setUseCase] = useState("");
   const [contextMin, setContextMin] = useState<'128k' | '32k' | '8k' | 'any'>(
     '128k',
@@ -43,9 +45,7 @@ export function HomePage() {
       contextWindow: {
         min: contextMin === "128k" ? 131072 : contextMin === "32k" ? 32768 : 8192,
       },
-      pricing: {
-        free: cost === "free",
-      },
+      pricing: { free: cost === "free" },
       providers,
       endpointCount,
     };
@@ -56,160 +56,190 @@ export function HomePage() {
   };
 
   return (
-    <div className="layout-stack" style={{ maxWidth: 560, margin: "0 auto" }}>
-      <header>
-        <h1 style={{ margin: "0 0 4px 0", fontSize: 22 }}>What are you building?</h1>
-        <p className="muted" style={{ margin: 0 }}>
-          Tell us what you're building. We'll pick the right free models for you.
-        </p>
-      </header>
+    <Section spacing="lg">
+      <Container>
+        <Stack gap="6" className="tfi-hero">
+          <span className="magi-eyebrow">Token Factory Initializr</span>
+          <h1 className="magi-display tfi-hero-headline">Initialize your token factory.</h1>
+          <p className="magi-body-lg" style={{ color: "var(--magi-text-secondary)" }}>
+            Pick the free AI endpoints that fit your project. We generate
+            ready-to-use configuration for LiteLLM.
+          </p>
+        </Stack>
 
-      <section className="card layout-stack" style={{ gap: 16 }}>
-        {/* Free-text use case */}
-        <label className="layout-stack" style={{ gap: 6 }}>
-          <span className="section-title">Project</span>
-          <input
-            className="btn"
-            style={{ width: "100%", textAlign: "left" }}
-            placeholder="e.g. Coding assistant"
-            value={useCase}
-            onChange={(e) => setUseCase(e.target.value)}
-          />
-        </label>
+        <div className="tfi-hero-card">
+          <Card>
+            <Stack gap="8">
+              {/* Free-text project */}
+              <div className="tfi-field">
+                <label className="tfi-field-label" htmlFor="req-project">
+                  Project
+                </label>
+                <input
+                  id="req-project"
+                  className="tfi-input"
+                  placeholder="e.g. Coding assistant"
+                  value={useCase}
+                  onChange={(e) => setUseCase(e.target.value)}
+                />
+              </div>
 
-        <div className="muted" style={{ fontSize: 12, margin: "8px 0 0 0" }}>
-          Requirements
+              <div className="tfi-divider" />
+
+              {/* Two-column requirements grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "var(--magi-space-6)",
+                }}
+              >
+                <Field label="Context">
+                  <Segmented
+                    value={contextMin}
+                    options={[
+                      { value: "128k", label: "128K+" },
+                      { value: "32k", label: "32K+" },
+                      { value: "8k", label: "8K+" },
+                      { value: "any", label: "Any" },
+                    ]}
+                    onChange={(v) => setContextMin(v as typeof contextMin)}
+                  />
+                </Field>
+
+                <Field label="Models">
+                  <Segmented
+                    value={String(endpointCount)}
+                    options={[
+                      { value: "1", label: "1" },
+                      { value: "3", label: "3" },
+                      { value: "5", label: "5" },
+                      { value: "10", label: "10" },
+                    ]}
+                    onChange={(v) => setEndpointCount(Number(v))}
+                  />
+                </Field>
+
+                <Field label="Tool Calling">
+                  <Segmented
+                    value={toolCalling}
+                    options={[
+                      { value: "yes", label: "Yes" },
+                      { value: "no", label: "No" },
+                    ]}
+                    onChange={(v) => setToolCalling(v as typeof toolCalling)}
+                  />
+                </Field>
+
+                <Field label="Vision">
+                  <Segmented
+                    value={vision}
+                    options={[
+                      { value: "yes", label: "Yes" },
+                      { value: "no", label: "No" },
+                    ]}
+                    onChange={(v) => setVision(v as typeof vision)}
+                  />
+                </Field>
+
+                <Field label="Cost">
+                  <Segmented
+                    value={cost}
+                    options={[
+                      { value: "free", label: "Free only" },
+                      { value: "any", label: "Any" },
+                    ]}
+                    onChange={(v) => setCost(v as typeof cost)}
+                    accent
+                  />
+                </Field>
+
+                <Field label="Providers">
+                  <Stack direction="row" gap="2" wrap>
+                    {(["nvidia", "amd", "huggingface"] as const).map((p) => (
+                      <Segmented
+                        key={p}
+                        value={providers.includes(p) ? p : ""}
+                        options={[{ value: p, label: p }]}
+                        onChange={() => toggleProvider(p)}
+                        accent
+                        multi
+                      />
+                    ))}
+                  </Stack>
+                </Field>
+              </div>
+
+              <div className="tfi-divider" />
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "var(--magi-space-4)",
+                }}
+              >
+                <span className="magi-body-sm" style={{ color: "var(--magi-text-tertiary)" }}>
+                  We'll match {endpointCount} model
+                  {endpointCount === 1 ? "" : "s"} from {providers.length} provider
+                  {providers.length === 1 ? "" : "s"}.
+                </span>
+                <Button variant="primary" onClick={onContinue}>
+                  Browse models →
+                </Button>
+              </div>
+            </Stack>
+          </Card>
         </div>
-
-        {/* Context Window */}
-        <Field label="Context">
-          <div className="tabs">
-            {(["128k+", "32k+", "8k+", "any"] as const).map((opt) => (
-              <button
-                key={opt}
-                className={`tab ${
-                  contextMin ===
-                  (opt === "128k+" ? "128k" : opt === "32k+" ? "32k" : opt === "8k+" ? "8k" : "any")
-                    ? "active"
-                    : ""
-                }`}
-                onClick={() =>
-                  setContextMin(
-                    opt === "128k+" ? "128k" : opt === "32k+" ? "32k" : opt === "8k+" ? "8k" : "any",
-                  )
-                }
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        </Field>
-
-        {/* Tool Calling */}
-        <Field label="Tool Calling">
-          <div className="tabs">
-            {(["yes", "no"] as const).map((opt) => (
-              <button
-                key={opt}
-                className={`tab ${toolCalling === opt ? "active" : ""}`}
-                onClick={() => setToolCalling(opt)}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        </Field>
-
-        {/* Vision */}
-        <Field label="Vision">
-          <div className="tabs">
-            {(["yes", "no"] as const).map((opt) => (
-              <button
-                key={opt}
-                className={`tab ${vision === opt ? "active" : ""}`}
-                onClick={() => setVision(opt)}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        </Field>
-
-        {/* Cost */}
-        <Field label="Cost">
-          <div className="tabs">
-            {(["free", "any"] as const).map((opt) => (
-              <button
-                key={opt}
-                className={`tab ${cost === opt ? "active" : ""}`}
-                onClick={() => setCost(opt)}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        </Field>
-
-        {/* Providers */}
-        <Field label="Providers">
-          <div className="tabs">
-            {["nvidia", "amd", "huggingface"].map((p) => (
-              <button
-                key={p}
-                className={`tab ${providers.includes(p) ? "active" : ""}`}
-                onClick={() => toggleProvider(p)}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-        </Field>
-
-        {/* Number of models */}
-        <Field label="Models">
-          <div className="tabs">
-            {[1, 3, 5, 10].map((n) => (
-              <button
-                key={n}
-                className={`tab ${endpointCount === n ? "active" : ""}`}
-                onClick={() => setEndpointCount(n)}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </Field>
-
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-          <button className="btn btn-primary" onClick={onContinue}>
-            Continue →
-          </button>
-        </div>
-      </section>
-    </div>
+      </Container>
+    </Section>
   );
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "110px 1fr",
-        gap: 12,
-        alignItems: "center",
-      }}
-    >
-      <span className="muted" style={{ fontSize: 13 }}>
-        {label}
-      </span>
+    <div className="tfi-field">
+      <span className="tfi-field-label">{label}</span>
       <div>{children}</div>
     </div>
   );
 }
+
+function Segmented({
+  value,
+  options,
+  onChange,
+  accent = false,
+  multi = false,
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+  accent?: boolean;
+  multi?: boolean;
+}) {
+  return (
+    <div className="tfi-segmented">
+      {options.map((opt) => {
+        const active = multi ? true : value === opt.value;
+        const className = `tfi-segmented-item${active ? " active" : ""}${accent ? " accent" : ""}`;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            className={className}
+            onClick={() => {
+              if (multi) onChange(opt.value);
+              else if (value !== opt.value) onChange(opt.value);
+            }}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+
