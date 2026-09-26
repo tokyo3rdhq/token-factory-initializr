@@ -93,7 +93,7 @@ export function BrowsePage() {
         )}
 
         {!requirement && (
-          <div className="tfi-banner" style={{ marginBottom: "var(--magi-space-6)" }}>
+          <div className="tfi-banner info" style={{ marginBottom: "var(--magi-space-6)" }}>
             No requirements set.{" "}
             <Link to="/">Go back</Link> to specify what you're building —
             we'll pick the right models for you.
@@ -233,7 +233,7 @@ function ModelRow({
     <label className={`tfi-model-row${selected ? " selected" : ""}`}>
       <input
         type="checkbox"
-        className="tfi-model-checkbox"
+        className="tfi-checkbox"
         checked={selected}
         onChange={() => onToggle(endpoint)}
         aria-label={`Select ${endpoint.model_id}`}
@@ -244,7 +244,7 @@ function ModelRow({
         <div className="tfi-model-id">{endpoint.model_id}</div>
       </span>
       <span className="tfi-model-meta">
-        <Badge variant="neutral">{ctx}</Badge>
+        {ctx && <Badge variant="neutral">{ctx}</Badge>}
         {hasTools && <Badge variant="accent">tools</Badge>}
         {hasVisionCap && <Badge variant="accent">vision</Badge>}
         {endpoint.free && <Badge variant="success" dot>free</Badge>}

@@ -25,9 +25,11 @@ export function providerClass(provider: string): string {
   return "huggingface";
 }
 
-/** Format a context_length integer as "8K" / "128K" / "1M". */
-export function fmtContext(ctx: number | null | undefined): string {
-  if (ctx === null || ctx === undefined) return "?";
+/** Format a context_length integer as "8K" / "128K" / "1M".
+ *  Returns null when the context is missing — callers should hide
+ *  the badge rather than render "?" (negative space is more honest). */
+export function fmtContext(ctx: number | null | undefined): string | null {
+  if (ctx === null || ctx === undefined) return null;
   if (ctx >= 1024 * 1024) return `${Math.round(ctx / (1024 * 1024))}M`;
   if (ctx >= 1024) return `${Math.round(ctx / 1024)}K`;
   return `${ctx}`;

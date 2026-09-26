@@ -109,7 +109,10 @@ export function HomePage() {
                   />
                 </Field>
 
-                <Field label="Models">
+                <Field
+                  label="Max models"
+                  helper="How many models to include in the recommended bucket (1–10)."
+                >
                   <Segmented
                     value={String(endpointCount)}
                     options={[
@@ -156,17 +159,32 @@ export function HomePage() {
                   />
                 </Field>
 
-                <Field label="Providers">
-                  <Stack direction="row" gap="2" wrap>
+                <Field
+                  label="Providers"
+                  helper="Tick the providers whose endpoints you want included."
+                >
+                  <Stack direction="row" gap="6">
                     {(["nvidia", "amd", "huggingface"] as const).map((p) => (
-                      <Segmented
+                      <label
                         key={p}
-                        value={providers.includes(p) ? p : ""}
-                        options={[{ value: p, label: p }]}
-                        onChange={() => toggleProvider(p)}
-                        accent
-                        multi
-                      />
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "var(--magi-space-2)",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          color: "var(--magi-text-primary)",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          className="tfi-checkbox"
+                          checked={providers.includes(p)}
+                          onChange={() => toggleProvider(p)}
+                          aria-label={p}
+                        />
+                        {p}
+                      </label>
                     ))}
                   </Stack>
                 </Field>
@@ -199,11 +217,24 @@ export function HomePage() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  helper,
+  children,
+}: {
+  label: string;
+  helper?: string;
+  children: React.ReactNode;
+}) {
   return (
     <Stack gap="2">
       <span className="tfi-field-label">{label}</span>
-      <div>{children}</div>
+      {children}
+      {helper && (
+        <span className="magi-caption" style={{ color: "var(--magi-text-tertiary)" }}>
+          {helper}
+        </span>
+      )}
     </Stack>
   );
 }
@@ -213,28 +244,26 @@ function Segmented({
   options,
   onChange,
   accent = false,
-  multi = false,
 }: {
   value: string;
   options: { value: string; label: string }[];
   onChange: (v: string) => void;
   accent?: boolean;
-  multi?: boolean;
 }) {
+  // Single-select. For multi-select (e.g. provider toggles), use a
+  // checkbox group instead — a multi-item segmented control implies
+  // exclusive selection and confuses the interaction model.
   return (
     <div className="tfi-segmented">
       {options.map((opt) => {
-        const active = multi ? true : value === opt.value;
+        const active = value === opt.value;
         const className = `tfi-segmented-item${active ? " active" : ""}${accent ? " accent" : ""}`;
         return (
           <button
             key={opt.value}
             type="button"
             className={className}
-            onClick={() => {
-              if (multi) onChange(opt.value);
-              else if (value !== opt.value) onChange(opt.value);
-            }}
+            onClick={() => value !== opt.value && onChange(opt.value)}
           >
             {opt.label}
           </button>
