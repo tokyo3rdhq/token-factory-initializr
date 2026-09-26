@@ -86,7 +86,6 @@
   gap: var(--magi-space-2);
   font-size: 13px;
 }
-.tfi-footer-col li.tfi-muted { color: var(--magi-text-tertiary); }
 .tfi-footer-col a { color: var(--magi-text-secondary); border: 0; }
 .tfi-footer-col a:hover { color: var(--magi-text-primary); border: 0; }
 .tfi-footer-meta {
@@ -133,18 +132,12 @@
   box-shadow: inset 0 0 0 1px var(--magi-accent);
 }
 
-.tfi-field { display: flex; flex-direction: column; gap: var(--magi-space-2); }
 .tfi-field-label {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--magi-text-tertiary);
   font-weight: 500;
-}
-.tfi-divider {
-  height: 1px;
-  background: var(--magi-border);
-  margin: var(--magi-space-7) 0;
 }
 .tfi-input {
   width: 100%;
@@ -309,16 +302,6 @@
 }
 @keyframes tfi-spin { to { transform: rotate(360deg); } }
 
-/* ----- Action bar (bottom of pages) ----- */
-.tfi-action-bar {
-  display: flex;
-  gap: var(--magi-space-3);
-  margin-top: var(--magi-space-10);
-  padding-top: var(--magi-space-7);
-  border-top: 1px solid var(--magi-border);
-  align-items: center;
-}
-
 /* ----- Responsive ----- */
 @media (max-width: 720px) {
   .tfi-topbar { padding: var(--magi-space-3) var(--magi-space-5); }
@@ -328,6 +311,5 @@
     grid-template-columns: 24px 1fr;
     gap: var(--magi-space-3);
   }
-  .tfi-model-provider { grid-column: 2; }
   .tfi-model-meta { grid-column: 2; text-align: left; }
 }

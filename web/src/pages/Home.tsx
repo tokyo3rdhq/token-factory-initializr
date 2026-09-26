@@ -63,7 +63,7 @@ export function HomePage() {
           <h1 className="magi-display" style={{ maxWidth: 720 }}>
             Initialize your token factory.
           </h1>
-          <p className="magi-body-lg" style={{ color: "var(--magi-text-secondary)" }}>
+          <p className="magi-body-lg">
             Pick the free AI endpoints that fit your project. We generate
             ready-to-use configuration for LiteLLM.
           </p>
@@ -73,7 +73,7 @@ export function HomePage() {
           <Card>
             <Stack gap="8">
               {/* Free-text project */}
-              <div className="tfi-field">
+              <Stack gap="2">
                 <label className="tfi-field-label" htmlFor="req-project">
                   Project
                 </label>
@@ -84,9 +84,9 @@ export function HomePage() {
                   value={useCase}
                   onChange={(e) => setUseCase(e.target.value)}
                 />
-              </div>
+              </Stack>
 
-              <div className="tfi-divider" />
+              <div style={{height: 1, background: "var(--magi-border)", margin: "var(--magi-space-7) 0"}} />
 
               {/* Two-column requirements grid */}
               <div
@@ -172,7 +172,7 @@ export function HomePage() {
                 </Field>
               </div>
 
-              <div className="tfi-divider" />
+              <div style={{height: 1, background: "var(--magi-border)", margin: "var(--magi-space-7) 0"}} />
 
               <div
                 style={{
@@ -182,7 +182,7 @@ export function HomePage() {
                   gap: "var(--magi-space-4)",
                 }}
               >
-                <span className="magi-body-sm" style={{ color: "var(--magi-text-tertiary)" }}>
+                <span className="magi-body-sm">
                   We'll match {endpointCount} model
                   {endpointCount === 1 ? "" : "s"} from {providers.length} provider
                   {providers.length === 1 ? "" : "s"}.
@@ -201,10 +201,10 @@ export function HomePage() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="tfi-field">
+    <Stack gap="2">
       <span className="tfi-field-label">{label}</span>
       <div>{children}</div>
-    </div>
+    </Stack>
   );
 }
 

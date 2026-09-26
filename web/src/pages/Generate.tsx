@@ -80,7 +80,7 @@ export function GeneratePage() {
         <Stack gap="3" style={{ marginBottom: "var(--magi-space-10)" }}>
           <span className="magi-eyebrow">Generate</span>
           <h1 className="magi-h1">Token Factory</h1>
-          <p className="magi-body-lg" style={{ color: "var(--magi-text-secondary)" }}>
+          <p className="magi-body-lg">
             {selection.selected.length > 0
               ? `${selection.selected.length} model${
                   selection.selected.length === 1 ? "" : "s"
@@ -125,7 +125,7 @@ export function GeneratePage() {
             {/* Format + Initialize */}
             <Card>
               <Stack direction="row" gap="4" align="center">
-                <div className="tfi-field" style={{ flex: 1 }}>
+                <Stack gap="2" style={{ flex: 1 }}>
                   <label className="tfi-field-label" htmlFor="format-select">
                     Format
                   </label>
@@ -137,7 +137,7 @@ export function GeneratePage() {
                   >
                     <option value="litellm">LiteLLM</option>
                   </select>
-                </div>
+                </Stack>
                 <Button
                   variant="primary"
                   onClick={onInitialize}
@@ -169,7 +169,16 @@ export function GeneratePage() {
               />
             )}
 
-            <div className="tfi-action-bar">
+            <Stack
+              direction="row"
+              align="center"
+              gap="3"
+              style={{
+                marginTop: "var(--magi-space-10)",
+                paddingTop: "var(--magi-space-7)",
+                borderTop: "1px solid var(--magi-border)",
+              }}
+            >
               <Link to="/browse" className="tfi-nav-link" style={{ paddingLeft: 0 }}>
                 ← Back to picks
               </Link>
@@ -185,7 +194,7 @@ export function GeneratePage() {
                   Start over
                 </Button>
               )}
-            </div>
+            </Stack>
           </Stack>
         )}
       </Container>

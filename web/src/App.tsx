@@ -76,9 +76,9 @@ export function App() {
           <div className="tfi-footer-col">
             <h4>MAGI</h4>
             <ul>
-              <li className="tfi-muted">Independent AI lab.</li>
-              <li className="tfi-muted">AI infrastructure, built at the edge.</li>
-              <li className="tfi-muted">Built for developers and agents.</li>
+              <li className="magi-caption">Independent AI lab.</li>
+              <li className="magi-caption">AI infrastructure, built at the edge.</li>
+              <li className="magi-caption">Built for developers and agents.</li>
             </ul>
           </div>
         </div>

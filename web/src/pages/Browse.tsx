@@ -77,7 +77,7 @@ export function BrowsePage() {
           <h1 className="magi-h1">
             {requirement ? "Recommended models" : "All endpoints"}
           </h1>
-          <p className="magi-body-lg" style={{ color: "var(--magi-text-secondary)" }}>
+          <p className="magi-body-lg">
             {matching.length} model{matching.length === 1 ? "" : "s"} match
             {requirement ? " your requirements." : " the catalog."}
           </p>
@@ -152,7 +152,16 @@ export function BrowsePage() {
               </BrowseSection>
             )}
 
-            <div className="tfi-action-bar">
+            <Stack
+              direction="row"
+              align="center"
+              gap="3"
+              style={{
+                marginTop: "var(--magi-space-10)",
+                paddingTop: "var(--magi-space-7)",
+                borderTop: "1px solid var(--magi-border)",
+              }}
+            >
               <Link to="/" className="tfi-nav-link" style={{ paddingLeft: 0 }}>
                 ← Edit requirements
               </Link>
@@ -164,7 +173,7 @@ export function BrowsePage() {
               >
                 Continue to generate ({selection.selected.length})
               </Button>
-            </div>
+            </Stack>
           </Stack>
         )}
       </Container>
@@ -194,7 +203,7 @@ function BrowseSection({
           {heading}
         </h2>
         {hint && (
-          <span className="magi-caption" style={{ color: "var(--magi-text-tertiary)" }}>
+          <span className="magi-caption">
             {hint}
           </span>
         )}
