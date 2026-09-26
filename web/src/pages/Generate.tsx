@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Badge, Button, Card, Container, Section, Stack } from "@tokyo3rdhq/magi-design-system";
+import { Badge, Banner, Button, Card, Container, EmptyState, FormField, Section, Stack } from "@tokyo3rdhq/magi-design-system";
 
 import { useSelection } from "../components/SelectionContext";
 import { postGenerate } from "../kv";
@@ -90,11 +90,11 @@ export function GeneratePage() {
         </Stack>
 
         {selection.selected.length === 0 ? (
-          <div className="tfi-empty">
+          <EmptyState>
             Nothing selected. Head to{" "}
             <Link to="/">the requirements form</Link>, then{" "}
             <Link to="/browse">browse</Link> to pick models.
-          </div>
+          </EmptyState>
         ) : (
           <Stack gap="6">
             {/* Selected models summary */}
@@ -125,10 +125,7 @@ export function GeneratePage() {
             {/* Format + Initialize */}
             <Card>
               <Stack direction="row" gap="4" align="center">
-                <Stack gap="2" style={{ flex: 1 }}>
-                  <label className="tfi-field-label" htmlFor="format-select">
-                    Format
-                  </label>
+                <FormField label="Format">
                   <select
                     id="format-select"
                     className="tfi-select"
@@ -137,7 +134,7 @@ export function GeneratePage() {
                   >
                     <option value="litellm">LiteLLM</option>
                   </select>
-                </Stack>
+                </FormField>
                 <Button
                   variant="primary"
                   onClick={onInitialize}
@@ -150,13 +147,13 @@ export function GeneratePage() {
             </Card>
 
             {error && (
-              <div className="tfi-banner error">{error}</div>
+              <Banner variant="error">{error}</Banner>
             )}
 
             {!result ? (
-              <div className="tfi-empty">
+              <EmptyState>
                 {error ? "" : "Click Initialize to generate the config."}
-              </div>
+              </EmptyState>
             ) : (
               <ResultPanel
                 yaml={result.yaml}

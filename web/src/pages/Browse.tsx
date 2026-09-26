@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Badge, Button, Container, Section, Stack } from "@tokyo3rdhq/magi-design-system";
+import { Badge, Banner, Button, Checkbox, Container, EmptyState, Section, Stack } from "@tokyo3rdhq/magi-design-system";
 
 import { fmtContext, hasVision } from "../components/format";
 import { useSelection } from "../components/SelectionContext";
@@ -84,31 +84,31 @@ export function BrowsePage() {
         </Stack>
 
         {error && (
-          <div className="tfi-banner error" style={{ marginBottom: "var(--magi-space-6)" }}>
+          <Banner variant="error" style={{ marginBottom: "var(--magi-space-6)" }}>
             Could not load KV catalog: {error}.{" "}
             {shouldUseLocalFixtures(import.meta.env.VITE_USE_LOCAL_FIXTURES)
               ? "Falling back to bundled fixtures."
               : "Set TFI_USE_LOCAL_FIXTURES=1 to browse offline."}
-          </div>
+          </Banner>
         )}
 
         {!requirement && (
-          <div className="tfi-banner info" style={{ marginBottom: "var(--magi-space-6)" }}>
+          <Banner variant="info" style={{ marginBottom: "var(--magi-space-6)" }}>
             No requirements set.{" "}
             <Link to="/">Go back</Link> to specify what you're building —
             we'll pick the right models for you.
-          </div>
+          </Banner>
         )}
 
         {loading ? (
-          <div className="tfi-empty">
+          <EmptyState>
             <span className="tfi-spinner" /> Loading catalog…
-          </div>
+          </EmptyState>
         ) : matching.length === 0 ? (
-          <div className="tfi-empty">
+          <EmptyState>
             No models match. Try loosening the constraints —{" "}
             <Link to="/">edit requirements</Link>.
-          </div>
+          </EmptyState>
         ) : (
           <Stack gap="10">
             <BrowseSection heading="Recommended" hint={`Top ${recommended.length} matching`}>
@@ -231,9 +231,7 @@ function ModelRow({
   const hasVisionCap = hasVision(endpoint);
   return (
     <label className={`tfi-model-row${selected ? " selected" : ""}`}>
-      <input
-        type="checkbox"
-        className="tfi-checkbox"
+      <Checkbox
         checked={selected}
         onChange={() => onToggle(endpoint)}
         aria-label={`Select ${endpoint.model_id}`}

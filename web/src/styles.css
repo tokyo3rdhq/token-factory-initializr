@@ -99,62 +99,13 @@
 }
 
 /* ----- Form controls (segmented control) ----- */
-.tfi-segmented {
-  display: inline-flex;
-  border: 1px solid var(--magi-border);
-  border-radius: var(--magi-radius-md, 8px);
-  background: var(--magi-surface);
-  padding: 2px;
-  gap: 2px;
-}
-.tfi-segmented-item {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--magi-text-secondary);
-  font-size: 13px;
-  font-family: inherit;
-  font-weight: 500;
-  padding: 6px 12px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background var(--magi-duration-fast, 150ms) ease, color var(--magi-duration-fast, 150ms) ease;
-}
-.tfi-segmented-item:hover { color: var(--magi-text-primary); }
-.tfi-segmented-item.active {
-  background: var(--magi-surface-elevated);
-  color: var(--magi-text-primary);
-  box-shadow: inset 0 0 0 1px var(--magi-border);
-}
-.tfi-segmented-item.accent.active {
-  background: var(--magi-accent-soft);
-  color: var(--magi-accent);
-  box-shadow: inset 0 0 0 1px var(--magi-accent);
-}
-
-.tfi-field-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--magi-text-tertiary);
-  font-weight: 500;
-}
-.tfi-input {
-  width: 100%;
-  appearance: none;
-  background: var(--magi-surface);
-  border: 1px solid var(--magi-border);
-  border-radius: var(--magi-radius-md, 8px);
-  color: var(--magi-text-primary);
-  font-family: inherit;
-  font-size: 14px;
-  padding: 10px 12px;
-  outline: none;
-  transition: border-color var(--magi-duration-fast, 150ms) ease;
-}
-.tfi-input:focus { border-color: var(--magi-accent); }
-.tfi-input::placeholder { color: var(--magi-text-tertiary); }
-
+/* .tfi-segmented + .tfi-segmented-item + .tfi-field-label + .tfi-input
+ * were promoted to @tokyo3rdhq/magi-design-system@0.2.0 as <Segmented>,
+ * <FormField>, and <Input>. See imports in each page.
+ *
+ * .tfi-select remains for now — design-system 0.2.0 doesn't ship
+ * a Select primitive (deferred to a future round). The format dropdown
+ * in Generate.tsx still uses it. */
 .tfi-select {
   width: 100%;
   appearance: none;
@@ -193,44 +144,6 @@
 .tfi-model-row:hover { background: var(--magi-surface-elevated); }
 .tfi-model-row.selected { background: var(--magi-accent-soft); }
 .tfi-model-row.selected .tfi-model-name { color: var(--magi-accent); }
-.tfi-checkbox {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  border: 1px solid var(--magi-border);
-  border-radius: var(--magi-radius-sm);
-  background: var(--magi-bg-card);
-  cursor: pointer;
-  flex-shrink: 0;
-  position: relative;
-  transition: background-color var(--magi-duration-fast) var(--magi-ease-standard, ease),
-              border-color var(--magi-duration-fast) var(--magi-ease-standard, ease);
-}
-.tfi-checkbox:hover { border-color: var(--magi-border-strong, rgba(255, 255, 255, 0.14)); }
-.tfi-checkbox:checked {
-  background: var(--magi-accent);
-  border-color: var(--magi-accent);
-}
-.tfi-checkbox:checked::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 5px;
-  height: 9px;
-  border: solid var(--magi-text-inverse, #050505);
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg) translate(-1px, -1px);
-}
-.tfi-checkbox:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--magi-bg-base), 0 0 0 4px var(--magi-accent);
-}
-.tfi-checkbox:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
 .tfi-model-name {
   font-size: 14px;
   font-weight: 500;
@@ -303,29 +216,8 @@
 }
 
 /* ----- Banners, empty states, helpers ----- */
-.tfi-banner {
-  background: var(--magi-surface);
-  border: 1px solid var(--magi-border);
-  border-left: 2px solid var(--magi-warning);
-  border-radius: var(--magi-radius-md, 8px);
-  color: var(--magi-text-primary);
-  padding: var(--magi-space-3) var(--magi-space-4);
-  font-size: 13px;
-}
-.tfi-banner.error { border-left-color: var(--magi-error); }
-.tfi-banner.success { border-left-color: var(--magi-success); }
-.tfi-banner.info { border-left-color: var(--magi-accent); }
-
-.tfi-empty {
-  padding: var(--magi-space-7);
-  text-align: center;
-  color: var(--magi-text-secondary);
-  background: var(--magi-surface);
-  border: 1px dashed var(--magi-border);
-  border-radius: var(--magi-radius-lg, 12px);
-  font-size: 14px;
-}
-
+/* .tfi-banner + .tfi-empty were promoted to @tokyo3rdhq/magi-design-system@0.2.0
+ * as <Banner> and <EmptyState>. See imports in each page. */
 .tfi-spinner {
   display: inline-block;
   width: 12px;

@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Container, Section, Stack, Button, Card } from "@tokyo3rdhq/magi-design-system";
+import {
+  Container,
+  Section,
+  Stack,
+  Button,
+  Card,
+  Checkbox,
+  FormField,
+  Input,
+  Segmented,
+} from "@tokyo3rdhq/magi-design-system";
 
 import type { ModelRequirement } from "../types";
 
@@ -13,9 +23,9 @@ import type { ModelRequirement } from "../types";
  *   subhead
  *   [requirements card]
  *
- * Layout primitives come from @tokyo3rdhq/magi-design-system
- * (Container, Section, Stack, Button). Color and accent come from
- * CSS custom properties via <ProductTheme accent="cyan">.
+ * All primitives (FormField / Input / Segmented / Checkbox) come from
+ * @tokyo3rdhq/magi-design-system@^0.2.0. Accent propagates via
+ * <ProductTheme accent="cyan">.
  */
 export function HomePage() {
   const navigate = useNavigate();
@@ -73,18 +83,14 @@ export function HomePage() {
           <Card>
             <Stack gap="8">
               {/* Free-text project */}
-              <Stack gap="2">
-                <label className="tfi-field-label" htmlFor="req-project">
-                  Project
-                </label>
-                <input
+              <FormField label="Project">
+                <Input
                   id="req-project"
-                  className="tfi-input"
                   placeholder="e.g. Coding assistant"
                   value={useCase}
                   onChange={(e) => setUseCase(e.target.value)}
                 />
-              </Stack>
+              </FormField>
 
               <div style={{height: 1, background: "var(--magi-border)", margin: "var(--magi-space-7) 0"}} />
 
@@ -96,7 +102,7 @@ export function HomePage() {
                   gap: "var(--magi-space-6)",
                 }}
               >
-                <Field label="Context">
+                <FormField label="Context">
                   <Segmented
                     value={contextMin}
                     options={[
@@ -107,9 +113,9 @@ export function HomePage() {
                     ]}
                     onChange={(v) => setContextMin(v as typeof contextMin)}
                   />
-                </Field>
+                </FormField>
 
-                <Field
+                <FormField
                   label="Max models"
                   helper="How many models to include in the recommended bucket (1–10)."
                 >
@@ -123,9 +129,9 @@ export function HomePage() {
                     ]}
                     onChange={(v) => setEndpointCount(Number(v))}
                   />
-                </Field>
+                </FormField>
 
-                <Field label="Tool Calling">
+                <FormField label="Tool Calling">
                   <Segmented
                     value={toolCalling}
                     options={[
@@ -134,9 +140,9 @@ export function HomePage() {
                     ]}
                     onChange={(v) => setToolCalling(v as typeof toolCalling)}
                   />
-                </Field>
+                </FormField>
 
-                <Field label="Vision">
+                <FormField label="Vision">
                   <Segmented
                     value={vision}
                     options={[
@@ -145,9 +151,9 @@ export function HomePage() {
                     ]}
                     onChange={(v) => setVision(v as typeof vision)}
                   />
-                </Field>
+                </FormField>
 
-                <Field label="Cost">
+                <FormField label="Cost">
                   <Segmented
                     value={cost}
                     options={[
@@ -157,37 +163,24 @@ export function HomePage() {
                     onChange={(v) => setCost(v as typeof cost)}
                     accent
                   />
-                </Field>
+                </FormField>
 
-                <Field
+                <FormField
                   label="Providers"
                   helper="Tick the providers whose endpoints you want included."
                 >
                   <Stack direction="row" gap="6">
                     {(["nvidia", "amd", "huggingface"] as const).map((p) => (
-                      <label
+                      <Checkbox
                         key={p}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "var(--magi-space-2)",
-                          cursor: "pointer",
-                          fontSize: 13,
-                          color: "var(--magi-text-primary)",
-                        }}
+                        checked={providers.includes(p)}
+                        onChange={() => toggleProvider(p)}
                       >
-                        <input
-                          type="checkbox"
-                          className="tfi-checkbox"
-                          checked={providers.includes(p)}
-                          onChange={() => toggleProvider(p)}
-                          aria-label={p}
-                        />
                         {p}
-                      </label>
+                      </Checkbox>
                     ))}
                   </Stack>
-                </Field>
+                </FormField>
               </div>
 
               <div style={{height: 1, background: "var(--magi-border)", margin: "var(--magi-space-7) 0"}} />
@@ -216,61 +209,4 @@ export function HomePage() {
     </Section>
   );
 }
-
-function Field({
-  label,
-  helper,
-  children,
-}: {
-  label: string;
-  helper?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Stack gap="2">
-      <span className="tfi-field-label">{label}</span>
-      {children}
-      {helper && (
-        <span className="magi-caption" style={{ color: "var(--magi-text-tertiary)" }}>
-          {helper}
-        </span>
-      )}
-    </Stack>
-  );
-}
-
-function Segmented({
-  value,
-  options,
-  onChange,
-  accent = false,
-}: {
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (v: string) => void;
-  accent?: boolean;
-}) {
-  // Single-select. For multi-select (e.g. provider toggles), use a
-  // checkbox group instead — a multi-item segmented control implies
-  // exclusive selection and confuses the interaction model.
-  return (
-    <div className="tfi-segmented">
-      {options.map((opt) => {
-        const active = value === opt.value;
-        const className = `tfi-segmented-item${active ? " active" : ""}${accent ? " accent" : ""}`;
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            className={className}
-            onClick={() => value !== opt.value && onChange(opt.value)}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 
