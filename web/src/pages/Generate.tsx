@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Container, Section, Stack, Button, Card } from "@tokyo3rdhq/magi-design-system";
+import { Badge, Button, Card, Container, Section, Stack } from "@tokyo3rdhq/magi-design-system";
 
 import { useSelection } from "../components/SelectionContext";
 import { postGenerate } from "../kv";
@@ -214,7 +214,7 @@ function ResultPanel({
     <Stack gap="4">
       <div className="tfi-code-chrome">
         <span className="tfi-code-filename">{id}.yaml</span>
-        <span className="tfi-code-status">Ready</span>
+        <Badge variant="success" dot>Ready</Badge>
         <div style={{ flex: 1 }} />
         <Button size="sm" variant="secondary" onClick={() => onCopy(yaml, "yaml")}>
           {copied === "yaml" ? "Copied" : "Copy"}

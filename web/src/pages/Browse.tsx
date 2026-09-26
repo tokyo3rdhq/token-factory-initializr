@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Container, Section, Button, Stack } from "@tokyo3rdhq/magi-design-system";
+import { Badge, Button, Container, Section, Stack } from "@tokyo3rdhq/magi-design-system";
 
 import { fmtContext, hasVision } from "../components/format";
 import { useSelection } from "../components/SelectionContext";
@@ -185,7 +185,11 @@ function BrowseSection({
 }) {
   return (
     <section>
-      <div className="tfi-section-heading">
+      <Stack
+        direction="row"
+        align="center"
+        style={{ justifyContent: "space-between", marginBottom: "var(--magi-space-4)" }}
+      >
         <h2 className="magi-eyebrow" style={{ margin: 0 }}>
           {heading}
         </h2>
@@ -194,7 +198,7 @@ function BrowseSection({
             {hint}
           </span>
         )}
-      </div>
+      </Stack>
       <div style={{ opacity: muted ? 0.7 : 1 }}>{children}</div>
     </section>
   );
@@ -214,9 +218,8 @@ function ModelRow({
   onToggle: (ep: ModelEndpoint) => void;
 }) {
   const ctx = fmtContext(endpoint.context_length);
-  const tools = endpoint.capabilities?.tool_calling ? "tools" : "";
-  const vision = hasVision(endpoint) ? "vision" : "";
-  const tags = [ctx, tools, vision].filter(Boolean).join(" · ");
+  const hasTools = !!endpoint.capabilities?.tool_calling;
+  const hasVisionCap = hasVision(endpoint);
   return (
     <label className={`tfi-model-row${selected ? " selected" : ""}`}>
       <input
@@ -226,12 +229,17 @@ function ModelRow({
         onChange={() => onToggle(endpoint)}
         aria-label={`Select ${endpoint.model_id}`}
       />
-      <span className="tfi-model-provider">{endpoint.provider}</span>
+      <Badge variant="neutral">{endpoint.provider}</Badge>
       <span>
         <span className="tfi-model-name">{endpoint.name || endpoint.model_id}</span>
         <div className="tfi-model-id">{endpoint.model_id}</div>
       </span>
-      <span className="tfi-model-meta">{tags}</span>
+      <span className="tfi-model-meta">
+        <Badge variant="neutral">{ctx}</Badge>
+        {hasTools && <Badge variant="accent">tools</Badge>}
+        {hasVisionCap && <Badge variant="accent">vision</Badge>}
+        {endpoint.free && <Badge variant="success" dot>free</Badge>}
+      </span>
     </label>
   );
 }

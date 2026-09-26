@@ -58,16 +58,18 @@ export function HomePage() {
   return (
     <Section spacing="lg">
       <Container>
-        <Stack gap="6" className="tfi-hero">
+        <Stack gap="6" style={{ maxWidth: 720 }}>
           <span className="magi-eyebrow">Token Factory Initializr</span>
-          <h1 className="magi-display tfi-hero-headline">Initialize your token factory.</h1>
+          <h1 className="magi-display" style={{ maxWidth: 720 }}>
+            Initialize your token factory.
+          </h1>
           <p className="magi-body-lg" style={{ color: "var(--magi-text-secondary)" }}>
             Pick the free AI endpoints that fit your project. We generate
             ready-to-use configuration for LiteLLM.
           </p>
         </Stack>
 
-        <div className="tfi-hero-card">
+        <div style={{ marginTop: "var(--magi-space-10)", maxWidth: 720 }}>
           <Card>
             <Stack gap="8">
               {/* Free-text project */}
