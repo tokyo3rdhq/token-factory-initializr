@@ -17,6 +17,7 @@ here. Business logic (normalize, validate, etc.) is tested in
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 from typing import List
@@ -449,3 +450,48 @@ def test_fetch_stage_providers_injectable():
 
     custom = FetchStage(providers=[("openrouter", fake_provider)])
     assert ("openrouter", fake_provider) in custom.providers
+
+def test_summarize_stage_writes_aggregated_manifest_to_kv():
+    """SummarizeStage must write tfi:manifest:latest and the dated copy.
+
+    Refactor Phase 5 fix: StoreStage was deleted, so the aggregated
+    manifest write moved here. The CI Validate step depends on the
+    dated key being present.
+    """
+    from data.storage.cloudflare_kv import manifest_key
+
+    class RecordingKV:
+        def __init__(self):
+            self.written: dict[str, dict] = {}
+            self.account_id = "x"
+            self.api_token = "y"
+        def put(self, key, value, ttl=None):
+            self.written[key] = value
+        def from_env(cls):
+            raise RuntimeError("from_env must not be used; kv was injected")
+
+    kv = RecordingKV()
+    ctx = PipelineContext()
+    ctx.data["enriched"] = [_mk_ep("amd", "x/1"), _mk_ep("nvidia", "y/1")]
+    ctx.state["fetch_errors"] = {}
+    out = SummarizeStage(kv=kv).execute(ctx)
+    assert out is ctx
+    assert manifest_key() in kv.written, "tfi:manifest:latest must be written"
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    dated_key = manifest_key(today)
+    assert dated_key in kv.written, f"{dated_key} must be written"
+    assert kv.written[manifest_key()] == kv.written[dated_key]
+
+
+def test_summarize_stage_records_kv_init_error():
+    """When KV init fails, SummarizeStage records to context.errors."""
+    from data.stages.summarize import SummarizeStage
+
+    with patch.dict(os.environ, {}, clear=True):
+        os.environ.pop("CLOUDFLARE_ACCOUNT_ID", None)
+        os.environ.pop("CLOUDFLARE_API_TOKEN", None)
+        os.environ.pop("CLOUDFLARE_KV_NAMESPACE_ID", None)
+        ctx = PipelineContext()
+        ctx.data["enriched"] = [_mk_ep("amd", "x/1")]
+        SummarizeStage().execute(ctx)
+    assert any(e["stage"] == "summarize" for e in ctx.errors)
