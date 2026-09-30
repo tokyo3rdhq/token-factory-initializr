@@ -11,23 +11,35 @@
  * ============================================================ */
 
 /* ----- Topbar (3-section: brand / centered nav / external links) ----- */
-/* Matches magi-portal's topbar layout: translucent raised surface with
- * backdrop-blur (NOT pure black), subtle border-bottom. Navigation
- * sits visually centered by being positioned absolutely at the
- * horizontal midpoint; brand on the far left, external links on the
- * far right. */
+/* Matches magi-portal's topbar: translucent raised surface with
+ * backdrop-blur. No visible bottom border (magi-portal's `border-b`
+ * is washed out by the 95%-opaque background; we just don't emit one).
+ * Content is constrained to 1200px (magi-portal's `max-w-page`)
+ * via an inner wrapper — the topbar itself stays full-width so the
+ * blurred backdrop extends across the viewport. */
 .tfi-topbar {
   position: sticky;
   top: 0;
   z-index: 50;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: var(--magi-space-3) var(--magi-space-6);
   background: color-mix(in srgb, var(--magi-bg-raised) 95%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border-bottom: 1px solid var(--magi-border);
+}
+.tfi-topbar-inner {
+  width: 100%;
+  /* magi-portal uses max-w-page = 1200px, but tfi's brand "MAGI / Token
+   * Factory Initializr" is significantly wider than magi-portal's "MAGI"
+   * alone, so we extend the container to fit both external links (GitHub
+   * icon + Discord) on the right without overflowing. */
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--magi-space-6);
 }
 
 .tfi-brand {
@@ -70,11 +82,9 @@
 .tfi-nav {
   display: flex;
   gap: var(--magi-space-6);
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  top: 50%;
-  margin-top: -13px;  /* visually centers nav links (line-height compensation) */
+  /* No longer absolutely positioned — the parent .tfi-topbar-inner is
+   * a flex row that puts nav visually centered between brand (left)
+   * and external links (right). */
 }
 .tfi-topbar-external {
   display: flex;
@@ -101,6 +111,11 @@
 .tfi-nav-link-external {
   font-size: 12px;
   gap: 6px;
+}
+.tfi-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 /* ----- Footer (matches magi-portal's 4-col + baseline rhythm) ----- */
