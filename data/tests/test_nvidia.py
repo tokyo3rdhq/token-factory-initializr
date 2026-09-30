@@ -168,7 +168,7 @@ def test_normalize_model_free_via_list_labels_real_api_shape():
     }
     ep = _ep(obj)
     assert ep.free is True
-    assert ep.model_id == "deepseek-ai/DeepSeek V4.1 Flash"
+    assert ep.model_id == "deepseek-ai/deepseek-v4.1-flash"
     assert ep.name == "DeepSeek V4.1 Flash"
     # metadata.labels is normalized to dict keyed by label name
     assert "nimType" in ep.metadata["labels"]
@@ -186,7 +186,7 @@ def test_normalize_model_uses_publisher_label_for_model_id():
         ],
         "attributes": [],
     }
-    assert _ep(obj).model_id == "anthropic/Some Model"
+    assert _ep(obj).model_id == "anthropic/some-model"
 
 
 def test_normalize_model_model_id_falls_back_when_no_publisher_label():
@@ -202,7 +202,7 @@ def test_normalize_model_model_id_falls_back_when_no_publisher_label():
         "labels": [],
         "attributes": [],
     }
-    assert _ep(obj).model_id == "qc69jvmznzxy/Bare Slug"
+    assert _ep(obj).model_id == "qc69jvmznzxy/bare-slug"
 
 
 def test_normalize_model_model_id_uses_resource_id_when_no_publisher():
@@ -263,7 +263,7 @@ def test_normalize_model_resource_id_without_slash_falls_back():
         "labels": [],
         "attributes": [],
     }
-    assert _ep(obj).model_id == "qc69jvmznzxy/Bare Slug"
+    assert _ep(obj).model_id == "qc69jvmznzxy/bare-slug"
 
 
 def test_normalize_model_sets_fetched_at_to_datetime():
@@ -835,3 +835,52 @@ def test_normalize_model_stamps_data_source_nvidia():
     ep = _normalize_model(obj)
     assert ep.data_source == "nvidia"
     assert ep.provider == "nvidia"
+
+
+# ---------------------------------------------------------------------------
+# Regression: 4 NVIDIA models used to be silently dropped
+# ---------------------------------------------------------------------------
+
+
+def test_normalize_model_slugifies_whitespace_in_displayname():
+    """NVIDIA models whose displayName contains spaces (e.g. "Kumo
+    Relational") used to be dropped at the validate stage because the
+    synthesized ``model_id`` (``nvidia/Kumo Relational``) contains
+    whitespace. After the slugify fix, the model_id becomes
+    ``nvidia/kumo-relational`` — matching the URL on build.nvidia.com.
+    """
+    from data.providers.nvidia import _normalize_model
+
+    obj = {
+        "resourceId": "qc69jvmznzxy/kumo-relational",
+        "displayName": "Kumo Relational",
+        "labels": [
+            {"key": "nimType", "values": ["Free Endpoint"], "unresolvedValues": []},
+            {"key": "publisher", "values": ["nvidia"], "unresolvedValues": []},
+        ],
+        "attributes": [],
+    }
+    ep = _normalize_model(obj)
+    assert ep.model_id == "nvidia/kumo-relational"
+    assert " " not in ep.model_id, f"model_id must not contain whitespace: {ep.model_id!r}"
+    # The displayName (human-readable name field) is preserved verbatim.
+    assert ep.name == "Kumo Relational"
+
+
+def test_normalize_model_slugify_preserves_alphanumeric_and_dash():
+    """Slugify should be a no-op for clean alphanumeric names
+    (which is what the upstream already sends for the well-behaved
+    models like ``deepseek-v4.1-flash``)."""
+    from data.providers.nvidia import _normalize_model
+
+    obj = {
+        "resourceId": "qc69jvmznzxy/deepseek-v4.1-flash",
+        "displayName": "deepseek-v4.1-flash",
+        "labels": [
+            {"key": "nimType", "values": ["Free Endpoint"], "unresolvedValues": []},
+            {"key": "publisher", "values": ["deepseek-ai"], "unresolvedValues": []},
+        ],
+        "attributes": [],
+    }
+    ep = _normalize_model(obj)
+    assert ep.model_id == "deepseek-ai/deepseek-v4.1-flash"

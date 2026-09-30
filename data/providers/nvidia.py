@@ -255,6 +255,36 @@ def _derive_architecture_from_labels(labels: Dict[str, Dict[str, Any]]) -> Optio
     return {"input": dedup_inputs, "output": dedup_outputs}
 
 
+def _slugify_name(name: str) -> str:
+    """Turn a human-readable ``displayName`` into a URL-safe slug.
+
+    NVIDIA's catalog page exposes 38 free models but the pipeline
+    used to write only 34. The 4 missing models all have spaces
+    in their ``displayName`` ("Kumo Relational", "Active Speaker
+    Detection", "Background Noise Removal", "Studio Voice") — the
+    parser built ``model_id = "nvidia/Kumo Relational"`` and the
+    validator (``_MODEL_ID_RE = re.compile(r"^\\S+$")``) rejected
+    it for containing whitespace. The public catalog resolves
+    these to URL slugs like ``nvidia/kumo-relational``; this
+    helper mirrors that convention so the IDs the pipeline writes
+    match the URLs a user can click through on build.nvidia.com.
+
+    Slugification rules:
+      * lowercase
+      * any whitespace run → single hyphen
+      * preserve alphanumerics, ``.`` and ``-`` (NVIDIA's URL
+        slugs keep periods, e.g. ``deepseek-v4.1-flash``)
+      * drop other punctuation (parens, slashes, etc.)
+      * collapse consecutive hyphens and trim leading/trailing ``-``
+    """
+    if not name:
+        return name
+    slug = re.sub(r"\s+", "-", name.strip().lower())
+    slug = re.sub(r"[^a-z0-9\.\-]", "", slug)
+    slug = re.sub(r"-+", "-", slug).strip("-")
+    return slug or name
+
+
 def _normalize_model(obj: Dict) -> ModelEndpoint:
     """Convert raw ENDPOINT object to ModelEndpoint."""
     resource_id = obj.get("resourceId", "")
@@ -265,15 +295,18 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         # (e.g. "qc69jvmznzxy/deepseek-v4.1-flash"); the real org/name
         # pair comes from publisher + displayName. Use the publisher
         # as the org so model_ids stay consistent with HF/AMD
-        # (``org/name`` shape).
-        model_id = f"{publisher}/{name}" if name else resource_id
+        # (``org/name`` shape). Slugify the displayName so values
+        # containing spaces ("Kumo Relational" → "kumo-relational")
+        # match the URL the public catalog exposes and survive the
+        # model's validator regex (^\S+$).
+        model_id = f"{publisher}/{_slugify_name(name)}" if name else resource_id
     elif "/" in resource_id:
         # Legacy / fallback: resourceId is already ``org/name``.
         model_id = resource_id
     else:
         # No org info anywhere — legacy synthesis uses the NIM
         # namespace prefix to avoid collisions.
-        model_id = f"qc69jvmznzxy/{name}"
+        model_id = f"qc69jvmznzxy/{_slugify_name(name)}"
 
     # Normalize labels once for downstream readers (free detection,
     # architecture derivation, and metadata.labels).
