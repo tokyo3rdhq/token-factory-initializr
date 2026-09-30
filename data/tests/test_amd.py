@@ -703,3 +703,31 @@ def test_fetch_amd_models_uses_default_ua():
         # Both bootstrap and detail must be called with DEFAULT_UA
         assert mock_bootstrap.call_args[0][0] == DEFAULT_UA
         assert all(call.args[1] == DEFAULT_UA for call in mock_detail.call_args_list)
+
+# ---------------------------------------------------------------------------
+# data_source stamping — refactor doc §14 / §16
+# ---------------------------------------------------------------------------
+
+
+def test_build_endpoint_dict_stamps_data_source_amd():
+    """build_endpoint_dict sets ``data_source="amd"`` and ``provider="amd"``.
+
+    Refactor §16 — AMD uses ``data_source="amd"`` / ``provider="amd"``.
+    """
+    from data.providers.amd import build_endpoint_dict
+
+    detail = {
+        "model": {
+            "id": "amd/model-x",
+            "model": "x",
+            "label": "Model X",
+            "description": "test",
+            "token_factory": {"publisher": {"name": "AMD"}},
+            "provider_pricing": [
+                {"status": {"key": "free_endpoint"}, "pricing": {}, "features": {}}
+            ],
+        }
+    }
+    out = build_endpoint_dict(detail)
+    assert out["data_source"] == "amd"
+    assert out["provider"] == "amd"

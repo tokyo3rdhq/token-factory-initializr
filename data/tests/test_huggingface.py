@@ -484,3 +484,73 @@ def test_fetch_huggingface_models_empty_payload_returns_empty():
     """Empty router payload → no endpoints."""
     with patch("data.providers.huggingface.fetch_router_json", return_value={"data": []}):
         assert fetch_huggingface_models() == []
+
+# ---------------------------------------------------------------------------
+# data_source stamping — refactor doc §14 / §15
+# ---------------------------------------------------------------------------
+
+
+def test_to_endpoint_dicts_stamps_data_source_huggingface_per_provider():
+    """HF ``to_endpoint_dicts`` stamps ``data_source="huggingface"`` and
+    leaves ``provider`` as the per-inference-provider name.
+
+    Refactor §15 — HF separates data source from inference provider.
+    Each emitted endpoint dict carries both fields, so the catalog is
+    addressable as ``(huggingface, novita)``, ``(huggingface, together)``,
+    ``(huggingface, zai-org)``, etc.
+    """
+    from data.providers.huggingface import to_endpoint_dicts
+
+    model_group = {
+        "model_id": "openai/gpt-oss-20b",
+        "owned_by": "openai",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "model_level_context_length": 131072,
+        "providers": [
+            {
+                "provider": "novita",
+                "status": "live",
+                "pricing": {"prompt": "0", "completion": "0"},
+                "supports_tools": False,
+                "context_length": 131072,
+            },
+            {
+                "provider": "together",
+                "status": "live",
+                "pricing": {"prompt": "0", "completion": "0"},
+                "supports_tools": False,
+                "context_length": 131072,
+            },
+        ],
+    }
+    endpoints = to_endpoint_dicts(model_group)
+    assert len(endpoints) == 2
+
+    by_provider = {ep["provider"]: ep for ep in endpoints}
+    assert by_provider["novita"]["data_source"] == "huggingface"
+    assert by_provider["novita"]["provider"] == "novita"
+    assert by_provider["together"]["data_source"] == "huggingface"
+    assert by_provider["together"]["provider"] == "together"
+
+
+def test_to_endpoint_dicts_disambiguates_provider_per_inference_provider():
+    """Refactor §13 — one model under N inference providers must produce N
+    distinct endpoint dicts with distinct (data_source, provider) tuples."""
+    from data.providers.huggingface import to_endpoint_dicts
+
+    model_group = {
+        "model_id": "zai-org/GLM-4.6",
+        "owned_by": "zai-org",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "providers": [
+            {"provider": "zai-org", "status": "live", "pricing": {"prompt": "0", "completion": "0"}},
+            {"provider": "novita", "status": "live", "pricing": {"prompt": "0", "completion": "0"}},
+        ],
+    }
+    endpoints = to_endpoint_dicts(model_group)
+    providers = sorted(ep["provider"] for ep in endpoints)
+    assert providers == ["novita", "zai-org"]
+    # Every endpoint carries the huggingface data_source.
+    assert {ep["data_source"] for ep in endpoints} == {"huggingface"}

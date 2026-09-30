@@ -191,6 +191,7 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
     clean_id = _strip_gateway_prefix(raw_id)
 
     return {
+        "data_source": "amd",
         "provider": "amd",
         "model_id": clean_id,
         "free": is_free,

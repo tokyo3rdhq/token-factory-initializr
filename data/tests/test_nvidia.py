@@ -813,3 +813,25 @@ def test_parser_fetch_unfiltered_returns_first_response():
     parser.session.get.return_value = Mock(status_code=200, text="<bootstrap/>")
     out = parser.fetch()
     assert out == "<bootstrap/>"
+
+# ---------------------------------------------------------------------------
+# data_source stamping — refactor doc §14 / §16
+# ---------------------------------------------------------------------------
+
+
+def test_normalize_model_stamps_data_source_nvidia():
+    """_normalize_model sets ``data_source="nvidia"`` on every endpoint.
+
+    Refactor §16 — NVIDIA uses ``data_source="nvidia"`` /
+    ``provider="nvidia"``.
+    """
+    obj = {
+        "id": "google/gemma-3n-e2b-it",
+        "name": "Gemma 3N E2B IT",
+        "labels": [
+            {"key": "nimType", "values": [{"value": "PUBLIC", "subType": "FREE"}]},
+        ],
+    }
+    ep = _normalize_model(obj)
+    assert ep.data_source == "nvidia"
+    assert ep.provider == "nvidia"

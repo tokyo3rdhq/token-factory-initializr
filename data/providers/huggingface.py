@@ -211,6 +211,7 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
         endpoints.append({
             # The actual provider name (was hardcoded to "huggingface"
             # in the old design — bug fixed: see roadmap discussion).
+            "data_source": "huggingface",
             "provider": provider_name,
             "model_id": model_id,
             "free": free,

@@ -338,6 +338,7 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
             metadata["labels"] = meta_labels
 
     return ModelEndpoint(
+        data_source="nvidia",
         provider="nvidia",
         model_id=model_id,
         free=free,
