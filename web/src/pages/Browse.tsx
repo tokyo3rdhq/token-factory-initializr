@@ -6,6 +6,7 @@ import { fmtContext, hasVision } from "../components/format";
 import { useSelection } from "../components/SelectionContext";
 import { fetchModels, FIXTURES, shouldUseLocalFixtures } from "../kv";
 import { matchesRequirement, type ModelEndpoint, type ModelRequirement } from "../types";
+import { useI18n } from "../I18nProvider";
 
 /**
  * Browse — model selection page.
@@ -13,11 +14,13 @@ import { matchesRequirement, type ModelEndpoint, type ModelRequirement } from ".
  * Uses the developer-infrastructure row pattern (MODEL / PROVIDER /
  * CONTEXT · tools · vision). Layout primitives come from the design
  * system; colors come from CSS custom properties via ProductTheme.
+ * Strings are routed through the i18n provider.
  */
 export function BrowsePage() {
   const location = useLocation();
   const navigate = useNavigate();
   const selection = useSelection();
+  const { ts, dict } = useI18n();
 
   const requirement: ModelRequirement | null =
     (location.state as { requirement?: ModelRequirement } | null)?.requirement ?? null;
@@ -27,29 +30,27 @@ export function BrowsePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const snap = await fetchModels();
-        if (cancelled) return;
-        setModels(snap.flatMap((s) => s.models));
-      } catch (e) {
-        if (cancelled) return;
-        setError(e instanceof Error ? e.message : String(e));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    if (!shouldUseLocalFixtures(import.meta.env.VITE_USE_LOCAL_FIXTURES)) {
+      fetchModels()
+        .then((snaps) => {
+          setModels(snaps.flatMap((s) => s.models));
+          setLoading(false);
+        })
+        .catch((e) => {
+          setError(e instanceof Error ? e.message : String(e));
+          setLoading(false);
+        });
+    } else {
+      setModels(FIXTURES.models.flatMap((s) => s.models));
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    if (loading || models.length > 0) return;
-    if (!shouldUseLocalFixtures(import.meta.env.VITE_USE_LOCAL_FIXTURES)) return;
-    setModels(FIXTURES.models.flatMap((s) => s.models));
-  }, [loading, models.length]);
+    if (!loading && models.length === 0 && !error) {
+      navigate("/", { replace: true });
+    }
+  }, [loading, models.length, error, navigate]);
 
   const target = requirement?.endpointCount ?? 3;
   const matching = useMemo(
@@ -59,10 +60,9 @@ export function BrowsePage() {
 
   const sorted = useMemo(() => {
     return [...matching].sort((a, b) => {
-      if (a.free !== b.free) return a.free ? -1 : 1;
-      const aCtx = a.context_length ?? 0;
-      const bCtx = b.context_length ?? 0;
-      return bCtx - aCtx;
+      const ctxA = a.context_length ?? 0;
+      const ctxB = b.context_length ?? 0;
+      return ctxB - ctxA;
     });
   }, [matching]);
 
@@ -75,52 +75,55 @@ export function BrowsePage() {
         {/* Hero — left-aligned, ~720px content block to match magi-portal's
          * per-page hero rhythm (was centered; reverting). */}
         <Stack gap="3" style={{ marginBottom: "var(--magi-space-10)" }}>
-          <span className="magi-eyebrow">Browse</span>
+          <span className="magi-eyebrow">{ts("browse.eyebrow")}</span>
           <h1 className="magi-h1">
-            {requirement ? "Recommended models" : "All endpoints"}
+            {requirement ? ts("browse.headingWithReq") : ts("browse.headingNoReq")}
           </h1>
           <p className="magi-body-lg" style={{ maxWidth: 600 }}>
-            {matching.length} model{matching.length === 1 ? "" : "s"} match
-            {requirement ? " your requirements." : " the catalog."}
+            {requirement
+              ? dict.browse.countWithReqTemplate(matching.length)
+              : dict.browse.countNoReqTemplate(matching.length)}
           </p>
         </Stack>
 
         {error && (
           <Banner variant="error" style={{ marginBottom: "var(--magi-space-6)" }}>
-            Could not load KV catalog: {error}.{" "}
+            {ts("browse.fallbackPrefix")}
+            {error}.{" "}
             {shouldUseLocalFixtures(import.meta.env.VITE_USE_LOCAL_FIXTURES)
-              ? "Falling back to bundled fixtures."
-              : "Set TFI_USE_LOCAL_FIXTURES=1 to browse offline."}
+              ? ts("browse.fallbackFixture")
+              : ts("browse.fallbackHelp")}
           </Banner>
         )}
 
         {!requirement && (
           <Banner variant="info" style={{ marginBottom: "var(--magi-space-6)" }}>
-            No requirements set.{" "}
-            <Link to="/">Go back</Link> to specify what you're building —
-            we'll pick the right models for you.
+            {ts("browse.noReqBannerBefore")}
+            <Link to="/">{ts("nav.start")}</Link>
+            {ts("browse.noReqBannerAfter")}
           </Banner>
         )}
 
         {loading ? (
           <EmptyState>
-            <span className="tfi-spinner" /> Loading catalog…
+            <span className="tfi-spinner" /> {ts("browse.loading")}
           </EmptyState>
         ) : matching.length === 0 ? (
           <EmptyState>
-            No models match. Try loosening the constraints —{" "}
-            <Link to="/">edit requirements</Link>.
+            {ts("browse.emptyBefore")}
+            <Link to="/">{ts("browse.emptyAfter")}</Link>.
           </EmptyState>
         ) : (
           <Stack gap="10">
-            <BrowseSection heading="Recommended" hint={`Top ${recommended.length} matching`}>
+            <BrowseSection
+              heading={ts("browse.sectionRecommended")}
+              hint={dict.browse.hintRecommendedTemplate(recommended.length)}
+            >
               <ModelList>
                 {recommended.length === 0 ? (
                   <div
-                    className="magi-body-sm"
                     style={{
                       padding: "var(--magi-space-6)",
-                      textAlign: "center",
                       color: "var(--magi-text-tertiary)",
                     }}
                   >
@@ -140,7 +143,7 @@ export function BrowsePage() {
             </BrowseSection>
 
             {others.length > 0 && (
-              <BrowseSection heading="Other matching" hint="match — pick if useful" muted>
+              <BrowseSection heading={ts("browse.sectionOther")} hint={ts("browse.hintOther")} muted>
                 <ModelList>
                   {others.map((m) => (
                     <ModelRow
@@ -162,18 +165,14 @@ export function BrowsePage() {
                 marginTop: "var(--magi-space-10)",
                 paddingTop: "var(--magi-space-6)",
                 borderTop: "1px solid var(--magi-border)",
+                justifyContent: "space-between",
               }}
             >
-              <Link to="/" className="tfi-nav-link" style={{ paddingLeft: 0 }}>
-                ← Edit requirements
-              </Link>
-              <div style={{ flex: 1 }} />
-              <Button
-                variant="primary"
-                onClick={() => navigate("/generate")}
-                disabled={selection.selected.length === 0}
-              >
-                Continue to generate ({selection.selected.length})
+              <span className="magi-caption" style={{ color: "var(--magi-text-secondary)" }}>
+                {selection.selected.length} selected.
+              </span>
+              <Button variant="primary" onClick={() => navigate("/generate")}>
+                {ts("nav.generate")} →
               </Button>
             </Stack>
           </Stack>
@@ -195,23 +194,35 @@ function BrowseSection({
   children: React.ReactNode;
 }) {
   return (
-    <section>
-      <Stack
-        direction="row"
-        align="center"
-        style={{ justifyContent: "space-between", marginBottom: "var(--magi-space-4)" }}
+    <Stack gap="4">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+        }}
       >
-        <h2 className="magi-eyebrow" style={{ margin: 0 }}>
+        <h2
+          className="magi-eyebrow"
+          style={{
+            color: muted
+              ? "var(--magi-text-tertiary)"
+              : "var(--magi-accent)",
+          }}
+        >
           {heading}
         </h2>
         {hint && (
-          <span className="magi-caption">
+          <span
+            className="magi-caption"
+            style={{ color: "var(--magi-text-tertiary)" }}
+          >
             {hint}
           </span>
         )}
-      </Stack>
-      <div style={{ opacity: muted ? 0.7 : 1 }}>{children}</div>
-    </section>
+      </div>
+      {children}
+    </Stack>
   );
 }
 

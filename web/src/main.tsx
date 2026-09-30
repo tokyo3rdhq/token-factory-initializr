@@ -16,6 +16,7 @@ import { HomePage } from "./pages/Home";
 import { BrowsePage } from "./pages/Browse";
 import { GeneratePage } from "./pages/Generate";
 import { SelectionProvider } from "./components/SelectionContext";
+import { I18nProvider } from "./I18nProvider";
 
 const rootEl = document.getElementById("root");
 if (!rootEl) {
@@ -32,18 +33,20 @@ createRoot(rootEl).render(
       Renamed from ProductTheme in @tokyo3rdhq/magi-design-system@0.3.0.
     */}
     <AppTheme accent="cyan" name="token-factory-initializr">
-      <BrowserRouter>
-        <SelectionProvider>
-          <Routes>
-            <Route path="/" element={<App />}>
-              <Route index element={<HomePage />} />
-              <Route path="browse" element={<BrowsePage />} />
-              <Route path="generate" element={<GeneratePage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
-        </SelectionProvider>
-      </BrowserRouter>
+      <I18nProvider>
+        <BrowserRouter>
+          <SelectionProvider>
+            <Routes>
+              <Route path="/" element={<App />}>
+                <Route index element={<HomePage />} />
+                <Route path="browse" element={<BrowsePage />} />
+                <Route path="generate" element={<GeneratePage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            </Routes>
+          </SelectionProvider>
+        </BrowserRouter>
+      </I18nProvider>
     </AppTheme>
-  </StrictMode>
+  </StrictMode>,
 );

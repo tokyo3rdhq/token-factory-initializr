@@ -1,34 +1,39 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Badge, Banner, Button, Card, Container, EmptyState, FormField, Section, Stack } from "@tokyo3rdhq/magi-design-system";
+import {
+  Banner,
+  Button,
+  Card,
+  Container,
+  EmptyState,
+  FormField,
+  Section,
+  Stack,
+} from "@tokyo3rdhq/magi-design-system";
 
 import { useSelection } from "../components/SelectionContext";
-import { postGenerate } from "../kv";
+import { postGenerate, type GenerateResponse } from "../kv";
+import { useI18n } from "../I18nProvider";
 
 /**
- * Token Factory — Generate page.
+ * Generate page.
  *
- * Layout:
- *   - developer-infrastructure summary (MODEL / PROVIDER / ID)
+ * Flow:
  *   - format selector + Initialize button
- *   - terminal-style code surface for the YAML
- *   - copy / download / agent-prompt actions
+ *   - server returns a YAML + shareable URL (5-minute TTL)
  *   - shareable URL as a small machine-friendly meta row
+ *
+ * All user-visible strings are routed through the i18n provider.
  */
 export function GeneratePage() {
-  const selection = useSelection();
   const navigate = useNavigate();
+  const selection = useSelection();
+  const { ts, dict } = useI18n();
 
   const [format, setFormat] = useState<"litellm">("litellm");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{
-    yaml: string;
-    url: string;
-    id: string;
-    agent_prompt?: string;
-    expires_at: number;
-  } | null>(null);
+  const [result, setResult] = useState<GenerateResponse | null>(null);
   const [copied, setCopied] = useState<"yaml" | "url" | "prompt" | null>(null);
 
   const onInitialize = async () => {
@@ -58,17 +63,17 @@ export function GeneratePage() {
       setCopied(key);
       window.setTimeout(() => setCopied(null), 1500);
     } catch {
-      /* clipboard unavailable in this context */
+      // Clipboard API may be blocked; do nothing.
     }
   };
 
-  const downloadYaml = () => {
+  const download = () => {
     if (!result) return;
     const blob = new Blob([result.yaml], { type: "text/yaml" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `litellm_config_${result.id}.yaml`;
+    a.download = "config.yaml";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -81,22 +86,22 @@ export function GeneratePage() {
         {/* Hero — left-aligned, ~720px content block to match magi-portal's
          * per-page hero rhythm (was centered; reverting). */}
         <Stack gap="3" style={{ marginBottom: "var(--magi-space-10)" }}>
-          <span className="magi-eyebrow">Generate</span>
-          <h1 className="magi-h1">Token Factory</h1>
+          <span className="magi-eyebrow">{ts("generate.eyebrow")}</span>
+          <h1 className="magi-h1">{ts("generate.headline")}</h1>
           <p className="magi-body-lg" style={{ maxWidth: 600 }}>
             {selection.selected.length > 0
-              ? `${selection.selected.length} model${
-                  selection.selected.length === 1 ? "" : "s"
-                } ready to initialize.`
-              : "No models selected yet."}
+              ? dict.generate.subheadWithSelectionTemplate(selection.selected.length)
+              : ts("generate.subheadNoSelection")}
           </p>
         </Stack>
 
         {selection.selected.length === 0 ? (
           <EmptyState>
-            Nothing selected. Head to{" "}
-            <Link to="/">the requirements form</Link>, then{" "}
-            <Link to="/browse">browse</Link> to pick models.
+            {ts("generate.emptyBefore")}
+            <Link to="/">{ts("nav.start")}</Link>
+            {ts("generate.emptyForm")}
+            <Link to="/browse">{ts("nav.browse")}</Link>
+            {ts("generate.emptyBrowse")}
           </EmptyState>
         ) : (
           <Stack gap="6">
@@ -106,7 +111,7 @@ export function GeneratePage() {
                 className="magi-eyebrow"
                 style={{ display: "block", marginBottom: "var(--magi-space-4)" }}
               >
-                Selection
+                {ts("generate.selectionHeader")}
               </span>
               <Stack gap="4">
                 {selection.selected.map((m) => (
@@ -114,11 +119,11 @@ export function GeneratePage() {
                     className="tfi-meta-grid"
                     key={`${m.data_source}::${m.provider}::${m.model_id}`}
                   >
-                    <span className="tfi-meta-key">Model</span>
+                    <span className="tfi-meta-key">{ts("generate.fieldModel")}</span>
                     <span className="tfi-meta-value">{m.name || m.model_id}</span>
-                    <span className="tfi-meta-key">Provider</span>
+                    <span className="tfi-meta-key">{ts("generate.fieldProvider")}</span>
                     <span className="tfi-meta-value">{m.provider}</span>
-                    <span className="tfi-meta-key">ID</span>
+                    <span className="tfi-meta-key">{ts("generate.fieldId")}</span>
                     <span className="tfi-meta-value">{m.model_id}</span>
                   </div>
                 ))}
@@ -128,14 +133,14 @@ export function GeneratePage() {
             {/* Format + Initialize */}
             <Card>
               <Stack direction="row" gap="4" align="center">
-                <FormField label="Format">
+                <FormField label={ts("generate.fieldFormat")}>
                   <select
                     id="format-select"
                     className="tfi-select"
                     value={format}
                     onChange={(e) => setFormat(e.target.value as "litellm")}
                   >
-                    <option value="litellm">LiteLLM</option>
+                    <option value="litellm">{ts("generate.optionLitellm")}</option>
                   </select>
                 </FormField>
                 <Button
@@ -144,7 +149,7 @@ export function GeneratePage() {
                   disabled={submitting}
                   loading={submitting}
                 >
-                  {submitting ? "Initializing…" : "Initialize"}
+                  {submitting ? ts("generate.btnInitializing") : ts("generate.btnInitialize")}
                 </Button>
               </Stack>
             </Card>
@@ -155,7 +160,7 @@ export function GeneratePage() {
 
             {!result ? (
               <EmptyState>
-                {error ? "" : "Click Initialize to generate the config."}
+                {error ? "" : ts("generate.emptyClick")}
               </EmptyState>
             ) : (
               <ResultPanel
@@ -165,38 +170,17 @@ export function GeneratePage() {
                 agentPrompt={result.agent_prompt}
                 copied={copied}
                 onCopy={copy}
-                onDownload={downloadYaml}
+                onDownload={download}
               />
             )}
-
-            <Stack
-              direction="row"
-              align="center"
-              gap="3"
-              style={{
-                marginTop: "var(--magi-space-10)",
-                paddingTop: "var(--magi-space-6)",
-                borderTop: "1px solid var(--magi-border)",
-              }}
-            >
-              <Link to="/browse" className="tfi-nav-link" style={{ paddingLeft: 0 }}>
-                ← Back to picks
-              </Link>
-              <div style={{ flex: 1 }} />
-              {result && (
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    selection.clear();
-                    navigate("/");
-                  }}
-                >
-                  Start over
-                </Button>
-              )}
-            </Stack>
           </Stack>
         )}
+
+        <div style={{ marginTop: "var(--magi-space-8)" }}>
+          <Button variant="secondary" onClick={() => navigate("/browse")}>
+            ← {ts("nav.browse")}
+          </Button>
+        </div>
       </Container>
     </Section>
   );
@@ -219,24 +203,27 @@ function ResultPanel({
   onCopy: (text: string, key: "yaml" | "url" | "prompt") => void;
   onDownload: () => void;
 }) {
+  const { ts } = useI18n();
   return (
     <Stack gap="4">
       <div className="tfi-code-chrome">
         <span className="tfi-code-filename">{id}.yaml</span>
-        <Badge variant="success" dot>Ready</Badge>
+        <span className="magi-caption" style={{ color: "var(--magi-success)" }}>
+          {ts("generate.yamlReady")}
+        </span>
         <div style={{ flex: 1 }} />
         <Button size="sm" variant="secondary" onClick={() => onCopy(yaml, "yaml")}>
-          {copied === "yaml" ? "Copied" : "Copy"}
+          {copied === "yaml" ? ts("generate.yamlCopied") : ts("generate.yamlCopy")}
         </Button>
         <Button size="sm" variant="secondary" onClick={onDownload}>
-          Download
+          {ts("generate.yamlDownload")}
         </Button>
         <Button
           size="sm"
           variant="secondary"
           onClick={() => onCopy(agentPrompt ?? "", "prompt")}
         >
-          {copied === "prompt" ? "Copied" : "Agent Prompt"}
+          {copied === "prompt" ? ts("generate.yamlCopied") : ts("generate.yamlAgentPrompt")}
         </Button>
       </div>
       <pre className="magi-code tfi-code-surface" data-testid="yaml">
@@ -244,15 +231,15 @@ function ResultPanel({
       </pre>
 
       <div className="tfi-meta-grid">
-        <span className="tfi-meta-key">URL</span>
+        <span className="tfi-meta-key">{ts("generate.fieldUrl")}</span>
         <span className="tfi-meta-value">
           <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{url}</span>
           <Button size="sm" variant="secondary" onClick={() => onCopy(url, "url")}>
-            {copied === "url" ? "Copied" : "Copy"}
+            {copied === "url" ? ts("generate.yamlCopied") : ts("generate.yamlCopy")}
           </Button>
         </span>
-        <span className="tfi-meta-key">TTL</span>
-        <span className="tfi-meta-value">5 minutes — by design</span>
+        <span className="tfi-meta-key">{ts("generate.fieldTtl")}</span>
+        <span className="tfi-meta-value">{ts("generate.ttlValue")}</span>
       </div>
     </Stack>
   );

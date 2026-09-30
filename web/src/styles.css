@@ -134,6 +134,21 @@
   transition: color var(--magi-duration-fast, 120ms) ease,
               background var(--magi-duration-fast, 120ms) ease;
 }
+.tfi-icon-btn-with-label {
+  width: auto;
+  padding: 0 var(--magi-space-2);
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--magi-text-secondary);
+  letter-spacing: 0.04em;
+}
+.tfi-icon-btn-with-label:hover {
+  color: var(--magi-text-primary);
+}
+.tfi-icon-btn-label {
+  line-height: 1;
+}
 .tfi-icon-btn:hover {
   color: var(--magi-text-primary);
   background: color-mix(in srgb, var(--magi-text-primary) 6%, transparent);

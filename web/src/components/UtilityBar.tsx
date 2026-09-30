@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Languages, Moon, Sun } from "lucide-react";
+import { useI18n } from "../I18nProvider";
+import { locales, type Locale } from "../i18n";
 
 /**
  * Top-right utility bar (mirrors magi-portal Layout.astro).
@@ -10,29 +12,26 @@ import { Languages, Moon, Sun } from "lucide-react";
  *   - Conventional actions (theme switch) → icon-only is allowed.
  *
  * Per DS Iconography contract: generic UI icons come from Lucide.
- * The DS declares `lucide-react@^0.460.0` as a peer dependency and
- * tfi's web package now installs it to match.
  *
  * The two controls here:
  *
- *   1. Language — first paint. Tap reveals a tiny popover with the
- *      available locales (English only today; the dropdown shape is
- *      here so adding more locales is a one-line change). The DS
- *      doesn't ship a language primitive yet.
+ *   1. Language — first paint shows the current locale's short
+ *      label (EN / 中). Tap reveals a tiny popover listing every
+ *      available locale with its native name (endonym).
  *
- *   2. Theme toggle — switches `<html data-magi-theme>` between
- *      "dark" and "light". The DS already exposes both palettes
- *      via the [data-magi-theme="…"] CSS selectors in
- *      tokens/colors.css — flipping the attribute cascades to every
- *      token without any per-component JS.
- *
- * Persistence follows magi-portal ThemeToggle: localStorage wins
- * after the first explicit toggle; the OS prefers-color-scheme media
- * query seeds the initial choice for fresh visitors.
+ *   2. Theme toggle — Sun (when dark) / Moon (when light). Flips
+ *      `<html data-magi-theme>` between "dark" and "light". The DS
+ *      already exposes both palettes via the
+ *      [data-magi-theme="…"] CSS selectors in tokens/colors.css, so
+ *      the flip cascades to every token without any per-component
+ *      JS.
  */
+const LOCALES: Locale[] = ["en", "zh"];
+
 export function UtilityBar() {
+  const { locale, setLocale, ts } = useI18n();
+
   // Theme state mirrors the live `<html data-magi-theme>` attribute.
-  // Read once on mount; the toggle below flips both.
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof document === "undefined") return "dark";
     const attr = document.documentElement.getAttribute("data-magi-theme");
@@ -42,8 +41,8 @@ export function UtilityBar() {
   const [langOpen, setLangOpen] = useState(false);
 
   useEffect(() => {
-    // Re-read on every render — keeps the icon in sync if the theme
-    // is changed from elsewhere (e.g. system color-scheme change).
+    // Keep the icon in sync if the theme attribute flips from
+    // elsewhere (e.g. system color-scheme via a future bridge).
     const observer = new MutationObserver(() => {
       const attr = document.documentElement.getAttribute("data-magi-theme");
       setTheme(attr === "light" ? "light" : "dark");
@@ -55,6 +54,24 @@ export function UtilityBar() {
     return () => observer.disconnect();
   }, []);
 
+  // Close the dropdown when the user clicks outside or hits Escape.
+  useEffect(() => {
+    if (!langOpen) return;
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && !target.closest(".tfi-lang-wrap")) setLangOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLangOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [langOpen]);
+
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
@@ -62,42 +79,49 @@ export function UtilityBar() {
     try {
       localStorage.setItem("tfi:theme", next);
     } catch {
-      // localStorage may be blocked (private mode, sandboxed iframe).
-      // The DOM mutation above is what actually flips the theme; we
-      // simply lose persistence — acceptable fallback.
+      // localStorage may be blocked; the DOM mutation above is the
+      // authoritative flip — we simply lose persistence.
     }
   };
+
+  const currentLocaleName = locales[locale];
 
   return (
     <div className="tfi-topbar-utility">
       <div className="tfi-lang-wrap">
         <button
           type="button"
-          className="tfi-icon-btn"
-          aria-label="Switch language (current: English)"
+          className="tfi-icon-btn tfi-icon-btn-with-label"
+          aria-label={ts("utility.switchLanguageAria").replace("{name}", currentLocaleName)}
           aria-haspopup="listbox"
           aria-expanded={langOpen}
-          title="Language: English"
+          title={ts("utility.switchLanguageTitle")}
           onClick={() => setLangOpen((v) => !v)}
         >
           <Languages size={14} strokeWidth={1.75} aria-hidden="true" />
-          <span className="tfi-sr-only">English</span>
+          <span className="tfi-icon-btn-label">{ts("utility.currentLocaleLabel")}</span>
         </button>
         {langOpen && (
           <div
             role="listbox"
-            aria-label="Language"
+            aria-label={ts("utility.switchLanguageTitle")}
             className="tfi-lang-dropdown"
           >
-            <button
-              role="option"
-              aria-selected="true"
-              data-locale="en"
-              className="tfi-lang-option"
-              onClick={() => setLangOpen(false)}
-            >
-              English
-            </button>
+            {LOCALES.map((code) => (
+              <button
+                key={code}
+                role="option"
+                aria-selected={code === locale}
+                data-locale={code}
+                className="tfi-lang-option"
+                onClick={() => {
+                  setLocale(code);
+                  setLangOpen(false);
+                }}
+              >
+                {locales[code]}
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -105,8 +129,8 @@ export function UtilityBar() {
       <button
         type="button"
         className="tfi-icon-btn"
-        aria-label={`Switch theme (current: ${theme})`}
-        title={`Switch theme — currently ${theme}`}
+        aria-label={ts("utility.switchThemeAria").replace("{name}", theme)}
+        title={ts("utility.switchThemeTitle")}
         onClick={toggleTheme}
       >
         {theme === "dark" ? (

@@ -1,6 +1,7 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { MagiLockup } from "@tokyo3rdhq/magi-design-system";
 import { UtilityBar } from "./components/UtilityBar";
+import { useI18n } from "./I18nProvider";
 
 /**
  * Top-level layout — matches magi-portal topbar.
@@ -20,8 +21,14 @@ import { UtilityBar } from "./components/UtilityBar";
  *
  * Heights match magi-portal (`h-11` = 44px); the previous ~12px taller
  * spacing is gone.
+ *
+ * Strings here are routed through the i18n provider. The footer
+ * "MAGI" column keeps its English caption in both languages (the
+ * brand column reads as a single English voice on purpose).
  */
 export function App() {
+  const { ts } = useI18n();
+
   return (
     <div>
       <header className="tfi-topbar">
@@ -39,13 +46,13 @@ export function App() {
           </Link>
           <nav className="tfi-nav" aria-label="primary">
             <NavLink to="/" end className="tfi-nav-link">
-              Start
+              {ts("nav.start")}
             </NavLink>
             <NavLink to="/browse" className="tfi-nav-link">
-              Browse
+              {ts("nav.browse")}
             </NavLink>
             <NavLink to="/generate" className="tfi-nav-link">
-              Generate
+              {ts("nav.generate")}
             </NavLink>
           </nav>
           <UtilityBar />
@@ -59,15 +66,15 @@ export function App() {
       <footer className="tfi-footer">
         <div className="tfi-footer-cols">
           <div className="tfi-footer-col">
-            <h4>Product</h4>
+            <h4>{ts("footer.columns.product")}</h4>
             <ul>
-              <li><Link to="/">Start</Link></li>
-              <li><Link to="/browse">Browse</Link></li>
-              <li><Link to="/generate">Generate</Link></li>
+              <li><Link to="/">{ts("nav.start")}</Link></li>
+              <li><Link to="/browse">{ts("nav.browse")}</Link></li>
+              <li><Link to="/generate">{ts("nav.generate")}</Link></li>
             </ul>
           </div>
           <div className="tfi-footer-col">
-            <h4>Resources</h4>
+            <h4>{ts("footer.columns.resources")}</h4>
             <ul>
               <li>
                 <a href="/api/manifest" target="_blank" rel="noreferrer">
@@ -82,7 +89,7 @@ export function App() {
             </ul>
           </div>
           <div className="tfi-footer-col">
-            <h4>Community</h4>
+            <h4>{ts("footer.columns.community")}</h4>
             <ul>
               <li>
                 <a
@@ -111,20 +118,15 @@ export function App() {
             </ul>
           </div>
           <div className="tfi-footer-col">
-            <h4>MAGI</h4>
+            <h4>{ts("footer.columns.magi")}</h4>
             <ul>
-              <li className="magi-caption">Independent AI lab.</li>
-              <li className="magi-caption">AI infrastructure, built at the edge.</li>
-              <li className="magi-caption">Built for developers and agents.</li>
+              <li className="magi-caption">{ts("footer.brandCaption")}</li>
             </ul>
           </div>
         </div>
         <div className="tfi-footer-meta">
-          <span>© 2026 MAGI</span>
-          <span>
-            Endpoints from NVIDIA NIM · AMD Radeon AI · Hugging Face Inference.
-            Generated configs expire in 5 minutes — by design.
-          </span>
+          <span>{ts("footer.copyright")}</span>
+          <span>{ts("footer.provenance")}</span>
         </div>
       </footer>
     </div>
