@@ -1,21 +1,31 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
+import { MagiLockup } from "@tokyo3rdhq/magi-design-system";
 
 /**
  * Top-level layout — MAGI parent-brand pattern.
  *
- *   MAGI / Token Factory Initializr
+ * Brand: <MagiLockup /> (the canonical MAGI mark + wordmark composite,
+ *   filled with currentColor — so the wrapper's `color` controls it)
+ *   followed by the product name. The MAGI design-system guarantee:
+ *   `currentColor` on the SVG, never black-on-black.
  *
  * Navigation uses tfi-topbar (translucent sticky). Footer uses the
  * 3-column MAGI structure. No token literals — colors come from
- * the design system's CSS custom properties via ProductTheme.
+ * the design system's CSS custom properties via <AppTheme>.
  */
 export function App() {
   return (
     <div>
       <header className="tfi-topbar">
-        <Link to="/" className="tfi-brand" aria-label="Token Factory Initializr — home">
-          <span className="tfi-brand-parent">MAGI</span>
-          <span className="tfi-brand-slash">/</span>
+        <Link
+          to="/"
+          className="tfi-brand"
+          aria-label="Token Factory Initializr — home"
+        >
+          <MagiLockup size="sm" className="tfi-brand-mark" />
+          <span className="tfi-brand-sep" aria-hidden="true">
+            /
+          </span>
           <span className="tfi-brand-product">Token Factory Initializr</span>
         </Link>
         <nav className="tfi-nav" aria-label="primary">

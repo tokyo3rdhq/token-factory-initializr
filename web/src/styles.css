@@ -26,17 +26,41 @@
 }
 
 .tfi-brand {
-  display: flex;
-  align-items: baseline;
+  /* MagiLockup uses currentColor for fill — explicitly set the wrapper
+   * color to the primary text token so the SVG inherits it. This is the
+   * "no black-on-black" guarantee: even if the parent <header> loses its
+   * CSS color, this link stays readable. */
+  display: inline-flex;
+  align-items: center;
   gap: var(--magi-space-2);
   font-family: var(--magi-font-sans, Inter, system-ui, sans-serif);
   font-size: 14px;
+  font-weight: 600;
+  color: var(--magi-text-primary);
   border: 0;
+  white-space: nowrap;
 }
 .tfi-brand:hover { border: 0; }
-.tfi-brand-parent { color: var(--magi-text-secondary); }
-.tfi-brand-slash { color: var(--magi-text-tertiary); margin: 0 2px; }
-.tfi-brand-product { color: var(--magi-text-primary); font-weight: 600; }
+.tfi-brand:hover .tfi-brand-mark { opacity: 0.85; }
+.tfi-brand-mark {
+  /* Inherit color from .tfi-brand — the SVG uses currentColor.
+   * Force a fixed height so the SVG can't expand to fill the topbar,
+   * which would squeeze adjacent text into a narrow column. */
+  color: inherit;
+  flex-shrink: 0;
+  height: 22px;
+  width: auto;
+}
+.tfi-brand-sep {
+  color: var(--magi-text-tertiary);
+  font-weight: 400;
+  margin: 0 var(--magi-space-1);
+}
+.tfi-brand-product {
+  color: var(--magi-text-primary);
+  font-weight: 600;
+  white-space: nowrap;
+}
 
 .tfi-nav {
   display: flex;
