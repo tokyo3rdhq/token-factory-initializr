@@ -460,3 +460,25 @@ class RecordingKV(FakeKV):
         key = f"tfi:models:{ds}:{provider}:latest"
         self.events.append(("delete", key))
         super().delete_provider_models(ds, provider)
+
+def test_snapshot_serializes_datetime_fields_for_publish():
+    """Refactor regression: Snapshot must produce JSON-ready dicts.
+
+    The pre-fix Snapshot used ``ep.__dict__`` which kept the
+    ``fetched_at`` field as a ``datetime`` — ``json.dumps`` then
+    raises ``TypeError`` at the publish stage. Phase 3 hit this
+    on the first GitHub Actions run after the refactor.
+
+    After the fix, ``endpoint_to_dict`` is called on every
+    ModelEndpoint instance so ``fetched_at`` is ISO-encoded.
+    """
+    import json
+
+    ep = _mk_ep("huggingface", "novita", "openai/gpt-oss-20b")
+    desired = build_desired_state([ep])
+    catalog = desired["data_sources"]["huggingface"]["providers"]["novita"]
+    assert len(catalog) == 1
+    # Catalog entry must be JSON-serializable — i.e. fetched_at is a
+    # string, not a datetime.
+    json.dumps(catalog[0])
+    assert isinstance(catalog[0]["fetched_at"], str)

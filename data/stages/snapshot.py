@@ -84,7 +84,21 @@ def build_desired_state(endpoints: list[Any]) -> dict[str, Any]:
         }
 
     for ep in endpoints:
-        d = ep.__dict__ if hasattr(ep, "__dict__") else dict(ep)
+        # Normalize every endpoint to a JSON-ready dict up front.
+        # ModelEndpoint dataclasses carry a ``datetime`` for
+        # ``fetched_at`` that JSON.dumps can't serialize — the
+        # publish stage would then fail with TypeError when the
+        # catalog is PUT to KV. ``endpoint_to_dict`` is a no-op for
+        # already-dict inputs and converts ModelEndpoint instances
+        # (including the ISO-encoded fetched_at).
+        from data.models.schema import ModelEndpoint
+
+        if isinstance(ep, ModelEndpoint):
+            d = endpoint_to_dict(ep)
+        elif hasattr(ep, "__dict__"):
+            d = dict(ep.__dict__)
+        else:
+            d = dict(ep)
         ds = d.get("data_source") or ""
         provider = d.get("provider") or ""
         if not ds or not provider:
