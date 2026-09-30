@@ -30,8 +30,14 @@ import {
 // ---------------------------------------------------------------------------
 
 function ep(overrides: Partial<ModelEndpoint>): ModelEndpoint {
+  const provider = overrides.provider ?? "nvidia";
   return {
-    provider: "nvidia",
+    provider,
+    // data_source defaults to the provider for NVIDIA/AMD; HF fixtures
+    // override it explicitly below. Keeps the refactor §13 invariant
+    // — the same provider across two data sources produces two
+    // distinct endpoints — explicit in the test data.
+    data_source: provider,
     model_id: "x/y",
     name: "Y",
     description: null,
@@ -81,19 +87,21 @@ const AMD_MM = ep({
 
 const HF_FREE = ep({
   provider: "huggingface",
+  data_source: "huggingface",
   model_id: "meta-llama/Llama-3.2-3B-Instruct",
   capabilities: { chat: true },
-  architecture: { input: ["text"], output: ["text"] },
+  architecture: { input: ["text"], "output": ["text"] },
   context_length: 131072,
   pricing: { input: 0, output: 0 },
 });
 
 const HF_PAID = ep({
   provider: "novita",
+  data_source: "huggingface",
   model_id: "novita/some-paid-model",
   free: false,
   capabilities: { chat: true },
-  architecture: { input: ["text"], output: ["text"] },
+  architecture: { input: ["text"], "output": ["text"] },
   context_length: 65536,
   pricing: { input: 0.27, output: 1.1 },
 });

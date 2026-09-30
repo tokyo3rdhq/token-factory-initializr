@@ -50,7 +50,10 @@ export interface ProviderSnapshot {
   provider: string;
   /** All endpoints for this provider (free + paid; UI filters client-side). */
   models: ModelEndpoint[];
-  fetched_at: string;
+  /** ISO 8601 timestamp of when this catalog snapshot was written.
+   *  Optional — the Python pipeline writes it but legacy fixtures
+   *  (and older snapshots) may not have it. */
+  fetched_at?: string;
 }
 
 export interface ManifestProvider {
@@ -208,9 +211,18 @@ export function matchesRequirement(
     }
   }
 
-  // providers whitelist — non-empty list filters; empty means all
+  // data_sources whitelist — non-empty list filters; empty means all
+  //
+  // The field is named ``providers`` for backward compatibility with
+  // the pre-refactor JSON contract, but semantically the values are
+  // data_sources (one of {"nvidia", "amd", "huggingface"}). Per the
+  // refactor, an HF inference provider like "cohere" lives at
+  // (huggingface, cohere); when the user selects "huggingface" they
+  // mean "anything from the huggingface data source", not just
+  // (huggingface, huggingface). Matching against ``data_source``
+  // is what makes the filter intuitive.
   if (requirement.providers && requirement.providers.length > 0) {
-    if (!requirement.providers.includes(endpoint.provider)) return false;
+    if (!requirement.providers.includes(endpoint.data_source)) return false;
   }
 
   // endpointCount / constraints / useCases — reserved for future

@@ -45,7 +45,10 @@ export interface ModelEndpoint {
 export interface ProviderSnapshot {
   data_source: string;
   provider: string;
-  fetched_at: string;
+  /** ISO 8601 timestamp of when this catalog snapshot was written.
+   *  Optional — the Python pipeline writes it but legacy fixtures
+   *  (and older snapshots) may not have it. */
+  fetched_at?: string;
   models: ModelEndpoint[];
 }
 
