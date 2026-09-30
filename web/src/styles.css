@@ -10,43 +10,47 @@
  * override propagates automatically.
  * ============================================================ */
 
-/* ----- Topbar (3-section: brand / centered nav / external links) ----- */
-/* Matches magi-portal's topbar: translucent raised surface with
- * backdrop-blur. No visible bottom border (magi-portal's `border-b`
- * is washed out by the 95%-opaque background; we just don't emit one).
- * Content is constrained to 1200px (magi-portal's `max-w-page`)
- * via an inner wrapper — the topbar itself stays full-width so the
- * blurred backdrop extends across the viewport. */
+/* ----- Topbar (3-section: brand / centered nav / utility) ----- */
+/* Matches magi-portal's topbar (Layout.astro lines 149-156):
+ *   sticky top-0 z-40 backdrop-blur-xl bg-bg-raised/95 border-b
+ *   <nav class="mx-auto grid h-11 max-w-page items-center px-6 gap-4"
+ *
+ * We use max-width 1280px (magi-portal uses 1200px) because tfi's
+ * brand "MAGI / Token Factory Initializr" is wider than magi-portal's
+ * "MAGI" alone — extending the cap keeps Discord/GitHub external links
+ * inside the viewport at common widths. The grid is 3 columns
+ * (auto / 1fr / auto) so brand sits at the left edge, primary nav
+ * centers itself, and the utility area pins to the right edge —
+ * same IA as the main site.
+ */
 .tfi-topbar {
   position: sticky;
   top: 0;
   z-index: 50;
+  width: 100%;
+  /* height comes from the inner grid (h-11 = 44px, matching
+   * magi-portal). Padding is the inner grid's px-6. */
   display: flex;
   align-items: center;
-  padding: var(--magi-space-3) var(--magi-space-6);
   background: color-mix(in srgb, var(--magi-bg-raised) 95%, transparent);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--magi-border);
 }
 .tfi-topbar-inner {
   width: 100%;
-  /* magi-portal uses max-w-page = 1200px, but tfi's brand "MAGI / Token
-   * Factory Initializr" is significantly wider than magi-portal's "MAGI"
-   * alone, so we extend the container to fit both external links (GitHub
-   * icon + Discord) on the right without overflowing. */
   max-width: 1280px;
   margin: 0 auto;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
   gap: var(--magi-space-6);
+  padding: 0 var(--magi-space-6);
+  height: 44px; /* h-11 — matches magi-portal */
 }
 
 .tfi-brand {
-  /* MagiLockup uses currentColor for fill — explicitly set the wrapper
-   * color to the primary text token so the SVG inherits it. This is the
-   * "no black-on-black" guarantee: even if the parent <header> loses its
-   * CSS color, this link stays readable. */
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: var(--magi-space-2);
@@ -60,12 +64,9 @@
 .tfi-brand:hover { border: 0; }
 .tfi-brand:hover .tfi-brand-mark { opacity: 0.85; }
 .tfi-brand-mark {
-  /* Inherit color from .tfi-brand — the SVG uses currentColor.
-   * Force a fixed height so the SVG can't expand to fill the topbar,
-   * which would squeeze adjacent text into a narrow column. */
   color: inherit;
   flex-shrink: 0;
-  height: 22px;
+  height: 20px; /* matches the sm size of magi-portal's magi-lockup--sm */
   width: auto;
 }
 .tfi-brand-sep {
@@ -80,20 +81,14 @@
 }
 
 .tfi-nav {
+  justify-self: center;
   display: flex;
-  gap: var(--magi-space-6);
-  /* No longer absolutely positioned — the parent .tfi-topbar-inner is
-   * a flex row that puts nav visually centered between brand (left)
-   * and external links (right). */
-}
-.tfi-topbar-external {
-  display: flex;
-  gap: var(--magi-space-4);
+  gap: var(--magi-space-8); /* gap-8 = 2rem — matches magi-portal */
 }
 .tfi-nav-link {
   font-size: 13px;
   color: var(--magi-text-secondary);
-  padding: var(--magi-space-2) 0;
+  padding: 0;
   border-bottom: 1px solid transparent;
   border-radius: 0;
   background: transparent;
@@ -102,15 +97,12 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  line-height: 44px; /* match h-11 so the underline sits centered */
 }
 .tfi-nav-link:hover { color: var(--magi-text-primary); text-decoration: none; }
 .tfi-nav-link.active {
   color: var(--magi-text-primary);
   border-bottom-color: var(--magi-text-primary);
-}
-.tfi-nav-link-external {
-  font-size: 12px;
-  gap: 6px;
 }
 .tfi-icon {
   width: 14px;
@@ -118,11 +110,90 @@
   flex-shrink: 0;
 }
 
+/* ----- Topbar utility area (i18n + theme) ----- */
+/* Operational controls per DS Experience Guidelines §11. Icon-only
+ * is allowed for these (conventional actions). Mirrors magi-portal's
+ * .text-ink-secondary hover:.text-ink-primary treatment. */
+.tfi-topbar-utility {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: var(--magi-space-4);
+}
+.tfi-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 0;
+  color: var(--magi-text-secondary);
+  cursor: pointer;
+  border-radius: var(--magi-radius-md);
+  transition: color var(--magi-duration-fast, 120ms) ease,
+              background var(--magi-duration-fast, 120ms) ease;
+}
+.tfi-icon-btn:hover {
+  color: var(--magi-text-primary);
+  background: color-mix(in srgb, var(--magi-text-primary) 6%, transparent);
+}
+.tfi-icon-btn:focus-visible {
+  outline: 2px solid var(--magi-accent);
+  outline-offset: 2px;
+}
+.tfi-sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.tfi-lang-wrap {
+  position: relative;
+}
+.tfi-lang-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: var(--magi-space-2);
+  min-width: 140px;
+  padding: var(--magi-space-1);
+  background: color-mix(in srgb, var(--magi-bg-raised) 95%, transparent);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  z-index: 60;
+}
+.tfi-lang-option {
+  display: block;
+  width: 100%;
+  padding: var(--magi-space-2) var(--magi-space-3);
+  text-align: left;
+  font-size: 12px;
+  color: var(--magi-text-secondary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  border-radius: var(--magi-radius-sm);
+}
+.tfi-lang-option:hover {
+  background: color-mix(in srgb, var(--magi-text-primary) 8%, transparent);
+  color: var(--magi-text-primary);
+}
+
 /* ----- Footer (matches magi-portal's 4-col + baseline rhythm) ----- */
-/* magi-portal uses mt-32 (8rem) top margin, py-12 (3rem) vertical padding,
- * gap-10 (2.5rem) between columns. We mirror those numbers but use a 3-col
- * layout (Product / Resources / MAGI) since tfi has fewer link destinations
- * than the main site. */
+/* magi-portal uses mt-32 (8rem) top margin, py-12 (3rem) vertical
+ * padding, gap-10 (2.5rem) between columns. We mirror those numbers
+ * but split into 4 columns (Product / Resources / Community / MAGI)
+ * now that the GitHub + Discord external links have moved from the
+ * header to a footer Community column. The Community column matches
+ * the IA of magi-portal's footer.
+ */
 .tfi-footer {
   margin-top: var(--magi-space-32);
   padding: var(--magi-space-12) var(--magi-space-6) var(--magi-space-10);
@@ -130,8 +201,13 @@
 }
 .tfi-footer-cols {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--magi-space-10);
+}
+.tfi-footer-ext {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .tfi-footer-col h4 {
   font-size: 11px;
@@ -301,8 +377,7 @@
 
 /* ----- Responsive ----- */
 @media (max-width: 720px) {
-  .tfi-topbar { padding: var(--magi-space-3) var(--magi-space-5); }
-  .tfi-footer-cols { grid-template-columns: 1fr; }
+  .tfi-footer-cols { grid-template-columns: repeat(2, 1fr); }
   .tfi-footer-meta { flex-direction: column; gap: var(--magi-space-2); }
   .tfi-model-row {
     grid-template-columns: 24px 1fr;
