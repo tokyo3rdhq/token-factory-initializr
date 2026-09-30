@@ -103,16 +103,20 @@
   gap: 6px;
 }
 
-/* ----- Footer (3-col structure, MAGI parent-brand pattern) ----- */
+/* ----- Footer (matches magi-portal's 4-col + baseline rhythm) ----- */
+/* magi-portal uses mt-32 (8rem) top margin, py-12 (3rem) vertical padding,
+ * gap-10 (2.5rem) between columns. We mirror those numbers but use a 3-col
+ * layout (Product / Resources / MAGI) since tfi has fewer link destinations
+ * than the main site. */
 .tfi-footer {
-  margin-top: var(--magi-space-12);
-  padding: var(--magi-space-10) var(--magi-space-6) var(--magi-space-6);
+  margin-top: var(--magi-space-32);
+  padding: var(--magi-space-12) var(--magi-space-6) var(--magi-space-10);
   border-top: 1px solid var(--magi-border);
 }
 .tfi-footer-cols {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--magi-space-6);
+  gap: var(--magi-space-10);
 }
 .tfi-footer-col h4 {
   font-size: 11px;
@@ -120,7 +124,7 @@
   letter-spacing: 0.08em;
   color: var(--magi-text-tertiary);
   font-weight: 500;
-  margin: 0 0 var(--magi-space-3) 0;
+  margin: 0 0 var(--magi-space-4) 0;
 }
 .tfi-footer-col ul {
   list-style: none;
@@ -129,16 +133,22 @@
   display: flex;
   flex-direction: column;
   gap: var(--magi-space-2);
-  font-size: 13px;
+  font-size: 14px;
 }
-.tfi-footer-col a { color: var(--magi-text-secondary); border: 0; }
+.tfi-footer-col li.tfi-muted { color: var(--magi-text-tertiary); }
+.tfi-footer-col a {
+  color: var(--magi-text-secondary);
+  border: 0;
+  transition: color var(--magi-duration-fast) ease;
+}
 .tfi-footer-col a:hover { color: var(--magi-text-primary); border: 0; }
 .tfi-footer-meta {
-  margin-top: var(--magi-space-6);
-  padding-top: var(--magi-space-5);
+  margin-top: var(--magi-space-12);
+  padding-top: var(--magi-space-8);
   border-top: 1px solid var(--magi-border);
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 12px;
   color: var(--magi-text-tertiary);
 }

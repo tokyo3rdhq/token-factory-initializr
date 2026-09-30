@@ -68,20 +68,20 @@ export function HomePage() {
   return (
     <Section spacing="lg">
       <Container>
-        {/* Hero — centered layout, larger display, two CTAs (matches
-         * magi-portal hero rhythm). The product accent stays cyan per
-         * spec §5 ("Token Factory Initializr = cyan accent"); only
-         * spacing, alignment, and CTAs follow the main site. */}
-        <Stack
-          gap="6"
-          align="center"
-          style={{ maxWidth: 1024, textAlign: "center", margin: "0 auto" }}
-        >
+        {/* Hero — left-aligned, narrower content block (~720px) to match
+         * magi-portal's hero rhythm. The main site uses a left-aligned
+         * hero on a wider page, with the content block constrained to
+         * ~720px and left-aligned. tfi was previously centered at 1024px
+         * which felt "too wide" relative to the main site.
+         *
+         * Accent stays cyan per spec §5 ("Token Factory Initializr = cyan
+         * accent"); only spacing + alignment follow the main site. */}
+        <Stack gap="6" style={{ maxWidth: 720, textAlign: "left" }}>
           <span className="magi-eyebrow">Token Factory Initializr</span>
-          <h1 className="magi-display" style={{ maxWidth: 1024, textAlign: "center" }}>
+          <h1 className="magi-display">
             Initialize your token factory.
           </h1>
-          <p className="magi-body-lg" style={{ maxWidth: 720, textAlign: "center" }}>
+          <p className="magi-body-lg" style={{ maxWidth: 600 }}>
             Pick the free AI endpoints that fit your project. We generate
             ready-to-use configuration for LiteLLM.
           </p>
