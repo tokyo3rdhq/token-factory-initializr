@@ -36,7 +36,6 @@ from data.stages import (
     NotifyStage,
     ParseStage,
     PROVIDER_FETCHERS,
-    StoreStage,
     SummarizeStage,
     ValidateStage,
     build_default_pipeline,
@@ -86,11 +85,17 @@ def test_pipeline_end_returns_pipeline():
     assert p.end() is p
 
 
-def test_default_pipeline_has_eight_stages_in_canonical_order():
+def test_default_pipeline_has_twelve_stages_in_canonical_order():
+    """Per refactor doc §6:
+
+        fetch → parse → filter_free → normalize → validate → enrich
+        → snapshot → diff → reconcile → publish → summarize → notify
+    """
     p = build_default_pipeline()
     assert [s.name for s in p.stages] == [
         "fetch", "parse", "filter_free", "normalize", "validate", "enrich",
-        "summarize", "store", "notify",
+        "snapshot", "diff", "reconcile", "publish",
+        "summarize", "notify",
     ]
 
 
@@ -303,115 +308,6 @@ def test_summarize_stage_populates_manifest_artifact():
     assert out.artifacts["manifest"]["total"] == 2
     assert out.artifacts["manifest"]["providers"]["amd"]["count"] == 1
     assert out.artifacts["manifest"]["providers"]["huggingface"]["status"] == "failed"
-
-
-def test_store_stage_records_error_when_kv_env_missing():
-    """When KV env vars are missing, StoreStage must record to context.errors
-    (so NotifyStage can fire an alert) instead of silently no-opping."""
-    import os
-
-    ctx = PipelineContext()
-    ctx.data["enriched"] = [_mk_ep("amd", "x/1")]
-    ctx.artifacts["manifest"] = {"version": "2026-09-24", "total": 1, "providers": {}}
-
-    with patch.dict(os.environ, {}, clear=False):
-        os.environ.pop("CLOUDFLARE_ACCOUNT_ID", None)
-        os.environ.pop("CLOUDFLARE_API_TOKEN", None)
-        os.environ.pop("CLOUDFLARE_KV_NAMESPACE_ID", None)
-        out = StoreStage().execute(ctx)
-    assert out is ctx
-    # Severe error must be recorded, not swallowed.
-    assert any(e["stage"] == "store" for e in ctx.errors)
-
-
-def test_store_stage_records_error_when_kv_put_fails():
-    """When KV put raises, StoreStage must record the per-key error."""
-    class BrokenKV:
-        def __init__(self):
-            self.account_id = "x"
-            self.api_token = "y"
-        def put_snapshot(self, provider, models):
-            raise RuntimeError("upstream 500")
-        def put(self, key, value, ttl=None):
-            raise RuntimeError("upstream 500")
-
-    ctx = PipelineContext()
-    ctx.data["enriched"] = [_mk_ep("amd", "x/1")]
-    ctx.artifacts["manifest"] = {"version": "2026-09-24", "total": 1, "providers": {}}
-    StoreStage(kv=BrokenKV()).execute(ctx)
-    assert any("put_snapshot(amd)" in e["error"] for e in ctx.errors)
-
-
-def test_store_stage_records_partial_failure_but_continues():
-    """A failure for one provider must not block writes to others."""
-    from data.storage.cloudflare_kv import model_key
-
-    class PartialKV:
-        def __init__(self):
-            self.written = {}
-            self.account_id = "x"
-            self.api_token = "y"
-        def put_snapshot(self, provider, models):
-            if provider == "amd":
-                raise RuntimeError("upstream 500")
-            self.written[model_key(provider)] = (provider, models)
-        def put(self, key, value, ttl=None):
-            self.written[key] = value
-
-    kv = PartialKV()
-    ctx = PipelineContext()
-    ctx.data["enriched"] = [_mk_ep("amd", "x/1"), _mk_ep("nvidia", "y/1")]
-    ctx.artifacts["manifest"] = {"version": "2026-09-24", "total": 2, "providers": {}}
-    StoreStage(kv=kv).execute(ctx)
-    assert any("put_snapshot(amd)" in e["error"] for e in ctx.errors)
-    # NVIDIA write still happened despite AMD failing.
-    assert model_key("nvidia") in kv.written
-
-
-def test_store_stage_writes_dated_manifest_snapshot():
-    """In addition to tfi:manifest:latest, the stage writes tfi:manifest:<YYYY-MM-DD>.
-
-    The dated key lets the GitHub Actions "Validate results" step verify the
-    write happened today without depending on previous-run state still at
-    tfi:manifest:latest.
-    """
-    from datetime import datetime, timezone
-    from data.storage.cloudflare_kv import manifest_key
-
-    class RecordingKV:
-        def __init__(self):
-            self.written = {}
-            self.account_id = "x"
-            self.api_token = "y"
-        def put_snapshot(self, provider, models):
-            from data.storage.cloudflare_kv import model_key
-            self.written[model_key(provider)] = models
-        def put(self, key, value, ttl=None):
-            self.written[key] = value
-
-    kv = RecordingKV()
-    ctx = PipelineContext()
-    ctx.data["enriched"] = [_mk_ep("amd", "x/1")]
-    ctx.artifacts["manifest"] = {"version": "2026-09-24", "total": 1, "providers": {}}
-    StoreStage(kv=kv).execute(ctx)
-
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    dated_key = manifest_key(today)
-    assert dated_key in kv.written, f"expected {dated_key} in {list(kv.written)}"
-    assert kv.written[manifest_key()] == kv.written[dated_key]
-
-
-def test_store_stage_dated_key_uses_utc_not_local():
-    """The dated key must use UTC, not local time, so multi-region CI runs
-    produce the same key on the same calendar day."""
-    from data.stages.store import _today_key
-    today = _today_key()
-    assert today.startswith("tfi:manifest:")
-    # "tfi:manifest:" (13 chars) + "YYYY-MM-DD" (10 chars) = 23 chars.
-    assert len(today) == 23
-    date_part = today.removeprefix("tfi:manifest:")
-    from datetime import datetime
-    datetime.strptime(date_part, "%Y-%m-%d")
 
 
 def test_notify_stage_does_not_raise_when_webhook_unset():

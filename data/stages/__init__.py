@@ -8,13 +8,16 @@ Pipeline package itself must not import these Stage classes (one-way
 dependency: main → pipeline → stages → ...).
 """
 
+from data.stages.diff import DiffStage
 from data.stages.enrich import EnrichStage
 from data.stages.fetch import FetchStage, PROVIDER_FETCHERS
 from data.stages.filter_free import FilterFreeStage
 from data.stages.normalize import NormalizeStage
 from data.stages.notify import NotifyStage
 from data.stages.parse import ParseStage
-from data.stages.store import StoreStage
+from data.stages.publish import PublishStage
+from data.stages.reconcile import ReconcileStage
+from data.stages.snapshot import SnapshotStage
 from data.stages.summarize import SummarizeStage
 from data.stages.validate import ValidateStage
 
@@ -22,23 +25,24 @@ from data.stages.validate import ValidateStage
 def build_default_pipeline() -> "Pipeline":
     """Compose the canonical data pipeline.
 
-    Per docs/arch_models_intelligence_layer_evo.md §2:
+    Per docs/data_source_provider_refactor.md §6:
 
         fetch → parse → filter_free → normalize → validate → enrich
-        → summarize → store → notify
+        → snapshot → diff → reconcile → publish → summarize → notify
 
-    ``SummarizeStage`` runs before ``StoreStage`` so the manifest written
-    to KV reflects the actual endpoints being persisted (rather than an
-    empty placeholder computed before validation/enrichment).
+    The ``store`` stage has been replaced by the four-stage
+    snapshot/diff/reconcile/publish sequence, which writes through
+    the new (data_source, provider) KV namespace and reconciles
+    provider lifecycle explicitly.
 
-    ``FilterFreeStage`` dispatches per-provider free filtering; the
-    rule shape is provider-specific (see
-    :mod:`data.providers.free_filter`).
+    ``SummarizeStage`` runs AFTER publish so the Feishu manifest
+    can report the actual provider changes (added/updated/removed)
+    that the publish stage just committed.
 
-    ``EnrichStage`` is a placeholder (no enrichers wired yet). The
-    ``DeduplicateStage`` was removed per doc §12 — model identity and
-    endpoint identity are kept distinct, and same-model-different-provider
-    is preserved as separate endpoints.
+    ``ValidateStage`` populates
+    ``context.artifacts[\"source_validated\"]`` — a per-source flag
+    that ``PublishStage`` consults before issuing any DELETE
+    (refactor §20 / §21 empty-snapshot safety).
     """
     from data.pipeline.pipeline import Pipeline
 
@@ -50,8 +54,11 @@ def build_default_pipeline() -> "Pipeline":
         .then(NormalizeStage())
         .then(ValidateStage())
         .then(EnrichStage())
+        .then(SnapshotStage())
+        .then(DiffStage())
+        .then(ReconcileStage())
+        .then(PublishStage())
         .then(SummarizeStage())
-        .then(StoreStage())
         .then(NotifyStage())
         .end()
     )
@@ -64,7 +71,10 @@ __all__ = [
     "NormalizeStage",
     "ValidateStage",
     "EnrichStage",
-    "StoreStage",
+    "SnapshotStage",
+    "DiffStage",
+    "ReconcileStage",
+    "PublishStage",
     "SummarizeStage",
     "NotifyStage",
     "PROVIDER_FETCHERS",

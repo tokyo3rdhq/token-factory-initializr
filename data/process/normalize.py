@@ -55,6 +55,7 @@ def normalize_endpoints(raw: list[dict[str, Any]]) -> list[ModelEndpoint]:
         try:
             ep = ModelEndpoint(
                 provider=str(item["provider"]),
+                data_source=str(item.get("data_source") or item.get("provider", "")),
                 model_id=str(item["model_id"]),
                 free=bool(item.get("free", False)),
                 fetched_at=fetched_at,
