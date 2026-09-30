@@ -203,3 +203,65 @@ def test_send_alert_returns_false_on_post_failure():
         mock_post.return_value = False
         result = send_alert("test", webhook_url="https://example.test")
         assert result is False
+
+# ---------------------------------------------------------------------------
+# Refactor §24 — Feishu card surfaces provider lifecycle (added/removed)
+# ---------------------------------------------------------------------------
+
+
+def test_format_card_surfaces_added_removed_for_refactor():
+    """When the manifest carries added/removed lists, the card lists
+    them next to the per-data-source status line."""
+    from data.notify.feishu import _format_card
+
+    manifest = {
+        "total": 5,
+        "providers": {
+            "huggingface": {
+                "data_source": "huggingface",
+                "count": 5,
+                "status": "success",
+                "added": ["deepinfra"],
+                "removed": ["zai-org"],
+                "updated": ["novita", "together"],
+            },
+            "nvidia": {
+                "data_source": "nvidia",
+                "count": 0,
+                "status": "success",
+                "added": [],
+                "removed": [],
+            },
+        },
+    }
+    card = _format_card(manifest, [], errors=[])
+    content = card["card"]["elements"][0]["content"]
+    # The Hugging Face line must mention added/removed.
+    assert "removed: zai-org" in content
+    assert "added: deepinfra" in content
+    # The NVIDIA line has no lifecycle so it must NOT include the parens.
+    assert "**nvidia**" in content
+
+
+def test_format_card_omits_lifecycle_parens_when_empty():
+    """A provider with empty added/removed lists renders without the
+    `(added: …; removed: …)` parens to keep the card tidy."""
+    from data.notify.feishu import _format_card
+
+    manifest = {
+        "total": 1,
+        "providers": {
+            "amd": {
+                "data_source": "amd",
+                "count": 1,
+                "status": "success",
+                "added": [],
+                "removed": [],
+            },
+        },
+    }
+    card = _format_card(manifest, [], errors=[])
+    content = card["card"]["elements"][0]["content"]
+    # No lifecycle parens for an unchanged source.
+    assert "added:" not in content
+    assert "removed:" not in content

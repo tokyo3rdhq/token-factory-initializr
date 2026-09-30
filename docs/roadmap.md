@@ -1077,3 +1077,31 @@ The immediate objective remains:
 
 > **Build a reliable Token Factory Initializr, then evolve its model catalog into a Model Supply Plane through Subscription and Artifact APIs.**
 ::
+
+---
+
+# Appendix A — Data Source / Provider Refactor (completed 2026-09-30)
+
+The catalog now uses a first-class `data_source` dimension alongside
+`provider`. The single-level `tfi:models:<provider>:latest` key namespace
+was replaced by:
+
+```text
+tfi:providers:<data_source>:latest             per-source provider manifest
+tfi:models:<data_source>:<provider>:latest     per-(data_source, provider) catalog
+```
+
+The pipeline composition moved from `fetch → … → store → notify` to:
+
+```text
+fetch → parse → filter_free → normalize → validate → enrich
+→ snapshot → diff → reconcile → publish → summarize → notify
+```
+
+Provider lifecycle is reconciled explicitly: removed providers are
+DELETED from KV by `PublishStage`, gated by `source_validated` to
+guard against destructive deletes from incomplete source fetches.
+The Feishu summary card surfaces `added` / `removed` per source so
+daily reports answer "zai-org removed?" at a glance.
+
+Full design and rationale: `docs/data_source_provider_refactor.md`.

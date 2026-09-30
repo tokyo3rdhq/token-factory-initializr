@@ -45,6 +45,7 @@ from data.stages import (
 def _mk_ep(provider: str, model_id: str) -> ModelEndpoint:
     return ModelEndpoint(
         provider=provider,
+        data_source=provider,
         model_id=model_id,
         free=True,
         fetched_at=datetime.now(timezone.utc),

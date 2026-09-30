@@ -53,7 +53,18 @@ def _format_card(
     for name, info in sorted(manifest.get("providers", {}).items()):
         status = info.get("status", "unknown")
         count = info.get("count", 0)
-        provider_lines.append(f"**{name}** — {count} endpoints ({status})")
+        added = info.get("added") or []
+        removed = info.get("removed") or []
+        line = f"**{name}** — {count} endpoints ({status})"
+        # Refactor §24: surface provider lifecycle changes (added/removed).
+        if added or removed:
+            parts = []
+            if added:
+                parts.append(f"added: {', '.join(added)}")
+            if removed:
+                parts.append(f"removed: {', '.join(removed)}")
+            line += f"  ({'; '.join(parts)})"
+        provider_lines.append(line)
 
     invalid_count = len(list(invalid)) if not isinstance(invalid, list) else len(invalid)
     body_text = "\n".join(provider_lines)

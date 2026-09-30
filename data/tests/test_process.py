@@ -240,6 +240,7 @@ def test_endpoint_to_dict():
 def _mk(provider: str, model_id: str, name: str | None = None) -> ModelEndpoint:
     return ModelEndpoint(
         provider=provider,
+        data_source=provider,
         model_id=model_id,
         free=True,
         fetched_at=datetime.now(timezone.utc),
@@ -419,3 +420,38 @@ def test_summarize_all_zero_models_no_error_is_success():
     manifest = summarize_all([], {})
     assert manifest["providers"]["nvidia"]["status"] == "success"
     assert manifest["providers"]["nvidia"]["count"] == 0
+
+# ---------------------------------------------------------------------------
+# Refactor §24 — manifest reports per-data-source lifecycle (added/updated/removed)
+# ---------------------------------------------------------------------------
+
+
+def test_summarize_all_attaches_reconciliation_plan_lifecycle():
+    """When a reconciliation plan is provided, each provider entry
+    carries added/updated/removed lists so the Feishu notify card can
+    surface lifecycle changes."""
+    plan = {
+        "by_data_source": {
+            "huggingface": {
+                "added": ["deepinfra"],
+                "updated": ["novita", "together"],
+                "removed": ["zai-org"],
+            },
+            "nvidia": {"added": [], "updated": ["nvidia"], "removed": []},
+            "amd": {"added": ["amd"], "updated": [], "removed": []},
+        }
+    }
+    eps = [_mk("huggingface", "openai/gpt-oss-20b"), _mk("amd", "MiMo")]
+    manifest = summarize_all(eps, {}, reconciliation_plan=plan)
+    hf = manifest["providers"]["huggingface"]
+    assert hf["added"] == ["deepinfra"]
+    assert sorted(hf["updated"]) == ["novita", "together"]
+    assert hf["removed"] == ["zai-org"]
+
+
+def test_summarize_all_without_plan_omits_lifecycle_fields():
+    """Older callers that compute the manifest before reconciliation
+    continue to work without the lifecycle fields."""
+    manifest = summarize_all([], {})
+    assert "added" not in manifest["providers"]["nvidia"]
+    assert "removed" not in manifest["providers"]["nvidia"]
