@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { ProductTheme } from "@tokyo3rdhq/magi-design-system";
+import { AppTheme } from "@tokyo3rdhq/magi-design-system";
 
 // 1. Design-system foundation (tokens, components, focus rings).
 //    Consumes CSS custom properties defined by the package — no local copies.
@@ -25,11 +25,13 @@ if (!rootEl) {
 createRoot(rootEl).render(
   <StrictMode>
     {/*
-      ProductTheme scopes the cyan accent to this product only.
-      The default MAGI accent is green; we override with `accent="cyan"`.
+      AppTheme scopes the cyan accent to this product only.
+      Default MAGI accent is green; we override with `accent="cyan"`.
       data-magi-app on <body> is set in index.html.
+
+      Renamed from ProductTheme in @tokyo3rdhq/magi-design-system@0.3.0.
     */}
-    <ProductTheme accent="cyan" name="token-factory-initializr">
+    <AppTheme accent="cyan" name="token-factory-initializr">
       <BrowserRouter>
         <SelectionProvider>
           <Routes>
@@ -42,6 +44,6 @@ createRoot(rootEl).render(
           </Routes>
         </SelectionProvider>
       </BrowserRouter>
-    </ProductTheme>
+    </AppTheme>
   </StrictMode>
 );
