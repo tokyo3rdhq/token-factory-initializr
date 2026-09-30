@@ -38,6 +38,7 @@ export function GeneratePage() {
     try {
       const resp = await postGenerate({
         model_ids: selection.selected.map((m) => ({
+          data_source: m.data_source,
           provider: m.provider,
           model_id: m.model_id,
         })),
@@ -111,7 +112,7 @@ export function GeneratePage() {
                 {selection.selected.map((m) => (
                   <div
                     className="tfi-meta-grid"
-                    key={`${m.provider}::${m.model_id}`}
+                    key={`${m.data_source}::${m.provider}::${m.model_id}`}
                   >
                     <span className="tfi-meta-key">Model</span>
                     <span className="tfi-meta-value">{m.name || m.model_id}</span>

@@ -12,11 +12,12 @@ import type { ModelEndpoint } from "../types";
  * App-wide selection state: the set of endpoints the user has
  * chosen to include in the next generated config.
  *
- * We key each entry by ``provider/model_id`` so the same endpoint
- * can only be selected once even if it appears in multiple provider
- * snapshots (defensive — current pipeline doesn't emit duplicates,
- * but the canonical model endpoint concept allows the same model
- * to appear via multiple providers).
+ * We key each entry by ``(data_source, provider, model_id)`` so
+ * the same endpoint can only be selected once even if the same
+ * model appears under multiple providers (refactor §13 — e.g.
+ * ``huggingface/novita/openai/gpt-oss-20b`` vs
+ * ``huggingface/together/openai/gpt-oss-20b`` are distinct
+ * endpoints).
  */
 interface SelectionStore {
   selected: ModelEndpoint[];
@@ -28,7 +29,7 @@ interface SelectionStore {
 const SelectionContext = createContext<SelectionStore | null>(null);
 
 function key(ep: ModelEndpoint): string {
-  return `${ep.provider}::${ep.model_id}`;
+  return `${ep.data_source}::${ep.provider}::${ep.model_id}`;
 }
 
 export function SelectionProvider({ children }: { children: ReactNode }) {

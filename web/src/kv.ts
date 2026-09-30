@@ -66,7 +66,11 @@ export async function fetchGenerated(id: string): Promise<{
 }
 
 export interface GenerateRequest {
-  model_ids: Array<{ provider: string; model_id: string }>;
+  model_ids: Array<{
+    data_source?: string;
+    provider: string;
+    model_id: string;
+  }>;
   format?: string;
 }
 

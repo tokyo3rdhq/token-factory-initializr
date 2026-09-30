@@ -129,7 +129,7 @@ export function BrowsePage() {
                 ) : (
                   recommended.map((m) => (
                     <ModelRow
-                      key={`${m.provider}::${m.model_id}`}
+                      key={`${m.data_source}::${m.provider}::${m.model_id}`}
                       endpoint={m}
                       selected={selection.isSelected(m)}
                       onToggle={selection.toggle}
@@ -144,7 +144,7 @@ export function BrowsePage() {
                 <ModelList>
                   {others.map((m) => (
                     <ModelRow
-                      key={`${m.provider}::${m.model_id}`}
+                      key={`${m.data_source}::${m.provider}::${m.model_id}`}
                       endpoint={m}
                       selected={selection.isSelected(m)}
                       onToggle={selection.toggle}

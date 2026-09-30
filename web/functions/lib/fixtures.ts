@@ -10,14 +10,23 @@
 // Production deployments default to ``TFI_USE_LOCAL_FIXTURES=0`` so
 // a missing KV is surfaced as a 404 rather than masked by stale
 // data. The fallback is purely a developer / CI ergonomics layer.
+//
+// Refactor: fixtures follow the (data_source, provider) namespace
+// — NVIDIA/AMD carry ``data_source=nvidia/amd`` and
+// ``provider=nvidia/amd``. Hugging Face carries
+// ``data_source=huggingface`` with multiple inference providers
+// (novita, huggingface in this fixture) so the UI can render the
+// HF multi-provider shape.
 
 import type { ProviderSnapshot, Manifest } from "./kv";
 
 const NVIDIA_FIXTURE: ProviderSnapshot = {
+  data_source: "nvidia",
   provider: "nvidia",
   fetched_at: "2026-09-25T00:00:00Z",
   models: [
     {
+      data_source: "nvidia",
       provider: "nvidia",
       model_id: "deepseek-ai/deepseek-v4.1-flash",
       name: "DeepSeek V4.1 Flash",
@@ -32,6 +41,7 @@ const NVIDIA_FIXTURE: ProviderSnapshot = {
       pricing: null,
     },
     {
+      data_source: "nvidia",
       provider: "nvidia",
       model_id: "google/gemma-4-31b-it",
       name: "Gemma 4 31B IT",
@@ -49,10 +59,12 @@ const NVIDIA_FIXTURE: ProviderSnapshot = {
 };
 
 const AMD_FIXTURE: ProviderSnapshot = {
+  data_source: "amd",
   provider: "amd",
   fetched_at: "2026-09-25T00:00:00Z",
   models: [
     {
+      data_source: "amd",
       provider: "amd",
       model_id: "MiMo-V2.6-Flash",
       name: "MiMo V2.6 Flash",
@@ -70,10 +82,12 @@ const AMD_FIXTURE: ProviderSnapshot = {
 };
 
 const HF_FIXTURE: ProviderSnapshot = {
-  provider: "huggingface",
+  data_source: "huggingface",
+  provider: "novita",
   fetched_at: "2026-09-25T00:00:00Z",
   models: [
     {
+      data_source: "huggingface",
       provider: "novita",
       model_id: "deepseek-ai/DeepSeek-V3.2-Exp",
       name: "DeepSeek V3.2 Exp",
@@ -88,6 +102,7 @@ const HF_FIXTURE: ProviderSnapshot = {
       pricing: { input: 0, output: 0 },
     },
     {
+      data_source: "huggingface",
       provider: "huggingface",
       model_id: "meta-llama/Llama-3.2-3B-Instruct",
       name: "Llama 3.2 3B Instruct",
@@ -113,19 +128,19 @@ const FIXTURE_MANIFEST: Manifest = {
     HF_FIXTURE.models.length,
   providers: {
     nvidia: {
-      provider: "nvidia",
+      data_source: "nvidia",
       count: NVIDIA_FIXTURE.models.length,
       status: "success",
       last_success: "2026-09-25T00:00:00Z",
     },
     amd: {
-      provider: "amd",
+      data_source: "amd",
       count: AMD_FIXTURE.models.length,
       status: "success",
       last_success: "2026-09-25T00:00:00Z",
     },
     huggingface: {
-      provider: "huggingface",
+      data_source: "huggingface",
       count: HF_FIXTURE.models.length,
       status: "success",
       last_success: "2026-09-25T00:00:00Z",

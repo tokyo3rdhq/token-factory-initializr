@@ -4,11 +4,17 @@
 // that maps to the same KV namespace the Python data pipeline writes
 // to. The KV key shape mirrors ``data/storage/cloudflare_kv.py``:
 //
-//   tfi:models:<provider>:latest        per-provider model snapshot
-//   tfi:models:latest                   aggregated snapshot
-//   tfi:manifest:latest                 most recent manifest
-//   tfi:manifest:YYYY-MM-DD             dated manifest
-//   tfi:gen:<id>                        generated artifact (5-min TTL)
+//   tfi:providers:<data_source>:latest           per-source provider manifest
+//   tfi:models:<data_source>:<provider>:latest   per-(data_source, provider) model catalog
+//   tfi:manifest:latest                          aggregated manifest
+//   tfi:manifest:YYYY-MM-DD                      dated manifest
+//   tfi:gen:<id>                                 generated artifact (5-min TTL)
+//
+// Refactor: data_source_provider_refactor.md §17 / §18 / §19.
+// The legacy ``tfi:models:<provider>:latest`` keys are no longer
+// written by the pipeline; this module reads through the new
+// (data_source, provider) namespace exclusively — see
+// ``loadProviderModels`` + ``loadProviderManifest``.
 //
 // The runtime injects the binding through the Pages Functions
 // ``env`` argument — this module is the only place that knows the
@@ -21,6 +27,7 @@ export interface Env {
 }
 
 export interface ModelEndpoint {
+  data_source: string;
   provider: string;
   model_id: string;
   name: string | null;
@@ -36,9 +43,16 @@ export interface ModelEndpoint {
 }
 
 export interface ProviderSnapshot {
+  data_source: string;
   provider: string;
   fetched_at: string;
   models: ModelEndpoint[];
+}
+
+export interface ProviderManifest {
+  data_source: string;
+  providers: string[];
+  generated_at: string;
 }
 
 export interface Manifest {
@@ -48,7 +62,7 @@ export interface Manifest {
   providers: Record<
     string,
     {
-      provider: string;
+      data_source: string;
       count: number;
       status: "success" | "partial" | "failed" | "invalid";
       last_success?: string;
@@ -68,29 +82,39 @@ export interface GeneratedArtifact {
 
 const TTL_SECONDS_DEFAULT = 300;
 
+// Known data sources — kept in sync with data/storage/cloudflare_kv.py
+// KNOWN_DATA_SOURCES so the manifest reader can enumerate every
+// pipeline source (including ones whose manifest has never been
+// written).
+const KNOWN_DATA_SOURCES = ["nvidia", "amd", "huggingface"] as const;
+
 // ---------------------------------------------------------------------------
-// Snapshot / manifest readers
+// Manifest / catalog readers — (data_source, provider) namespace
 // ---------------------------------------------------------------------------
 
-export async function loadManifest(env: Env): Promise<Manifest | null> {
-  const raw = await env.TFI_KV.get("tfi:manifest:latest");
+export async function loadProviderManifest(
+  env: Env,
+  dataSource: string
+): Promise<ProviderManifest | null> {
+  const raw = await env.TFI_KV.get(`tfi:providers:${dataSource}:latest`);
   if (!raw) {
     return null;
   }
   try {
-    return JSON.parse(raw) as Manifest;
+    return JSON.parse(raw) as ProviderManifest;
   } catch {
-    // Malformed manifest — the data pipeline wrote garbage; surface as
-    // a missing manifest rather than a 500 to the UI.
     return null;
   }
 }
 
-export async function loadProviderSnapshot(
+export async function loadProviderModels(
   env: Env,
+  dataSource: string,
   provider: string
 ): Promise<ProviderSnapshot | null> {
-  const raw = await env.TFI_KV.get(`tfi:models:${provider}:latest`);
+  const raw = await env.TFI_KV.get(
+    `tfi:models:${dataSource}:${provider}:latest`
+  );
   if (!raw) {
     return null;
   }
@@ -101,19 +125,72 @@ export async function loadProviderSnapshot(
   }
 }
 
-export async function listProviders(env: Env): Promise<string[]> {
-  const manifest = await loadManifest(env);
-  if (manifest) {
-    return Object.keys(manifest.providers);
+export async function loadManifest(env: Env): Promise<Manifest | null> {
+  // The aggregated ``tfi:manifest:latest`` keeps the legacy shape
+  // (provider → count/status) for back-compat with /api/manifest.
+  // The new (data_source, provider) manifests at
+  // ``tfi:providers:<ds>:latest`` are the source of truth.
+  const raw = await env.TFI_KV.get("tfi:manifest:latest");
+  if (!raw) {
+    return null;
   }
-  // KV empty / no manifest yet — fall back to the canonical list so
-  // the UI at least renders the right tabs even when the data
-  // pipeline hasn't run.
-  return ["nvidia", "amd", "huggingface"];
+  try {
+    return JSON.parse(raw) as Manifest;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Enumerate every (data_source, provider) pair currently published.
+ *
+ * Refactor §18: the access pattern is
+ *   1. read per-source provider manifest
+ *   2. enumerate active providers
+ *   3. read each per-provider catalog
+ *
+ * Returns a flat array of tuples. The caller (typically
+ * /api/models?all=1) maps each tuple to a per-provider catalog
+ * fetch.
+ */
+export async function listAllProviderPairs(
+  env: Env
+): Promise<Array<{ data_source: string; provider: string }>> {
+  const pairs: Array<{ data_source: string; provider: string }> = [];
+  for (const ds of KNOWN_DATA_SOURCES) {
+    const manifest = await loadProviderManifest(env, ds);
+    if (!manifest) continue;
+    for (const provider of manifest.providers) {
+      pairs.push({ data_source: ds, provider });
+    }
+  }
+  return pairs;
+}
+
+/**
+ * Enumerate providers (legacy single-level shape — preserved for
+ * back-compat with /api/providers which the web UI still polls).
+ *
+ * Returns provider identifiers with the data source encoded as a
+ * ``<data_source>/<provider>`` tuple string when the new shape is
+ * available; falls back to the canonical list
+ * (``nvidia``, ``amd``, ``huggingface``) when no manifests exist
+ * yet so the UI still renders the right tabs.
+ */
+export async function listProviders(env: Env): Promise<string[]> {
+  const pairs = await listAllProviderPairs(env);
+  if (pairs.length === 0) {
+    // KV empty / no manifest yet — fall back to the canonical list so
+    // the UI at least renders the right tabs even when the data
+    // pipeline hasn't run.
+    return ["nvidia", "amd", "huggingface"];
+  }
+  return pairs.map((p) => `${p.data_source}/${p.provider}`);
 }
 
 // ---------------------------------------------------------------------------
-// Generated artifact store (5-minute TTL)
+// Generated artifact store (5-minute TTL) — unchanged from the legacy
+// namespace; the artifact payload is opaque to the pipeline.
 // ---------------------------------------------------------------------------
 
 export async function saveGenerated(

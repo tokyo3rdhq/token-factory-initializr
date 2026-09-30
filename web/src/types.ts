@@ -3,7 +3,12 @@
 // counterpart to the JSON schema; keep them in sync.
 
 export interface ModelEndpoint {
-  /** Provider identifier (e.g. "nvidia", "amd", "huggingface"). */
+  /** Data source the endpoint was discovered through (nvidia/amd/huggingface). */
+  data_source: string;
+
+  /** Provider identifier — for NVIDIA/AMD this equals data_source;
+   *  for Hugging Face this is the per-inference provider
+   *  (novita/together/deepinfra/...). */
   provider: string;
 
   /** Provider-specific model id (e.g. "deepseek-ai/deepseek-v4.1-flash"). */
@@ -41,6 +46,7 @@ export interface ModelEndpoint {
 }
 
 export interface ProviderSnapshot {
+  data_source: string;
   provider: string;
   /** All endpoints for this provider (free + paid; UI filters client-side). */
   models: ModelEndpoint[];
