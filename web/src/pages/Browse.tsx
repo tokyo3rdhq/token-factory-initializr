@@ -72,12 +72,16 @@ export function BrowsePage() {
   return (
     <Section spacing="lg">
       <Container>
-        <Stack gap="3" style={{ marginBottom: "var(--magi-space-10)" }}>
+        <Stack
+          gap="3"
+          align="center"
+          style={{ marginBottom: "var(--magi-space-10)", textAlign: "center", margin: "0 auto var(--magi-space-10)" }}
+        >
           <span className="magi-eyebrow">Browse</span>
-          <h1 className="magi-h1">
+          <h1 className="magi-h1" style={{ textAlign: "center" }}>
             {requirement ? "Recommended models" : "All endpoints"}
           </h1>
-          <p className="magi-body-lg">
+          <p className="magi-body-lg" style={{ textAlign: "center" }}>
             {matching.length} model{matching.length === 1 ? "" : "s"} match
             {requirement ? " your requirements." : " the catalog."}
           </p>

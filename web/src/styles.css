@@ -10,7 +10,11 @@
  * override propagates automatically.
  * ============================================================ */
 
-/* ----- Topbar (translucent, sticky, MAGI / Product mark) ----- */
+/* ----- Topbar (3-section: brand / centered nav / external links) ----- */
+/* Matches magi-portal's topbar layout: pure black, no glass blur, subtle
+ * border-bottom. Navigation sits visually centered by being positioned
+ * absolutely at the horizontal midpoint; brand on the far left, external
+ * links on the far right. */
 .tfi-topbar {
   position: sticky;
   top: 0;
@@ -18,10 +22,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--magi-space-4) var(--magi-space-6);
-  background: color-mix(in srgb, var(--magi-bg-base) 72%, transparent);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  padding: var(--magi-space-3) var(--magi-space-7);
+  background: var(--magi-bg-base);
   border-bottom: 1px solid var(--magi-border);
 }
 
@@ -64,7 +66,16 @@
 
 .tfi-nav {
   display: flex;
-  gap: var(--magi-space-5);
+  gap: var(--magi-space-6);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 50%;
+  margin-top: -13px;  /* visually centers nav links (line-height compensation) */
+}
+.tfi-topbar-external {
+  display: flex;
+  gap: var(--magi-space-4);
 }
 .tfi-nav-link {
   font-size: 13px;
@@ -75,11 +86,18 @@
   background: transparent;
   text-decoration: none;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .tfi-nav-link:hover { color: var(--magi-text-primary); text-decoration: none; }
 .tfi-nav-link.active {
   color: var(--magi-text-primary);
   border-bottom-color: var(--magi-text-primary);
+}
+.tfi-nav-link-external {
+  font-size: 12px;
+  gap: 6px;
 }
 
 /* ----- Footer (3-col structure, MAGI parent-brand pattern) ----- */

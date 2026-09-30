@@ -2,16 +2,17 @@ import { Link, NavLink, Outlet } from "react-router-dom";
 import { MagiLockup } from "@tokyo3rdhq/magi-design-system";
 
 /**
- * Top-level layout — MAGI parent-brand pattern.
+ * Top-level layout — MAGI parent-brand pattern (matches magi-portal).
  *
- * Brand: <MagiLockup /> (the canonical MAGI mark + wordmark composite,
- *   filled with currentColor — so the wrapper's `color` controls it)
- *   followed by the product name. The MAGI design-system guarantee:
- *   `currentColor` on the SVG, never black-on-black.
+ *   [MAGI / Product] [centered nav] [external links]
  *
- * Navigation uses tfi-topbar (translucent sticky). Footer uses the
- * 3-column MAGI structure. No token literals — colors come from
- * the design system's CSS custom properties via <AppTheme>.
+ * Three-section topbar mirrors the main site structure. Centered nav
+ * keeps internal routes visually grouped; external links (GitHub, etc.)
+ * sit on the right with arrow indicators. The product name lives in the
+ * topbar so the user's product context is visible across all routes.
+ *
+ * Colors come from the design system via <AppTheme>. The MAGI mark uses
+ * currentColor — the wrapper's `color` token controls it.
  */
 export function App() {
   return (
@@ -38,15 +39,17 @@ export function App() {
           <NavLink to="/generate" className="tfi-nav-link">
             Generate
           </NavLink>
+        </nav>
+        <div className="tfi-topbar-external">
           <a
-            className="tfi-nav-link"
+            className="tfi-nav-link tfi-nav-link-external"
             href="https://github.com/yw79641760/token-factory-initializr"
             target="_blank"
             rel="noreferrer"
           >
-            GitHub
+            GitHub<span aria-hidden="true">↗</span>
           </a>
-        </nav>
+        </div>
       </header>
 
       <main>

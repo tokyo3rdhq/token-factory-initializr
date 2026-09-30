@@ -68,18 +68,56 @@ export function HomePage() {
   return (
     <Section spacing="lg">
       <Container>
-        <Stack gap="6" style={{ maxWidth: 720 }}>
+        {/* Hero — centered layout, larger display, two CTAs (matches
+         * magi-portal hero rhythm). The product accent stays cyan per
+         * spec §5 ("Token Factory Initializr = cyan accent"); only
+         * spacing, alignment, and CTAs follow the main site. */}
+        <Stack
+          gap="6"
+          align="center"
+          style={{ maxWidth: 880, textAlign: "center", margin: "0 auto" }}
+        >
           <span className="magi-eyebrow">Token Factory Initializr</span>
-          <h1 className="magi-display" style={{ maxWidth: 720 }}>
+          <h1 className="magi-display" style={{ maxWidth: 880, textAlign: "center" }}>
             Initialize your token factory.
           </h1>
-          <p className="magi-body-lg">
+          <p className="magi-body-lg" style={{ maxWidth: 640, textAlign: "center" }}>
             Pick the free AI endpoints that fit your project. We generate
             ready-to-use configuration for LiteLLM.
           </p>
+          <Stack
+            direction="row"
+            gap="4"
+            align="center"
+            style={{ marginTop: "var(--magi-space-3)" }}
+          >
+            <Button variant="primary" onClick={onContinue}>
+              Browse models →
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                // Reset to default requirements and scroll to form
+                setUseCase("");
+                setContextMin("128k");
+                setToolCalling("yes");
+                setVision("no");
+                setCost("free");
+                setProviders(["nvidia", "huggingface"]);
+                setEndpointCount(3);
+              }}
+            >
+              Reset
+            </Button>
+          </Stack>
         </Stack>
 
-        <div style={{ marginTop: "var(--magi-space-10)", maxWidth: 720 }}>
+        <div
+          style={{
+            margin: "var(--magi-space-10) auto 0",
+            maxWidth: 720,
+          }}
+        >
           <Card>
             <Stack gap="8">
               {/* Free-text project */}
