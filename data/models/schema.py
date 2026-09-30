@@ -20,6 +20,13 @@ class ModelEndpoint:
     free: bool
     fetched_at: datetime
 
+    # The platform/source the endpoint was discovered through. Always
+    # set explicitly by the source adapter; never derived from
+    # ``provider`` after the fact (e.g. ``data_source="huggingface"``
+    # with ``provider="novita"``). Required so consumers can address
+    # endpoints in the (data_source, provider) namespace.
+    data_source: str = ""
+
     name: Optional[str] = None
     description: Optional[str] = None
     capabilities: dict = field(default_factory=dict)

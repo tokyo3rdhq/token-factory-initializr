@@ -104,6 +104,9 @@ class FakeKV(KVStorage):
     def put(self, key: str, value: dict, ttl: int | None = None):
         self._store[key] = value
 
+    def delete(self, key: str):
+        self._store.pop(key, None)
+
 
 def test_kvstorage_put_snapshot_writes_non_empty_data():
     """put_snapshot writes data when list is non-empty."""
@@ -428,3 +431,141 @@ def test_kvstorage_url_encodes_colons_in_keys():
     parsed = urlparse(url)
     key_segment = parsed.path.rsplit("/", 1)[-1]
     assert ":" not in key_segment, f"raw colons leaked into key segment: {key_segment!r}"
+
+# ---------------------------------------------------------------------------
+# New (data_source, provider) namespace — refactor doc §2, §3, §19
+# ---------------------------------------------------------------------------
+
+
+def test_provider_models_key_format():
+    """provider_models_key emits the canonical 2-level namespace key."""
+    from data.storage.cloudflare_kv import provider_models_key
+
+    assert (
+        provider_models_key("nvidia", "nvidia") == "tfi:models:nvidia:nvidia:latest"
+    )
+    assert (
+        provider_models_key("huggingface", "zai-org")
+        == "tfi:models:huggingface:zai-org:latest"
+    )
+    assert (
+        provider_models_key("amd", "amd") == "tfi:models:amd:amd:latest"
+    )
+
+
+def test_provider_manifest_key_format():
+    """provider_manifest_key emits the per-source provider manifest key."""
+    from data.storage.cloudflare_kv import provider_manifest_key
+
+    assert (
+        provider_manifest_key("nvidia") == "tfi:providers:nvidia:latest"
+    )
+    assert (
+        provider_manifest_key("huggingface")
+        == "tfi:providers:huggingface:latest"
+    )
+
+
+def test_known_data_sources_lists_pipeline_sources():
+    """KNOWN_DATA_SOURCES lists every data source the pipeline emits."""
+    from data.storage.cloudflare_kv import KNOWN_DATA_SOURCES
+
+    assert KNOWN_DATA_SOURCES == ("nvidia", "amd", "huggingface")
+
+
+def test_put_provider_models_writes_under_namespace_key():
+    """put_provider_models writes under (data_source, provider) key with both ids."""
+    from data.storage.cloudflare_kv import provider_models_key
+
+    kv = FakeKV()
+    models = [
+        {"model_id": "openai/gpt-oss-20b", "data_source": "huggingface", "provider": "novita"}
+    ]
+    kv.put_provider_models("huggingface", "novita", models)
+    stored = kv._store[provider_models_key("huggingface", "novita")]
+    assert stored == {
+        "data_source": "huggingface",
+        "provider": "novita",
+        "models": models,
+    }
+
+
+def test_put_provider_models_refuses_empty_data():
+    """put_provider_models refuses to overwrite an existing key with []."""
+    from data.storage.cloudflare_kv import provider_models_key
+
+    kv = FakeKV()
+    # Seed the store with a non-empty catalog.
+    kv.put_provider_models(
+        "huggingface",
+        "novita",
+        [{"model_id": "x", "data_source": "huggingface", "provider": "novita"}],
+    )
+    # An empty list must NOT wipe the existing catalog; the publisher
+    # owns removal via delete_provider_models.
+    kv.put_provider_models("huggingface", "novita", [])
+    stored = kv._store[provider_models_key("huggingface", "novita")]
+    assert stored["models"] == [
+        {"model_id": "x", "data_source": "huggingface", "provider": "novita"}
+    ]
+
+
+def test_get_provider_models_returns_none_when_missing():
+    """get_provider_models returns None for an absent (data_source, provider)."""
+    kv = FakeKV()
+    assert kv.get_provider_models("huggingface", "nscale") is None
+
+
+def test_put_provider_manifest_round_trips():
+    """put_provider_manifest / get_provider_manifest round-trip."""
+    kv = FakeKV()
+    manifest = {
+        "data_source": "huggingface",
+        "providers": ["novita", "together"],
+    }
+    kv.put_provider_manifest("huggingface", manifest)
+    assert kv.get_provider_manifest("huggingface") == manifest
+
+
+def test_delete_provider_models_removes_the_key():
+    """delete_provider_models removes the corresponding namespace key."""
+    from data.storage.cloudflare_kv import provider_models_key
+
+    kv = FakeKV()
+    kv.put_provider_models("huggingface", "zai-org", [
+        {"model_id": "z/y", "data_source": "huggingface", "provider": "zai-org"}
+    ])
+    assert kv._store[provider_models_key("huggingface", "zai-org")]
+    kv.delete_provider_models("huggingface", "zai-org")
+    assert provider_models_key("huggingface", "zai-org") not in kv._store
+
+
+def test_delete_provider_models_is_idempotent_when_absent():
+    """delete_provider_models on an absent (data_source, provider) is a no-op."""
+    kv = FakeKV()
+    # No exception, no side effects.
+    kv.delete_provider_models("huggingface", "nonexistent")
+    assert kv._store == {}
+
+
+def test_namespace_keys_disambiguate_same_provider_across_sources():
+    """Same provider name in two data sources must produce two distinct keys.
+
+    Refactor §13 — never merge because provider identifiers coincide.
+    """
+    from data.storage.cloudflare_kv import provider_models_key
+
+    kv = FakeKV()
+    kv.put_provider_models("huggingface", "together", [
+        {"model_id": "h/together-model", "data_source": "huggingface", "provider": "together"}
+    ])
+    kv.put_provider_models("openrouter", "together", [
+        {"model_id": "o/together-model", "data_source": "openrouter", "provider": "together"}
+    ])
+
+    huggingface_key = provider_models_key("huggingface", "together")
+    openrouter_key = provider_models_key("openrouter", "together")
+
+    assert huggingface_key != openrouter_key
+    assert kv._store[huggingface_key]["models"][0]["model_id"] == "h/together-model"
+    assert kv._store[openrouter_key]["models"][0]["model_id"] == "o/together-model"

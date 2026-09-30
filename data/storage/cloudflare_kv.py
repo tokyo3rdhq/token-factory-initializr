@@ -59,6 +59,15 @@ def model_key(provider: str) -> str:
     """Return the canonical KV key for a per-provider models snapshot.
 
     Example: model_key("amd") -> "tfi:models:amd:latest"
+
+    .. deprecated::
+        Retained for back-compat with the pre-data_source key namespace.
+        New code MUST use :func:`provider_models_key` and the
+        ``(data_source, provider)`` namespace — the legacy
+        ``tfi:models:<provider>:latest`` keys are no longer an active
+        source of truth and will be reclaimed on the next successful
+        publish run that deletes providers no longer in the desired
+        state.
     """
     return f"{KEY_PREFIX}models:{provider}:latest"
 
@@ -78,6 +87,50 @@ def manifest_key(date: str | None = None) -> str:
     if date is None:
         return f"{KEY_PREFIX}manifest:latest"
     return f"{KEY_PREFIX}manifest:{date}"
+
+
+# ---------------------------------------------------------------------------
+# New (data_source, provider) namespace — see
+# docs/data_source_provider_refactor.md §2 / §3.
+# ---------------------------------------------------------------------------
+
+
+def provider_models_key(data_source: str, provider: str) -> str:
+    """Return the KV key for a per-(data_source, provider) model catalog.
+
+    This is the source of truth going forward. The legacy
+    ``tfi:models:<provider>:latest`` key is no longer written by the
+    pipeline; readers should use ``provider_manifest_key(data_source)``
+    to enumerate providers, then ``provider_models_key`` to fetch each.
+
+    Example:
+        provider_models_key("nvidia", "nvidia")           -> "tfi:models:nvidia:nvidia:latest"
+        provider_models_key("huggingface", "zai-org")     -> "tfi:models:huggingface:zai-org:latest"
+    """
+    return f"{KEY_PREFIX}models:{data_source}:{provider}:latest"
+
+
+def provider_manifest_key(data_source: str) -> str:
+    """Return the KV key for a data-source provider manifest.
+
+    The manifest contains the set of currently-active inference
+    providers for that data source. Consumers MUST enumerate the
+    manifest before reading model catalogs — per the refactor
+    invariant (§4) every active
+    ``tfi:models:{data_source}:{provider}:latest`` key MUST be present
+    in this manifest.
+
+    Example:
+        provider_manifest_key("huggingface") -> "tfi:providers:huggingface:latest"
+    """
+    return f"{KEY_PREFIX}providers:{data_source}:latest"
+
+
+# Centralize the list of data sources that participate in the
+# pipeline. Used by the snapshot stage to ensure every source emits a
+# provider manifest, even if it had zero providers in the run (so
+# consumers can distinguish "no providers" from "no data yet").
+KNOWN_DATA_SOURCES: tuple[str, ...] = ("nvidia", "amd", "huggingface")
 
 # Cloudflare REST API base (v4).
 _API_BASE = "https://api.cloudflare.com/client/v4"
@@ -299,16 +352,119 @@ class KVStorage:
             extra["TTL"] = str(int(ttl))
         self._request_with_retry("PUT", key, body=body, extra_headers=extra)
 
+    def delete(self, key: str) -> None:
+        """Delete a key from KV.
+
+        Idempotent: a 404 from the backend is treated as success because
+        ``delete`` is naturally convergent — the publisher calls it to
+        ensure a key is gone, and it already being gone is a no-op.
+        """
+        try:
+            self._request_with_retry("DELETE", key)
+        except KVError as exc:
+            # Non-retryable backend errors include 404 in some
+            # configurations; treat the missing-key case as success.
+            if "404" in str(exc):
+                logger.info("delete: key %s already absent", key)
+                return
+            raise
+
     def get_snapshot(self, provider: str) -> Optional[dict[str, Any]]:
-        """Get the latest snapshot for a provider."""
+        """Get the latest snapshot for a provider.
+
+        .. deprecated::
+            Use :meth:`get_provider_models` with the
+            ``(data_source, provider)`` namespace.
+        """
         return self.get(model_key(provider))
 
     def put_snapshot(self, provider: str, data: list[dict[str, Any]]) -> None:
-        """Persist a provider snapshot (never overwrite with empty data)."""
+        """Persist a provider snapshot (never overwrite with empty data).
+
+        .. deprecated::
+            Use :meth:`put_provider_models` with the
+            ``(data_source, provider)`` namespace. Empty-data refusal
+            is preserved there too, but the publisher's
+            ``reconcile → publish`` flow owns removal of stale
+            providers explicitly rather than relying on this
+            fail-safe as a side effect.
+        """
         if not data:
             logger.warning(f"Refusing to store empty snapshot for {provider}")
             return
         self.put(model_key(provider), {"provider": provider, "models": data})
+
+    # ------------------------------------------------------------------
+    # New (data_source, provider) API — see refactor doc §19.
+    # ------------------------------------------------------------------
+
+    def get_provider_manifest(self, data_source: str) -> Optional[dict[str, Any]]:
+        """Read the provider manifest for a data source.
+
+        Returns ``None`` if the manifest has never been written.
+        """
+        return self.get(provider_manifest_key(data_source))
+
+    def put_provider_manifest(
+        self,
+        data_source: str,
+        manifest: dict[str, Any],
+    ) -> None:
+        """Write the provider manifest for a data source.
+
+        Caller is expected to publish the manifest LAST, after all
+        corresponding model keys have been reconciled (refactor §10).
+        """
+        self.put(provider_manifest_key(data_source), manifest)
+
+    def get_provider_models(
+        self,
+        data_source: str,
+        provider: str,
+    ) -> Optional[dict[str, Any]]:
+        """Read a per-(data_source, provider) model catalog."""
+        return self.get(provider_models_key(data_source, provider))
+
+    def put_provider_models(
+        self,
+        data_source: str,
+        provider: str,
+        models: list[dict[str, Any]],
+    ) -> None:
+        """Write a per-(data_source, provider) model catalog.
+
+        Empty-data refusal mirrors the legacy ``put_snapshot`` rule:
+        the publisher treats an empty ``models`` list as "this provider
+        should be removed from the manifest" and triggers a DELETE in
+        the reconcile stage rather than overwriting with an empty
+        payload here. Callers that really need to wipe a catalog should
+        use :meth:`delete_provider_models` directly.
+        """
+        if not models:
+            logger.warning(
+                "Refusing to store empty model catalog for "
+                "(%s, %s); use delete_provider_models instead",
+                data_source,
+                provider,
+            )
+            return
+        self.put(
+            provider_models_key(data_source, provider),
+            {
+                "data_source": data_source,
+                "provider": provider,
+                "models": models,
+            },
+        )
+
+    def delete_provider_models(self, data_source: str, provider: str) -> None:
+        """Delete a per-(data_source, provider) model catalog.
+
+        Provider deletion is a meaningful destructive operation — see
+        refactor doc §20 (the publisher must only call this when the
+        provider is genuinely absent from the desired snapshot).
+        """
+        self.delete(provider_models_key(data_source, provider))
 
 
 # ----------------------------------------------------------------------
