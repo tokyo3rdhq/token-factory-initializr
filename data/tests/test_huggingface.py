@@ -554,3 +554,80 @@ def test_to_endpoint_dicts_disambiguates_provider_per_inference_provider():
     assert providers == ["novita", "zai-org"]
     # Every endpoint carries the huggingface data_source.
     assert {ep["data_source"] for ep in endpoints} == {"huggingface"}
+
+
+# ---------------------------------------------------------------------------
+# _is_free_provider — strict pricing rule (regression)
+# ---------------------------------------------------------------------------
+
+
+def test_is_free_provider_explicit_zero_price_is_free():
+    """Pricing = {input:0, output:0} AND status=live ⇒ free."""
+    from data.providers.huggingface import _is_free_provider
+
+    entry = {"status": "live", "pricing": {"input": 0, "output": 0}}
+    assert _is_free_provider(entry) is True
+
+
+def test_is_free_provider_missing_pricing_is_not_free():
+    """``pricing: null`` (the upstream pattern for almost every
+    cohere/featherless-ai/fireworks-ai/groq/scaleway/zai-org entry)
+    must NOT count as free — unknown price ≠ confirmed free.
+
+    Regression: pre-fix, the rule used ``pricing = provider_entry.get(\"pricing\") or {}``
+    which collapsed null into ``{}`` and the ``get(..., 0)`` defaults
+    classified both input and output as ``0``, marking every
+    pricing-null entry as free. That marked ~112 HF endpoints as
+    free when upstream had ``is_free: False`` for every one of them.
+    """
+    from data.providers.huggingface import _is_free_provider
+
+    assert _is_free_provider({"status": "live", "pricing": None}) is False
+    assert _is_free_provider({"status": "live"}) is False
+    assert _is_free_provider({"status": "live", "pricing": {}}) is False
+
+
+def test_is_free_provider_paid_price_is_not_free():
+    """Non-zero price ⇒ paid."""
+    from data.providers.huggingface import _is_free_provider
+
+    entry = {"status": "live", "pricing": {"input": 0.27, "output": 1.1}}
+    assert _is_free_provider(entry) is False
+
+
+def test_is_free_provider_offline_status_is_not_free():
+    """status != live ⇒ not free, regardless of price."""
+    from data.providers.huggingface import _is_free_provider
+
+    entry = {"status": "offline", "pricing": {"input": 0, "output": 0}}
+    assert _is_free_provider(entry) is False
+
+
+def test_filter_free_drops_pricing_null_endpoints():
+    """End-to-end: FilterFreeStage drops HF endpoints whose
+    provider has missing pricing. With this fix the catalog
+    reflects what the upstream actually confirms as free."""
+    from data.providers.huggingface import to_endpoint_dicts
+
+    group = {
+        "model_id": "org/test",
+        "owned_by": "org",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "providers": [
+            {
+                "provider": "cohere",
+                "status": "live",
+                "pricing": None,  # unknown price — NOT free
+            },
+            {
+                "provider": "together",
+                "status": "live",
+                "pricing": {"input": 0, "output": 0},  # free
+            },
+        ],
+    }
+    endpoints = to_endpoint_dicts(group)
+    by_provider = {ep["provider"]: ep for ep in endpoints}
+    assert by_provider["cohere"]["free"] is False
+    assert by_provider["together"]["free"] is True

@@ -130,20 +130,33 @@ def _is_free_provider(provider_entry: Dict[str, Any]) -> bool:
     ``provider.status``. A provider is "free" iff:
 
       * ``status == "live"``, AND
+      * ``pricing`` is present (not null / not missing), AND
       * ``pricing.input == 0`` AND ``pricing.output == 0``
 
-    The upstream also carries an ``is_free: bool`` flag but it's been
-    observed to disagree with the price field on real data (e.g. live
-    ``is_free: false`` with ``pricing: {input: 0, output: 0}``), so
-    the price rule is the authoritative signal. The bool flag, when
+    Note on missing pricing. The HF router carries ``is_free`` on
+    every provider entry, and the recent observed pattern is
+    ``is_free=False`` paired with ``pricing=null`` for almost every
+    provider (cohere, featherless-ai, fireworks-ai, groq, scaleway,
+    zai-org — collectively ~112 entries). Treating missing pricing
+    as ``0/0`` would mark all of those as free, which is wildly
+    wrong — those providers are paid services whose price field
+    just hasn't been filled in yet. ``pricing=null`` therefore means
+    *unknown / not confirmed free* and the model is excluded.
+
+    The upstream ``is_free`` flag itself is sometimes missing (e.g.
+    older entries) and is not consulted here; the price rule above
+    is the authoritative signal we control. ``is_free``, when
     present, is preserved in metadata but does not affect this
-    decision.
+    decision — same as before.
     """
     if provider_entry.get("status") != "live":
         return False
-    pricing = provider_entry.get("pricing") or {}
+    pricing = provider_entry.get("pricing")
+    if not isinstance(pricing, dict):
+        # None / not a dict — unknown price ⇒ cannot confirm free.
+        return False
     try:
-        return float(pricing.get("input", 0)) == 0 and float(pricing.get("output", 0)) == 0
+        return float(pricing.get("input", -1)) == 0 and float(pricing.get("output", -1)) == 0
     except (TypeError, ValueError):
         return False
 
