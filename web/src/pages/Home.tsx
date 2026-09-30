@@ -75,13 +75,13 @@ export function HomePage() {
         <Stack
           gap="6"
           align="center"
-          style={{ maxWidth: 880, textAlign: "center", margin: "0 auto" }}
+          style={{ maxWidth: 1024, textAlign: "center", margin: "0 auto" }}
         >
           <span className="magi-eyebrow">Token Factory Initializr</span>
-          <h1 className="magi-display" style={{ maxWidth: 880, textAlign: "center" }}>
+          <h1 className="magi-display" style={{ maxWidth: 1024, textAlign: "center" }}>
             Initialize your token factory.
           </h1>
-          <p className="magi-body-lg" style={{ maxWidth: 640, textAlign: "center" }}>
+          <p className="magi-body-lg" style={{ maxWidth: 720, textAlign: "center" }}>
             Pick the free AI endpoints that fit your project. We generate
             ready-to-use configuration for LiteLLM.
           </p>
@@ -130,7 +130,7 @@ export function HomePage() {
                 />
               </FormField>
 
-              <div style={{height: 1, background: "var(--magi-border)", margin: "var(--magi-space-7) 0"}} />
+              <div style={{height: 1, background: "var(--magi-border)", margin: "var(--magi-space-6) 0"}} />
 
               {/* Two-column requirements grid */}
               <div
@@ -221,7 +221,7 @@ export function HomePage() {
                 </FormField>
               </div>
 
-              <div style={{height: 1, background: "var(--magi-border)", margin: "var(--magi-space-7) 0"}} />
+              <div style={{height: 1, background: "var(--magi-border)", margin: "var(--magi-space-6) 0"}} />
 
               <div
                 style={{

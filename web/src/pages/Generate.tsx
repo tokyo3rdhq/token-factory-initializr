@@ -176,7 +176,7 @@ export function GeneratePage() {
               gap="3"
               style={{
                 marginTop: "var(--magi-space-10)",
-                paddingTop: "var(--magi-space-7)",
+                paddingTop: "var(--magi-space-6)",
                 borderTop: "1px solid var(--magi-border)",
               }}
             >

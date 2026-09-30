@@ -11,10 +11,11 @@
  * ============================================================ */
 
 /* ----- Topbar (3-section: brand / centered nav / external links) ----- */
-/* Matches magi-portal's topbar layout: pure black, no glass blur, subtle
- * border-bottom. Navigation sits visually centered by being positioned
- * absolutely at the horizontal midpoint; brand on the far left, external
- * links on the far right. */
+/* Matches magi-portal's topbar layout: translucent raised surface with
+ * backdrop-blur (NOT pure black), subtle border-bottom. Navigation
+ * sits visually centered by being positioned absolutely at the
+ * horizontal midpoint; brand on the far left, external links on the
+ * far right. */
 .tfi-topbar {
   position: sticky;
   top: 0;
@@ -22,8 +23,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--magi-space-3) var(--magi-space-7);
-  background: var(--magi-bg-base);
+  padding: var(--magi-space-3) var(--magi-space-6);
+  background: color-mix(in srgb, var(--magi-bg-raised) 95%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--magi-border);
 }
 
