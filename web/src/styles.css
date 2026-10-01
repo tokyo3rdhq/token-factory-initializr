@@ -15,21 +15,29 @@
  *   sticky top-0 z-40 backdrop-blur-xl bg-bg-raised/95 border-b
  *   <nav class="mx-auto grid h-11 max-w-page items-center px-6 gap-4"
  *
- * We use max-width 1280px (magi-portal uses 1200px) because tfi's
- * brand "MAGI / Token Factory Initializr" is wider than magi-portal's
- * "MAGI" alone — extending the cap keeps Discord/GitHub external links
- * inside the viewport at common widths. The grid is 3 columns
- * (auto / 1fr / auto) so brand sits at the left edge, primary nav
- * centers itself, and the utility area pins to the right edge —
- * same IA as the main site.
+ * Per docs/visual_detail_consistency_fix.md §2 — the secondary
+ * product title ("Token Factory Initializr") makes the left brand
+ * group wider than magi-portal's bare MAGI logo, which causes a
+ * grid-based 3-col layout to push the center nav off-viewport-center.
+ * We anchor the nav to viewport-center with absolute positioning
+ * instead — independent of left/right column widths.
+ *
+ * Layout (desktop):
+ *   ┌──────────────────────────────────────────────────────────────┐
+ *   │ [MAGI / Token Factory Initializr]      [NAV]   [lang + theme] │
+ *   └──────────────────────────────────────────────────────────────┘
+ *
+ * The outer .tfi-topbar is full-viewport-width so the blurred
+ * background + bottom border reach both edges (per §3). The inner
+ * .tfi-topbar-inner is the content container (max-w 1280px). The
+ * nav is absolutely positioned at left:50%; transform:translateX(-50%)
+ * so it sits at the viewport center regardless of brand width.
  */
 .tfi-topbar {
   position: sticky;
   top: 0;
   z-index: 50;
   width: 100%;
-  /* height comes from the inner grid (h-11 = 44px, matching
-   * magi-portal). Padding is the inner grid's px-6. */
   display: flex;
   align-items: center;
   background: color-mix(in srgb, var(--magi-bg-raised) 95%, transparent);
@@ -38,12 +46,13 @@
   border-bottom: 1px solid var(--magi-border);
 }
 .tfi-topbar-inner {
+  position: relative;
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--magi-space-6);
   padding: 0 var(--magi-space-6);
   height: 44px; /* h-11 — matches magi-portal */
@@ -81,7 +90,16 @@
 }
 
 .tfi-nav {
-  justify-self: center;
+  /* Per docs/visual_detail_consistency_fix.md §2 — viewport-anchored,
+   * not grid-anchored. Absolute + 50% + -50% keeps nav at viewport
+   * center regardless of the brand group's width on the left or
+   * the utility group's width on the right. The topbar-inner is
+   * position:relative so this anchors inside the topbar shell
+   * (constrained by max-width: 1280px), not to the viewport's
+   * top-left corner. */
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   gap: var(--magi-space-8);
 }
@@ -160,7 +178,14 @@
   right: 0;
   top: 100%;
   margin-top: var(--magi-space-2);
-  min-width: 140px;
+  /* Per docs/visual_detail_consistency_fix.md §5 — the surface must
+   * fully contain every menu item. `width: max-content` lets the
+   * browser size the box to its widest item; `min-width` is the
+   * floor for narrow locales. The trailing ✓ mark (16px icon +
+   * gap-3 padding-right) is the longest right-side component, so
+   * `max-content` will always be wider than the text. */
+  width: max-content;
+  min-width: 160px;
   padding: var(--magi-space-1);
   background: color-mix(in srgb, var(--magi-bg-raised) 95%, transparent);
   backdrop-filter: blur(24px);
