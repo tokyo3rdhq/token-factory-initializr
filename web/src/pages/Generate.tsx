@@ -85,10 +85,10 @@ export function GeneratePage() {
       <Container size="md">
         {/* Hero — left-aligned, ~720px content block to match magi-portal's
          * per-page hero rhythm (was centered; reverting). */}
-        <Stack gap="3" style={{ marginBottom: "var(--magi-space-10)" }}>
+<Stack gap="3" className="tfi-page-hero">
           <span className="magi-eyebrow">{ts("generate.eyebrow")}</span>
           <h1 className="magi-h1">{ts("generate.headline")}</h1>
-          <p className="magi-body-lg" style={{ maxWidth: 600 }}>
+          <p className="magi-body-lg tfi-page-hero-subhead">
             {selection.selected.length > 0
               ? dict.generate.subheadWithSelectionTemplate(selection.selected.length)
               : ts("generate.subheadNoSelection")}
@@ -107,10 +107,7 @@ export function GeneratePage() {
           <Stack gap="6">
             {/* Selected models summary */}
             <Card>
-              <span
-                className="magi-eyebrow"
-                style={{ display: "block", marginBottom: "var(--magi-space-4)" }}
-              >
+              <span className="magi-eyebrow tfi-selection-header">
                 {ts("generate.selectionHeader")}
               </span>
               <Stack gap="4">
@@ -176,7 +173,7 @@ export function GeneratePage() {
           </Stack>
         )}
 
-        <div style={{ marginTop: "var(--magi-space-8)" }}>
+        <div className="tfi-back-button-wrap">
           <Button variant="secondary" onClick={() => navigate("/browse")}>
             ← {ts("nav.browse")}
           </Button>
@@ -208,10 +205,10 @@ function ResultPanel({
     <Stack gap="4">
       <div className="tfi-code-chrome">
         <span className="tfi-code-filename">{id}.yaml</span>
-        <span className="magi-caption" style={{ color: "var(--magi-success)" }}>
+        <span className="magi-caption tfi-result-ready">
           {ts("generate.yamlReady")}
         </span>
-        <div style={{ flex: 1 }} />
+        <div className="tfi-result-spacer" />
         <Button size="sm" variant="secondary" onClick={() => onCopy(yaml, "yaml")}>
           {copied === "yaml" ? ts("generate.yamlCopied") : ts("generate.yamlCopy")}
         </Button>
@@ -233,7 +230,7 @@ function ResultPanel({
       <div className="tfi-meta-grid">
         <span className="tfi-meta-key">{ts("generate.fieldUrl")}</span>
         <span className="tfi-meta-value">
-          <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{url}</span>
+          <span className="tfi-result-url-cell">{url}</span>
           <Button size="sm" variant="secondary" onClick={() => onCopy(url, "url")}>
             {copied === "url" ? ts("generate.yamlCopied") : ts("generate.yamlCopy")}
           </Button>

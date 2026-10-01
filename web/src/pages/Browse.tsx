@@ -74,12 +74,12 @@ export function BrowsePage() {
       <Container>
         {/* Hero — left-aligned, ~720px content block to match magi-portal's
          * per-page hero rhythm (was centered; reverting). */}
-        <Stack gap="3" style={{ marginBottom: "var(--magi-space-10)" }}>
+<Stack gap="3" className="tfi-page-hero">
           <span className="magi-eyebrow">{ts("browse.eyebrow")}</span>
           <h1 className="magi-h1">
             {requirement ? ts("browse.headingWithReq") : ts("browse.headingNoReq")}
           </h1>
-          <p className="magi-body-lg" style={{ maxWidth: 600 }}>
+          <p className="magi-body-lg tfi-page-hero-subhead">
             {requirement
               ? dict.browse.countWithReqTemplate(matching.length)
               : dict.browse.countNoReqTemplate(matching.length)}
@@ -87,7 +87,11 @@ export function BrowsePage() {
         </Stack>
 
         {error && (
-          <Banner variant="error" style={{ marginBottom: "var(--magi-space-6)" }}>
+          <Banner
+            variant="error"
+            role="alert"
+            className="tfi-banner-spacer"
+          >
             {ts("browse.fallbackPrefix")}
             {error}.{" "}
             {shouldUseLocalFixtures(import.meta.env.VITE_USE_LOCAL_FIXTURES)
@@ -97,7 +101,7 @@ export function BrowsePage() {
         )}
 
         {!requirement && (
-          <Banner variant="info" style={{ marginBottom: "var(--magi-space-6)" }}>
+          <Banner variant="info" className="tfi-banner-spacer">
             {ts("browse.noReqBannerBefore")}
             <Link to="/">{ts("nav.start")}</Link>
             {ts("browse.noReqBannerAfter")}
@@ -121,12 +125,7 @@ export function BrowsePage() {
             >
               <ModelList>
                 {recommended.length === 0 ? (
-                  <div
-                    style={{
-                      padding: "var(--magi-space-6)",
-                      color: "var(--magi-text-tertiary)",
-                    }}
-                  >
+                  <div className="tfi-empty-muted">
                     Nothing in this bucket.
                   </div>
                 ) : (
@@ -161,15 +160,10 @@ export function BrowsePage() {
               direction="row"
               align="center"
               gap="3"
-              style={{
-                marginTop: "var(--magi-space-10)",
-                paddingTop: "var(--magi-space-6)",
-                borderTop: "1px solid var(--magi-border)",
-                justifyContent: "space-between",
-              }}
+              className="tfi-bottom-row"
             >
-              <span className="magi-caption" style={{ color: "var(--magi-text-secondary)" }}>
-                {selection.selected.length} selected.
+              <span className="magi-caption tfi-caption-secondary">
+                {dict.browse.selectedCountTemplate(selection.selected.length)}
               </span>
               <Button variant="primary" onClick={() => navigate("/generate")}>
                 {ts("nav.generate")} →
@@ -195,30 +189,12 @@ function BrowseSection({
 }) {
   return (
     <Stack gap="4">
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-        }}
-      >
-        <h2
-          className="magi-eyebrow"
-          style={{
-            color: muted
-              ? "var(--magi-text-tertiary)"
-              : "var(--magi-accent)",
-          }}
-        >
+      <div className="tfi-section-header">
+        <h2 className={`magi-eyebrow ${muted ? "tfi-section-heading-muted" : "tfi-section-heading-accent"}`}>
           {heading}
         </h2>
         {hint && (
-          <span
-            className="magi-caption"
-            style={{ color: "var(--magi-text-tertiary)" }}
-          >
-            {hint}
-          </span>
+          <span className="magi-caption tfi-caption-secondary">{hint}</span>
         )}
       </div>
       {children}

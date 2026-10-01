@@ -114,6 +114,8 @@ export interface TranslationTree {
     /** Template: "Top {n} matching" */
     hintRecommendedTemplate: (n: number) => string;
     hintOther: string;
+    /** Template: "{n} selected" — bottom-row counter. */
+    selectedCountTemplate: (n: number) => string;
     /** Banner shown when KV is unreachable. */
     fallbackPrefix: string;
     fallbackFixture: string;

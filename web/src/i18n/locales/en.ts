@@ -88,8 +88,12 @@ const en: TranslationTree = {
     emptyAfter: "edit requirements",
     sectionRecommended: "Recommended",
     sectionOther: "Other matching",
-    hintRecommendedTemplate: (n) => `Top ${n} matching`,
+    hintRecommendedTemplate: (n: number) => `Top ${n} matching`,
     hintOther: "match — pick if useful",
+    /** Template: "{n} selected" — the bottom-row counter on the Browse
+     *  page, sits next to the "Generate →" CTA. */
+    selectedCountTemplate: (n: number) =>
+      n === 1 ? "1 selected" : `${n} selected`,
     fallbackPrefix: "Could not load KV catalog: ",
     fallbackFixture: "Falling back to bundled fixtures.",
     fallbackHelp: "Set TFI_USE_LOCAL_FIXTURES=1 to browse offline.",

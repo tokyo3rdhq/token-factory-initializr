@@ -90,6 +90,8 @@ const zh: TranslationTree = {
     sectionOther: "其他匹配",
     hintRecommendedTemplate: (n) => `前 ${n} 个匹配`,
     hintOther: "匹配 —— 视情况选用",
+    /** Template: "{n} selected" — bottom-row counter on Browse page. */
+    selectedCountTemplate: (n: number) => `已选 ${n} 个`,
     fallbackPrefix: "无法加载 KV 目录:",
     fallbackFixture: "回退到内置 fixtures。",
     fallbackHelp: "设置 TFI_USE_LOCAL_FIXTURES=1 以离线浏览。",

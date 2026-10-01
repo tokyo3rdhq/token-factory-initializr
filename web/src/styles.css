@@ -54,9 +54,9 @@
   display: inline-flex;
   align-items: center;
   gap: var(--magi-space-2);
-  font-family: var(--magi-font-sans, Inter, system-ui, sans-serif);
-  font-size: 14px;
-  font-weight: 600;
+  font-family: var(--magi-font-sans);
+  font-size: var(--magi-font-size-body-sm);
+  font-weight: var(--magi-font-weight-semibold);
   color: var(--magi-text-primary);
   border: 0;
   white-space: nowrap;
@@ -71,22 +71,22 @@
 }
 .tfi-brand-sep {
   color: var(--magi-text-tertiary);
-  font-weight: 400;
+  font-weight: var(--magi-font-weight-normal);
   margin: 0 var(--magi-space-1);
 }
 .tfi-brand-product {
   color: var(--magi-text-primary);
-  font-weight: 600;
+  font-weight: var(--magi-font-weight-semibold);
   white-space: nowrap;
 }
 
 .tfi-nav {
   justify-self: center;
   display: flex;
-  gap: var(--magi-space-8); /* gap-8 = 2rem — matches magi-portal */
+  gap: var(--magi-space-8);
 }
 .tfi-nav-link {
-  font-size: 13px;
+  font-size: var(--magi-font-size-label);
   color: var(--magi-text-secondary);
   padding: 0;
   border-bottom: 1px solid transparent;
@@ -96,7 +96,7 @@
   font-family: inherit;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--magi-space-1);
   line-height: 44px; /* match h-11 so the underline sits centered */
 }
 .tfi-nav-link:hover { color: var(--magi-text-primary); text-decoration: none; }
@@ -166,7 +166,7 @@
   backdrop-filter: blur(24px);
   border: 1px solid var(--magi-border);
   border-radius: var(--magi-radius-lg);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--magi-shadow-lg);
   z-index: 60;
 }
 .tfi-lang-option {
@@ -177,7 +177,7 @@
   width: 100%;
   padding: var(--magi-space-2) var(--magi-space-3);
   text-align: left;
-  font-size: 12px;
+  font-size: var(--magi-font-size-caption);
   color: var(--magi-text-secondary);
   background: transparent;
   border: 0;
@@ -194,7 +194,7 @@
 }
 .tfi-lang-option-mark {
   color: var(--magi-accent);
-  font-size: 12px;
+  font-size: var(--magi-font-size-caption);
   line-height: 1;
 }
 
@@ -222,11 +222,15 @@
   gap: 4px;
 }
 .tfi-footer-col h4 {
+  /* Footer column eyebrow — uppercase, wide-tracked. Product-specific
+   * (DS doesn't ship a footer-column-header primitive). The 11px
+   * size stays deliberate (one notch smaller than caption) so the
+   * hierarchy reads: h4 > body > caption. */
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--magi-tracking-wide);
   color: var(--magi-text-tertiary);
-  font-weight: 500;
+  font-weight: var(--magi-font-weight-medium);
   margin: 0 0 var(--magi-space-4) 0;
 }
 .tfi-footer-col ul {
@@ -236,7 +240,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--magi-space-2);
-  font-size: 14px;
+  font-size: var(--magi-font-size-body-sm);
 }
 .tfi-footer-col li.tfi-muted { color: var(--magi-text-tertiary); }
 .tfi-footer-col a {
@@ -252,7 +256,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--magi-font-size-caption);
   color: var(--magi-text-tertiary);
 }
 
@@ -295,22 +299,30 @@
   gap: var(--magi-space-4);
   padding: var(--magi-space-4) var(--magi-space-5);
   border-bottom: 1px solid var(--magi-border);
+  border-left: 3px solid transparent;
   cursor: pointer;
-  transition: background var(--magi-duration-fast, 150ms) ease;
+  transition: background var(--magi-duration-fast, 150ms) ease,
+              border-left-color var(--magi-duration-fast, 150ms) ease;
 }
 .tfi-model-row:last-child { border-bottom: 0; }
 .tfi-model-row:hover { background: var(--magi-surface-elevated); }
-.tfi-model-row.selected { background: var(--magi-accent-soft); }
+/* §16 — selected state must be visually obvious without relying
+ * only on color. We pair the soft accent tint with a left-edge
+ * accent bar (color-blind users can find the selection via shape). */
+.tfi-model-row.selected {
+  background: var(--magi-accent-soft);
+  border-left-color: var(--magi-accent);
+}
 .tfi-model-row.selected .tfi-model-name { color: var(--magi-accent); }
 .tfi-model-name {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--magi-font-size-body-sm);
+  font-weight: var(--magi-font-weight-medium);
   color: var(--magi-text-primary);
   word-break: break-word;
 }
 .tfi-model-id {
   color: var(--magi-text-tertiary);
-  font-size: 12px;
+  font-size: var(--magi-font-size-caption);
   margin-top: 2px;
   word-break: break-all;
 }
@@ -327,20 +339,20 @@
   grid-template-columns: 88px 1fr;
   row-gap: var(--magi-space-2);
   column-gap: var(--magi-space-4);
-  font-size: 13px;
+  font-size: var(--magi-font-size-label);
 }
 .tfi-meta-key {
   color: var(--magi-text-tertiary);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--magi-tracking-wide);
   font-size: 11px;
   align-self: center;
-  font-weight: 500;
+  font-weight: var(--magi-font-weight-medium);
 }
 .tfi-meta-value {
   color: var(--magi-text-primary);
   font-family: var(--magi-font-mono, ui-monospace, monospace);
-  font-size: 12px;
+  font-size: var(--magi-font-size-caption);
   overflow: hidden;
   text-overflow: ellipsis;
   display: flex;
@@ -357,12 +369,12 @@
   background: var(--magi-surface);
   border: 1px solid var(--magi-border);
   border-bottom: 0;
-  border-top-left-radius: var(--magi-radius-lg, 12px);
-  border-top-right-radius: var(--magi-radius-lg, 12px);
+  border-top-left-radius: var(--magi-radius-lg);
+  border-top-right-radius: var(--magi-radius-lg);
 }
 .tfi-code-chrome .tfi-code-filename {
   font-family: var(--magi-font-mono, ui-monospace, monospace);
-  font-size: 12px;
+  font-size: var(--magi-font-size-caption);
   color: var(--magi-text-secondary);
 }
 
@@ -376,6 +388,104 @@
 /* ----- Banners, empty states, helpers ----- */
 /* .tfi-banner + .tfi-empty were promoted to @tokyo3rdhq/magi-design-system@0.2.0
  * as <Banner> and <EmptyState>. See imports in each page. */
+/* ----- Page hero (left-aligned, max-w content block) ----- */
+/* Mirrors magi-portal's per-page hero pattern: ~720px content block
+ * with a subtle bottom margin that separates it from the page body.
+ * The `magi-eyebrow` / `magi-display` / `magi-body-lg` classes used
+ * inside the hero come from @tokyo3rdhq/magi-design-system — this
+ * file only defines the outer shell. */
+.tfi-page-hero {
+  max-width: 720px;
+  text-align: left;
+  margin-bottom: var(--magi-space-10);
+}
+.tfi-page-hero-subhead {
+  max-width: 600px;
+}
+.tfi-page-cta-row {
+  margin-top: var(--magi-space-3);
+}
+.tfi-page-requirements-card {
+  margin-top: var(--magi-space-12);
+}
+
+/* ----- Form layouts (multi-column grids) ----- */
+/* Recurring 2-col and 3-col form grids on the requirements card.
+ * Use DS spacing tokens; the grid columns collapse to 1 col at the
+ * tablet breakpoint (.tfi-form-grid-2col). */
+.tfi-form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--magi-space-6);
+}
+.tfi-form-grid-3col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--magi-space-6);
+}
+
+/* ----- Bottom-row summary (CTA + counter / hint) ----- */
+/* Used on Browse (selected count + Generate CTA) and Generate
+ * (back-to-Browse button). Border-top gives the row a clear divider
+ * against the card content above. */
+.tfi-bottom-row {
+  margin-top: var(--magi-space-10);
+  padding-top: var(--magi-space-6);
+  border-top: 1px solid var(--magi-border);
+  justify-content: space-between;
+}
+.tfi-caption-secondary {
+  color: var(--magi-text-secondary);
+}
+
+/* ----- Banner spacing ----- */
+.tfi-banner-spacer {
+  margin-bottom: var(--magi-space-6);
+}
+
+/* ----- Empty-state muted caption ----- */
+.tfi-empty-muted {
+  padding: var(--magi-space-6);
+  color: var(--magi-text-tertiary);
+}
+
+/* ----- Section header (Browse section heading + hint) ----- */
+.tfi-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.tfi-section-heading-accent {
+  color: var(--magi-accent);
+}
+.tfi-section-heading-muted {
+  color: var(--magi-text-tertiary);
+}
+
+/* ----- Selection header (small eyebrow on Selection card) ----- */
+.tfi-selection-header {
+  display: block;
+  margin-bottom: var(--magi-space-4);
+}
+
+/* ----- Result panel chrome (ready indicator + action slot) ----- */
+.tfi-result-ready {
+  color: var(--magi-success);
+}
+.tfi-result-spacer {
+  flex: 1;
+}
+.tfi-result-url-cell {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ----- Back-to-browse button (Generate page bottom) ----- */
+.tfi-back-button-wrap {
+  margin-top: var(--magi-space-8);
+}
+
 .tfi-spinner {
   display: inline-block;
   width: 12px;
@@ -389,6 +499,10 @@
 
 /* ----- Responsive ----- */
 @media (max-width: 720px) {
+  .tfi-form-grid-2col,
+  .tfi-form-grid-3col {
+    grid-template-columns: 1fr;
+  }
   .tfi-footer-cols { grid-template-columns: repeat(2, 1fr); }
   .tfi-footer-meta { flex-direction: column; gap: var(--magi-space-2); }
   .tfi-model-row {

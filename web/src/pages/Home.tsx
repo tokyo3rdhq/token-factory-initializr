@@ -78,13 +78,13 @@ export function HomePage() {
   return (
     <Section spacing="lg">
       <Container>
-        <Stack gap="6" style={{ maxWidth: 720, textAlign: "left" }}>
+        <Stack gap="6" className="tfi-page-hero">
           <span className="magi-eyebrow">{ts("home.eyebrow")}</span>
           <h1 className="magi-display">{ts("home.headline")}</h1>
-          <p className="magi-body-lg" style={{ maxWidth: 600 }}>
+          <p className="magi-body-lg tfi-page-hero-subhead">
             {ts("home.subhead")}
           </p>
-          <Stack direction="row" gap="4" align="center" style={{ marginTop: "var(--magi-space-3)" }}>
+          <Stack direction="row" gap="4" align="center" className="tfi-page-cta-row">
             <Button variant="primary" onClick={onContinue}>
               {ts("home.ctaBrowse")}
             </Button>
@@ -94,7 +94,7 @@ export function HomePage() {
           </Stack>
         </Stack>
 
-        <Card style={{ marginTop: "var(--magi-space-12)" }}>
+        <Card className="tfi-page-requirements-card">
           <Stack gap="6">
             <FormField label={ts("home.fields.project")}>
               <Input
@@ -104,13 +104,7 @@ export function HomePage() {
               />
             </FormField>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "var(--magi-space-6)",
-              }}
-            >
+            <div className="tfi-form-grid-2col">
               <FormField label={ts("home.fields.context")}>
                 <Segmented
                   value={contextMin}
@@ -138,13 +132,7 @@ export function HomePage() {
               </FormField>
             </div>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr",
-                gap: "var(--magi-space-6)",
-              }}
-            >
+            <div className="tfi-form-grid-3col">
               <FormField label={ts("home.fields.toolCalling")}>
                 <Segmented
                   value={toolCalling}
@@ -201,14 +189,9 @@ export function HomePage() {
               direction="row"
               align="center"
               gap="3"
-              style={{
-                marginTop: "var(--magi-space-10)",
-                paddingTop: "var(--magi-space-6)",
-                borderTop: "1px solid var(--magi-border)",
-                justifyContent: "space-between",
-              }}
+              className="tfi-bottom-row"
             >
-              <span className="magi-caption" style={{ color: "var(--magi-text-secondary)" }}>
+              <span className="magi-caption tfi-caption-secondary">
                 {dict.home.summaryTemplate(endpointCount, providers.length)}
               </span>
               <Button variant="primary" onClick={onContinue}>
