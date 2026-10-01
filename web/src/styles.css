@@ -165,12 +165,15 @@
   background: color-mix(in srgb, var(--magi-bg-raised) 95%, transparent);
   backdrop-filter: blur(24px);
   border: 1px solid var(--magi-border);
-  border-radius: var(--magi-radius-md);
+  border-radius: var(--magi-radius-lg);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
   z-index: 60;
 }
 .tfi-lang-option {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--magi-space-3);
   width: 100%;
   padding: var(--magi-space-2) var(--magi-space-3);
   text-align: left;
@@ -184,6 +187,15 @@
 .tfi-lang-option:hover {
   background: color-mix(in srgb, var(--magi-text-primary) 8%, transparent);
   color: var(--magi-text-primary);
+}
+.tfi-lang-option.selected {
+  color: var(--magi-text-primary);
+  background: color-mix(in srgb, var(--magi-accent) 10%, transparent);
+}
+.tfi-lang-option-mark {
+  color: var(--magi-accent);
+  font-size: 12px;
+  line-height: 1;
 }
 
 /* ----- Footer (matches magi-portal's 4-col + baseline rhythm) ----- */

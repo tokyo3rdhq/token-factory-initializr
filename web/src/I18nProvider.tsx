@@ -2,7 +2,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -12,7 +11,9 @@ import { translations, locales, type Locale, type TranslationTree } from "./i18n
 /**
  * Storage key for the user's explicit locale preference. Survives
  * across visits; the very first visit (no key) falls back to OS
- * language via {@link resolveInitialLocale}.
+ * language via {@link resolveInitialLocale}. The same key is read
+ * by the inline FOUC script in `index.html` so first paint and
+ * React's initial state agree.
  */
 const STORAGE_KEY = "tfi:locale";
 
@@ -26,25 +27,36 @@ const DEFAULT_LOCALE: Locale = "en";
 /**
  * Resolve the locale to use on first paint.
  *
- *   1. localStorage preference — explicit user choice always wins.
- *   2. OS `navigator.language` (browser language) — match a known
- *      locale if possible; ignore the region tag (e.g. "zh-CN" →
- *      "zh", "en-US" → "en").
- *   3. {@link DEFAULT_LOCALE}.
+ * Resolution order (mirrors the inline FOUC script in index.html so
+ * React's first render matches what the user already saw):
+ *
+ *   1. <html data-tfi-locale> set by the FOUC script. Always
+ *      present in production; this is the canonical signal.
+ *   2. localStorage `tfi:locale` — explicit user preference.
+ *   3. navigator.language — auto-detect `zh` / `en`.
+ *   4. DEFAULT_LOCALE (`en`) — final fallback.
+ *
+ * The FOUC script writes to *before paint* based on localStorage or
+ * browser language; React reads it back here for the first render
+ * so there's no swap-on-hydration.
  */
 function resolveInitialLocale(): Locale {
   if (typeof window === "undefined") return DEFAULT_LOCALE;
+  // 1. FOUC attribute — already resolved before paint.
+  const attr = document.documentElement.getAttribute("data-tfi-locale");
+  if (attr === "en" || attr === "zh") return attr;
+  // 2. localStorage preference — explicit user choice.
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored && stored in translations) {
-      return stored as Locale;
-    }
+    if (stored === "en" || stored === "zh") return stored;
   } catch {
-    // localStorage blocked (private mode, sandboxed iframe) — skip.
+    // localStorage blocked.
   }
+  // 3. Browser language → `zh` if it starts with "zh", else `en`.
   const navLang = window.navigator?.language?.toLowerCase() ?? "";
   if (navLang.startsWith("zh")) return "zh";
   if (navLang.startsWith("en")) return "en";
+  // 4. Fallback.
   return DEFAULT_LOCALE;
 }
 
@@ -84,12 +96,19 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       // localStorage blocked — DOM mutation below is still applied;
       // we just lose persistence across visits.
     }
+    // Mirror onto <html> so screen readers, browser translation
+    // prompts, and CSS hooks all see the change immediately. The
+    // FOUC script in index.html writes these same attributes on
+    // first paint; this keeps them in sync after every explicit
+    // choice made by the user.
+    document.documentElement.lang = next === "zh" ? "zh-CN" : "en";
+    document.documentElement.setAttribute("data-tfi-locale", next);
   }, []);
 
-  useEffect(() => {
-    document.documentElement.setAttribute("lang", locale);
-    document.documentElement.setAttribute("data-tfi-locale", locale);
-  }, [locale]);
+  // No useEffect needed — the FOUC script wrote the right attribute
+  // before React mounted, and `setLocale` keeps it in sync on every
+  // change. Avoiding an effect also keeps the first React render
+  // flicker-free.
 
   // Lookup walks the active dictionary by dot-path. Function-valued
   // keys (e.g. ``home.summaryTemplate``) are returned as-is — the

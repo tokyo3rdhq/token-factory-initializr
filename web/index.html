@@ -19,6 +19,45 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
     />
+
+    <!--
+      FOUC prevention: runs before paint so the active locale + theme
+      are correct on the first frame. Mirrors magi-portal Layout.astro
+      lines 50-105. React's <I18nProvider> and <ThemeToggle> read the
+      resolved values back from these attributes.
+      Locale: explicit localStorage → browser language → fallback to en.
+      Theme: explicit localStorage → prefers-color-scheme → dark.
+    -->
+    <script>
+      (function () {
+        // Locale: localStorage → browser language → "en"
+        try {
+          var saved = localStorage.getItem('tfi:locale');
+          if (saved !== 'zh' && saved !== 'en') {
+            var browser = (navigator.languages && navigator.languages[0]) ||
+                          navigator.language || '';
+            saved = browser.toLowerCase().startsWith('zh') ? 'zh' : 'en';
+          }
+          document.documentElement.lang = saved === 'zh' ? 'zh-CN' : 'en';
+          document.documentElement.setAttribute('data-tfi-locale', saved);
+        } catch (e) { /* localStorage may be blocked */ }
+
+        // Theme: localStorage mode → resolved palette
+        try {
+          var mode = localStorage.getItem('tfi:theme');
+          if (mode !== 'system' && mode !== 'dark' && mode !== 'light') mode = 'system';
+          var resolved = mode;
+          if (mode === 'system') {
+            try {
+              resolved = window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark' : 'light';
+            } catch (e) { resolved = 'dark'; }
+          }
+          document.documentElement.dataset.magiThemeMode = mode;
+          document.documentElement.setAttribute('data-magi-theme', resolved);
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
