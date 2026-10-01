@@ -88,10 +88,10 @@ export function UtilityBar() {
 
   return (
     <div className="tfi-topbar-utility">
-      <div className="tfi-lang-wrap">
+<div className="tfi-lang-wrap">
         <button
           type="button"
-          className="tfi-icon-btn tfi-icon-btn-with-label"
+          className="tfi-icon-btn"
           aria-label={ts("utility.switchLanguageAria").replace("{name}", currentLocaleName)}
           aria-haspopup="listbox"
           aria-expanded={langOpen}
@@ -99,7 +99,6 @@ export function UtilityBar() {
           onClick={() => setLangOpen((v) => !v)}
         >
           <Languages size={14} strokeWidth={1.75} aria-hidden="true" />
-          <span className="tfi-icon-btn-label">{ts("utility.currentLocaleLabel")}</span>
         </button>
         {langOpen && (
           <div

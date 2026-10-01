@@ -28,6 +28,7 @@ import { useI18n } from "./I18nProvider";
  */
 export function App() {
   const { ts } = useI18n();
+  const brandLabel = ts("home.eyebrow"); // "Token Factory Initializr" / "Token工厂 Initializr"
 
   return (
     <div>
@@ -36,13 +37,13 @@ export function App() {
           <Link
             to="/"
             className="tfi-brand"
-            aria-label="Token Factory Initializr — home"
+            aria-label={`${brandLabel} — home`}
           >
             <MagiLockup size="sm" className="tfi-brand-mark" />
             <span className="tfi-brand-sep" aria-hidden="true">
               /
             </span>
-            <span className="tfi-brand-product">Token Factory Initializr</span>
+            <span className="tfi-brand-product">{brandLabel}</span>
           </Link>
           <nav className="tfi-nav" aria-label="primary">
             <NavLink to="/" end className="tfi-nav-link">

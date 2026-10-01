@@ -4,10 +4,9 @@ import type { TranslationTree } from "../types";
  * 简体中文字典. Keys mirror the English dictionary exactly.
  *
  * Translation notes:
- *   - "Token Factory Initializr" is kept in English as a brand name
- *     (it's the product title; translating it would defeat search).
- *   - "LiteLLM" is also kept in English (third-party brand).
- *   - "MAGI" is kept in English (parent-brand name).
+ *   - "Token工厂" is the localized form of "Token Factory" — the
+ *     token factory concept is rendered in Chinese. "LiteLLM" and
+ *     "MAGI" remain in English (third-party / parent-brand names).
  *   - Form labels are kept concise to fit the visual chips.
  */
 const zh: TranslationTree = {
@@ -41,7 +40,7 @@ const zh: TranslationTree = {
   },
 
   home: {
-    eyebrow: "Token Factory Initializr",
+    eyebrow: "Token工厂 Initializr",
     headline: "初始化你的 token factory。",
     subhead:
       "挑选适合你项目的免费 AI endpoints。我们会生成开箱即用的 LiteLLM 配置。",
