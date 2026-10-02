@@ -178,14 +178,27 @@
   right: 0;
   top: 100%;
   margin-top: var(--magi-space-2);
-  /* Per docs/visual_detail_consistency_fix.md §5 — the surface must
-   * fully contain every menu item. `width: max-content` lets the
-   * browser size the box to its widest item; `min-width` is the
-   * floor for narrow locales. The trailing ✓ mark (16px icon +
-   * gap-3 padding-right) is the longest right-side component, so
-   * `max-content` will always be wider than the text. */
+  /* Per docs/visual_detail_consistency_fix.md §5 — every menu item
+   * must be fully contained by the surface. We use:
+   *   display: inline-flex + flex-direction: column
+  *     This makes the dropdown an inline-block-level flex column.
+   *     The flex column's content width = max(child widths). Children
+   *     with `width: 100%` correctly fill the flex column's content
+   *     area. The flex column itself shrinks to fit the children.
+   *   width: max-content
+   *     Fallback for browsers that don't handle inline-flex
+   *     shrink-wrap correctly. In practice the inline-flex above is
+   *     the binding constraint.
+   *   min-width: 0 (NOT a positive value)
+   *     Earlier we set min-width: 140px which the dropdown fell
+   *     back to even though content was ~75px — leaving ~70px of
+   *     dead space on the right. That's the visual mismatch the
+   *     user reported. Default min-content handles the floor.
+   */
+  display: inline-flex;
+  flex-direction: column;
   width: max-content;
-  min-width: 160px;
+  min-width: 0;
   padding: var(--magi-space-1);
   background: color-mix(in srgb, var(--magi-bg-raised) 95%, transparent);
   backdrop-filter: blur(24px);
@@ -199,7 +212,21 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--magi-space-3);
-  width: 100%;
+  /* Per docs/visual_detail_consistency_fix.md §5 — every option must
+   * be fully contained by the dropdown surface.
+   *
+   * Do NOT set `width: 100%` here. The dropdown is `inline-flex` with
+   * `width: max-content`, so its own content width depends on the
+   * widest child's intrinsic width. With `width: 100%` on the child,
+   * the child's width depends on the parent's width → circular →
+   * the browser falls back to the `min-width` (or the implicit
+   * min-content) on the parent, which is what made the dropdown
+   * hang at 140px while the option's own contents were narrower.
+   *
+   * Block elements (button) default to filling their parent's
+   * content box for centering/alignment, so omitting `width: 100%`
+   * here is intentional. The padding-left/right on the option
+   * provides the inset alignment with the dropdown's padding. */
   padding: var(--magi-space-2) var(--magi-space-3);
   text-align: left;
   font-size: var(--magi-font-size-caption);
@@ -208,6 +235,7 @@
   border: 0;
   cursor: pointer;
   border-radius: var(--magi-radius-sm);
+  white-space: nowrap;
 }
 .tfi-lang-option:hover {
   background: color-mix(in srgb, var(--magi-text-primary) 8%, transparent);
