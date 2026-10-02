@@ -198,13 +198,20 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "name": m.get("label") or m.get("model") or clean_id,
         "description": m.get("description"),
+        # Legacy capabilities shape — AMD's TFI-authored
+        # ``derive_use_case`` produces a single string here. The
+        # normalize stage (``data.process.normalize.normalize_capabilities``)
+        # maps this string into the canonical 7-key boolean shape on
+        # its way through. Provider adapters that bypass the normalize
+        # stage still see this raw shape.
         "capabilities": {
             "use_case": derive_use_case(detail),
         },
         # Structured modalities matching the canonical schema. AMD's API
         # splits input vs output natively; we mirror that directly under
         # the ``architecture`` key (named for parity with HF's router
-        # ``architecture`` block).
+        # ``architecture`` block). The normalize stage can also read
+        # this to derive vision / speech flags.
         "architecture": {
             "input": input_modalities,
             "output": output_modalities,
@@ -220,6 +227,8 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
         # this field).
         "pricing": pricing,
         "metadata": {
+            # Back-compat metadata fields preserved for any consumer
+            # that reads metadata directly.
             "family": tf.get("publisher", {}).get("name") or m.get("family", "unknown"),
             "context_length": m.get("context_length", 0),
             "free_status": free_status,

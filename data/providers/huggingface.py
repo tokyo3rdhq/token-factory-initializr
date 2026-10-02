@@ -181,6 +181,14 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
     name = model_id.split("/", 1)[-1] if "/" in model_id else model_id
     input_modalities = model_group["input_modalities"]
     output_modalities = model_group["output_modalities"]
+    # Legacy 4-key capabilities shape — derived from the upstream
+    # architecture block (modalities). The normalize stage
+    # (``data.process.normalize.normalize_capabilities``) replaces
+    # this with the canonical 7-key boolean shape on its way
+    # through. Provider adapters that bypass the normalize stage
+    # still see this legacy shape; downstream code reading
+    # ``ep.capabilities`` via ``normalize_endpoints`` always sees the
+    # canonical shape.
     capabilities: Dict[str, Any] = {}
     if "image" in input_modalities or "image" in output_modalities:
         capabilities["vision"] = True
@@ -231,6 +239,10 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
             "fetched_at": datetime.now(timezone.utc).isoformat(),
             "name": name,
             "description": None,
+            # Legacy 4-key capabilities shape — derived from
+            # ``architecture.{input,output}_modalities`` above. The
+            # normalize stage replaces this with the canonical 7-key
+            # boolean shape on its way through.
             "capabilities": capabilities,
             # HF's router API exposes modalities under ``architecture``;
             # we keep the same key in our canonical schema so consumers can

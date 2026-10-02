@@ -17,11 +17,144 @@ from typing import Any
 from data.models.schema import ModelEndpoint
 
 
+# ---------------------------------------------------------------------------
+# Canonical capabilities shape — the single source of truth across all
+# data sources. The web-side `matchesRequirement()` / `format.ts` helpers
+# and the Browse filter taxonomy (`BrowsePage.hasTag`) both read this
+# exact key set. Adding a new capability = add a key here + handle it
+# in `normalize_capabilities()` below. Everything else (nvidia/HF/AMD
+# provider code, web matcher, tag chips) then sees the same shape.
+# ---------------------------------------------------------------------------
+CANONICAL_CAPABILITY_KEYS: tuple[str, ...] = (
+    "chat",              # text conversation output
+    "vision",            # accepts image inputs
+    "speech",            # accepts or produces audio
+    "embedding",         # produces embedding vectors
+    "tool_calling",      # tool / function calling
+    "structured_output", # JSON / schema-constrained output
+    "reasoning",         # reasoning / chain-of-thought
+)
+
+
+def normalize_capabilities(
+    data_source: str,
+    raw_metadata: dict[str, Any] | None,
+    architecture: dict[str, Any] | None,
+) -> dict[str, bool]:
+    """Provider-specific raw signals → canonical 7-key boolean flags.
+
+    The returned dict always contains all ``CANONICAL_CAPABILITY_KEYS``
+    keys (True or False) so consumer-side code can read ``ep.capabilities[
+    key]`` without worrying about missing keys.
+
+    Provider raw signals:
+
+    * **nvidia** — read ``raw_metadata["attributes"]`` (the legacy
+      attribute shape with ``CHAT_MODALITY`` / ``TOOL_CALLING``)
+      plus ``architecture.{input,output}`` for vision / speech /
+      embedding detection (the modern labels path also produces a
+      structured architecture block).
+    * **huggingface** — read ``architecture.{input,output}`` (HF's
+      router API surfaces modalities here).
+    * **amd** — read ``raw_metadata["use_case"]`` (single string
+      emitted by TFI's own ``derive_use_case`` helper) plus the
+      architecture block for vision fallback.
+
+    Adding a new provider = add a new ``elif data_source == ...`` branch
+    with the same shape; no other code needs to change.
+    """
+    out: dict[str, bool] = {k: False for k in CANONICAL_CAPABILITY_KEYS}
+    # Architecture may be a malformed value (legacy RSC payloads,
+    # fixture inputs, etc.) — ``data.process.normalize`` already
+    # rejects non-dict architectures before they get here, but the
+    # unit tests pass raw dicts straight in. Guard explicitly so
+    # this function is safe regardless of caller hygiene.
+    arch = architecture if isinstance(architecture, dict) else {}
+    raw_meta = raw_metadata if isinstance(raw_metadata, dict) else {}
+    input_modes = set(arch.get("input") or [])
+    output_modes = set(arch.get("output") or [])
+    attrs = raw_meta
+
+    # Architecture-derived flags — common to every provider that
+    # exposes ``architecture.{input,output}`` as modality lists.
+    if "image" in input_modes or "image" in output_modes:
+        out["vision"] = True
+    if any(m in output_modes for m in ("audio",)):
+        out["speech"] = True
+    if "embedding" in output_modes:
+        out["embedding"] = True
+    if "text" in output_modes and "embedding" not in output_modes:
+        out["chat"] = True
+
+    if data_source == "nvidia":
+        # Legacy attributes shape (legacy RSC payloads still carry
+        # these inside ``raw_metadata["attributes"]`` — TFI's nvidia
+        # adapter stashes the upstream ``attributes`` block there for
+        # back-compat with consumers that read metadata directly).
+        # Modern labels-driven paths produce architecture + capabilities
+        # via the architecture block above, so this branch only fills
+        # what the architecture can't infer.
+        attrs = attrs.get("attributes") if isinstance(attrs, dict) else None
+        if isinstance(attrs, dict):
+            if attrs.get("CHAT_MODALITY") == "text2textDiffusion":
+                out["chat"] = True
+            if attrs.get("TOOL_CALLING") == "true":
+                out["tool_calling"] = True
+        elif isinstance(attrs, list):
+            for a in attrs:
+                if not isinstance(a, dict):
+                    continue
+                if a.get("key") == "CHAT_MODALITY" and a.get("value") == "text2textDiffusion":
+                    out["chat"] = True
+                if a.get("key") == "TOOL_CALLING" and a.get("value") == "true":
+                    out["tool_calling"] = True
+
+    elif data_source == "huggingface":
+        # All HF capability signals come from the architecture block —
+        # the legacy chat-only / tool-only boolean flags that the HF
+        # provider used to emit are folded into the architecture
+        # derivation above. New HF providers that surface structured
+        # output / reasoning should set the corresponding boolean
+        # here when their API exposes those signals.
+        pass
+
+    elif data_source == "amd":
+        # AMD's TFI-authored ``derive_use_case`` returns one of:
+        # "chat", "vision", "embedding", "speech", "transcription"
+        # — a single string that we map to the canonical bool axis.
+        use_case = attrs.get("use_case") if isinstance(attrs, dict) else None
+        if use_case == "chat":
+            out["chat"] = True
+        elif use_case in ("vision", "vlm"):
+            out["vision"] = True
+        elif use_case == "embedding":
+            out["embedding"] = True
+        elif use_case in ("speech",):
+            out["speech"] = True
+        elif use_case in ("transcription", "asr"):
+            out["speech"] = True
+
+    # structured_output / reasoning: no provider currently emits raw
+    # signals for these. Future providers can extend normalize() with
+    # detection rules. Default-False here is the safe answer for the
+    # consumer — the matcher reads ep.capabilities.structured_output
+    # and only filters when the user explicitly asked for it.
+
+    return out
+
+
 def normalize_endpoints(raw: list[dict[str, Any]]) -> list[ModelEndpoint]:
     """Convert a list of provider dicts into a list of ModelEndpoint records.
 
     Side effects on ``item``:
 
+    * **Capabilities** are normalized from each provider's raw
+      signals (see :func:`normalize_capabilities`) into the canonical
+      7-key boolean shape defined by ``CANONICAL_CAPABILITY_KEYS``.
+      Provider adapters no longer construct the final ``capabilities``
+      shape themselves — they only fill in raw signals (architecture
+      modalities, AMD use-case string, NVIDIA legacy attributes) and
+      the normalize stage does the rest.
     * Lifts ``metadata.context_length`` (if present and int) to the
       top-level ``ModelEndpoint.context_length`` field. The metadata
       copy is left in place for back-compat with readers that look at
@@ -61,7 +194,16 @@ def normalize_endpoints(raw: list[dict[str, Any]]) -> list[ModelEndpoint]:
                 fetched_at=fetched_at,
                 name=item.get("name"),
                 description=item.get("description"),
-                capabilities=item.get("capabilities") or {},
+                # Constructor default — the canonical shape is written
+                # below via ``object.__setattr__`` regardless of what
+                # the provider adapter stamped (nvidia = {chat,
+                # tool_calling}, HF = {vision, speech, chat, embedding},
+                # AMD = {use_case: <str>}). The normalize stage is the
+                # single source of truth for the canonical 7-key boolean
+                # shape; provider adapters keep building their own raw
+                # signals for back-compat with any consumer that
+                # bypasses the normalize stage (e.g. unit tests).
+                capabilities={},
                 metadata=item.get("metadata") or {},
                 lab=item.get("lab"),
             )
@@ -70,6 +212,20 @@ def normalize_endpoints(raw: list[dict[str, Any]]) -> list[ModelEndpoint]:
             raise ValueError(
                 f"Provider record missing required field '{missing}': {item}"
             ) from exc
+
+        # Lift capabilities — single canonical shape for the whole
+        # catalog. Provider-specific raw signals live in ``metadata`` and
+        # ``architecture``; this call fuses them into the 7-key
+        # canonical bool dict. See normalize_capabilities() above.
+        object.__setattr__(
+            ep,
+            "capabilities",
+            normalize_capabilities(
+                ep.data_source,
+                ep.metadata,
+                item.get("architecture"),
+            ),
+        )
 
         # Lift context_length: prefer metadata (where AMD/HF put it),
         # fall back to top-level (where future providers might emit it).

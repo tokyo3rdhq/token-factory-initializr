@@ -20,14 +20,20 @@ from data.process.summarize import summarize_all
 
 
 def test_normalize_endpoints_basic():
+    """End-to-end: capabilities are always emitted in the canonical
+    7-key boolean shape regardless of what the input dict carried.
+    AMD's ``use_case`` string + chat-adjacent raw signals get
+    translated by ``normalize_capabilities``.
+    """
     raw = [
         {
             "provider": "amd",
             "model_id": "amd/test-model",
+            "data_source": "amd",
             "free": True,
             "name": "Test Model",
             "capabilities": {"chat": True},
-            "metadata": {"context_length": 4096},
+            "metadata": {"context_length": 4096, "use_case": "chat"},
             "lab": "Test Lab",
         }
     ]
@@ -39,8 +45,14 @@ def test_normalize_endpoints_basic():
     assert ep.free is True
     assert isinstance(ep.fetched_at, datetime)
     assert ep.name == "Test Model"
-    assert ep.capabilities == {"chat": True}
-    assert ep.metadata == {"context_length": 4096}
+    # Canonical 7-key shape — chat=True from both raw signal +
+    # architecture derivation. Every key is present.
+    assert ep.capabilities["chat"] is True
+    assert set(ep.capabilities.keys()) == {
+        "chat", "vision", "speech", "embedding",
+        "tool_calling", "structured_output", "reasoning",
+    }
+    assert ep.metadata == {"context_length": 4096, "use_case": "chat"}
     assert ep.lab == "Test Lab"
 
 
@@ -65,10 +77,16 @@ def test_normalize_endpoints_missing_required_field():
 
 
 def test_normalize_endpoints_defaults():
+    """Empty raw signals → all-False canonical 7-key capabilities."""
     raw = [{"provider": "nvidia", "model_id": "x/y"}]
     eps = normalize_endpoints(raw)
     assert eps[0].free is False
-    assert eps[0].capabilities == {}
+    # Canonical shape is always emitted — every key present, all False.
+    assert set(eps[0].capabilities.keys()) == {
+        "chat", "vision", "speech", "embedding",
+        "tool_calling", "structured_output", "reasoning",
+    }
+    assert all(v is False for v in eps[0].capabilities.values())
     assert eps[0].metadata == {}
     assert eps[0].name is None
 

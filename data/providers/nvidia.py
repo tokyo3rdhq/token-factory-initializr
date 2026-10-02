@@ -313,6 +313,13 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
     labels = obj.get("labels", {})
     labels_dict = _labels_to_dict(labels)
 
+    # Read the legacy ``attributes`` block once — it's the source of
+    # CHAT_MODALITY / TOOL_CALLING signals in older RSC payloads. Modern
+    # labels-driven payloads don't carry it. Stored under metadata
+    # unchanged for back-compat with consumers that read metadata
+    # directly.
+    attrs = obj.get("attributes", {})
+
     # Free detection: "Free Endpoint" in nimType.values → free=True.
     nim_values: List[str] = labels_dict.get("nimType", {}).get("values", []) or []
     free = "Free Endpoint" in nim_values
@@ -382,6 +389,14 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         fetched_at=datetime.now(timezone.utc),
         name=name,
         description=obj.get("description", ""),
+        # Legacy two-key capabilities shape — the normalize stage
+        # (``data.process.normalize.normalize_capabilities``) replaces
+        # this with the canonical 7-key boolean shape on its way
+        # through. Provider adapters that bypass the normalize stage
+        # (e.g. unit tests instantiating ModelEndpoint directly) still
+        # see this legacy shape; downstream code reading
+        # ``ep.capabilities`` via ``normalize_endpoints`` always sees
+        # the canonical shape.
         capabilities=capabilities,
         architecture=architecture,
         # ``pricing`` and ``context_length`` are deliberately left as
