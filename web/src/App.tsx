@@ -153,7 +153,17 @@ export function App() {
           </div>
         </div>
         <div className="tfi-footer-meta">
-          <span>{ts("footer.copyright")}</span>
+          {/* Copyright line is a link to the parent brand — mirrors
+              the navbar MAGI lockup and the footer MAGI column header
+              so the "MAGI" affordance is consistent across the page. */}
+          <a
+            href="https://magi.website"
+            target="_blank"
+            rel="noreferrer"
+            className="tfi-footer-meta-magi"
+          >
+            {ts("footer.copyright")}
+          </a>
           <span>{ts("footer.provenance")}</span>
         </div>
       </footer>
