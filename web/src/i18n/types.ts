@@ -107,10 +107,18 @@ export interface TranslationTree {
     countNoReqTemplate: (n: number) => string;
     /** Template: "{n} model(s) match your requirements." */
     countWithReqTemplate: (n: number) => string;
+    /** Template: "{matching} match out of {visible} visible" — shown
+     *  when filters are active so the user sees how many models the
+     *  filter excluded. */
+    countFilteredTemplate: (matching: number, visible: number) => string;
     noReqBannerBefore: string;
     noReqBannerAfter: string;
     emptyBefore: string;
     emptyAfter: string;
+    /** Shown when the user has tag filters / search active and no
+     *  models match. Distinct from emptyBefore (which fires when
+     *  the requirement filter alone produces an empty result). */
+    emptyFiltered: string;
     sectionRecommended: string;
     sectionOther: string;
     /** Template: "Top {n} matching" */
@@ -118,10 +126,28 @@ export interface TranslationTree {
     hintOther: string;
     /** Template: "{n} selected" — bottom-row counter. */
     selectedCountTemplate: (n: number) => string;
+    /** Template: "Select all {n} visible" — primary filter action. */
+    selectAllVisibleTemplate: (n: number) => string;
+    /** Template: "Clear {n} selected" — secondary action. */
+    clearAllTemplate: (n: number) => string;
     /** Banner shown when KV is unreachable. */
     fallbackPrefix: string;
     fallbackFixture: string;
     fallbackHelp: string;
+    /** Tag filter taxonomy. Each tag has a label (chip text) and a
+     *  description (title attribute on the chip for accessibility). */
+    tags: {
+      chat: { label: string; description: string };
+      vision: { label: string; description: string };
+      tools: { label: string; description: string };
+      free: { label: string; description: string };
+      longCtx: { label: string; description: string };
+    };
+    /** Filter row strings. */
+    filters: {
+      searchPlaceholder: string;
+      reset: string;
+    };
   };
 
   /** Generate page. */

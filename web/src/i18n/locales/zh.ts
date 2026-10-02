@@ -84,12 +84,32 @@ const zh: TranslationTree = {
     noReqBannerBefore: "尚未设置需求。",
     noReqBannerAfter:
       "返回设置你想构建的内容 —— 我们会为你挑选最合适的模型。",
-    emptyBefore: "没有匹配的模型。试着放宽一些条件 —— ",
+emptyBefore: "没有匹配的模型。试着放宽一些条件 —— ",
     emptyAfter: "编辑需求",
+    /** Shown when the user has tag filters or a non-empty search and
+     *  no models match. */
+    emptyFiltered: "当前过滤条件下没有匹配的模型 —— 试着取消某个 tag 或清空搜索。",
     sectionRecommended: "推荐",
     sectionOther: "其他匹配",
-    hintRecommendedTemplate: (n) => `前 ${n} 个匹配`,
+    hintRecommendedTemplate: (n: number) => `前 ${n} 个匹配`,
     hintOther: "匹配 —— 视情况选用",
+    countFilteredTemplate: (matching: number, visible: number) =>
+      `${visible} 个中匹配 ${matching} 个。`,
+    selectAllVisibleTemplate: (n: number) =>
+      n === 1 ? "选择 1 个可见模型" : `全选可见 ${n} 个`,
+    clearAllTemplate: (n: number) =>
+      n === 1 ? "清空 1 个已选" : `清空 ${n} 个已选`,
+    tags: {
+      chat: { label: "对话", description: "具备对话式对话能力的模型。" },
+      vision: { label: "视觉", description: "支持图像输入的模型。" },
+      tools: { label: "工具", description: "支持 tool / function calling 的模型。" },
+      free: { label: "免费", description: "确认免费的 endpoint。" },
+      longCtx: { label: "128K+", description: "上下文窗口 ≥ 128 000 token 的模型。" },
+    },
+    filters: {
+      searchPlaceholder: "按名称、provider、id 搜索",
+      reset: "重置筛选",
+    },
     /** Template: "{n} selected" — bottom-row counter on Browse page. */
     selectedCountTemplate: (n: number) => `已选 ${n} 个`,
     fallbackPrefix: "无法加载 KV 目录:",

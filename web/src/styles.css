@@ -538,6 +538,113 @@
   margin-top: var(--magi-space-12);
 }
 
+/* ----- Browse page: filter row + tag chips + select-all ----- */
+/* Layout: a single wrapping flex with three regions — search input
+ * (flex-grow), tag chip row (auto width), action group (auto width).
+ * Wraps to multiple lines at narrow widths via flex-wrap.
+ *
+ * Per the DS Iconography + brand contract: no emoji as primary icon,
+ * so the colored dot on each tag chip is a CSS pseudo-element, not
+ * an emoji glyph. */
+.tfi-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--magi-space-3);
+  padding: var(--magi-space-3);
+  margin-bottom: var(--magi-space-6);
+  background: var(--magi-surface);
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-lg);
+}
+.tfi-filter-search {
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+.tfi-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--magi-space-2);
+  align-items: center;
+}
+.tfi-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--magi-space-2);
+  flex-shrink: 0;
+}
+
+/* Tag chip — small pill button with a colored dot indicating the
+ * tag's accent. Different tag ids → different dot colors per the
+ * DS Iconography + brand guidelines (no emoji, semantic color only). */
+.tfi-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--magi-space-1) var(--magi-space-3);
+  border-radius: 9999px;
+  font-size: var(--magi-font-size-caption);
+  font-weight: var(--magi-font-weight-medium);
+  color: var(--magi-text-secondary);
+  background: transparent;
+  border: 1px solid var(--magi-border);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--magi-duration-fast, 120ms) ease,
+    color var(--magi-duration-fast, 120ms) ease,
+    border-color var(--magi-duration-fast, 120ms) ease;
+}
+.tfi-tag-chip:hover {
+  color: var(--magi-text-primary);
+  background: color-mix(in srgb, var(--magi-text-primary) 6%, transparent);
+}
+.tfi-tag-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--magi-text-tertiary);
+  transition: background var(--magi-duration-fast, 120ms) ease;
+}
+/* Per-category tag colors. Tags are grouped by what they describe
+ * (per the user's feedback "chat and vision can use same color, but
+ * free tag is in another different color"). One color per category,
+ * not one per tag. Tags within a category share a color so the chip
+ * row reads as a palette of "what kind of filter is this":
+ *
+ *   capabilities (cyan / accent)  →  chat, vision, tools
+ *     all describe what the model can do (input / output shape +
+ *     function calling)
+ *   pricing (green / success)      →  free
+ *     describes how the endpoint is priced
+ *   scale (amber / warning)        →  longCtx
+ *     describes how much the model can hold
+ *
+ * The color is applied to BOTH the inactive dot (subtle) and the
+ * active dot (full intensity). The chip itself uses --magi-accent
+ * when active so the user sees which filter is engaged. */
+.tfi-tag-chip-chat .tfi-tag-chip-dot,
+.tfi-tag-chip-chat.active .tfi-tag-chip-dot,
+.tfi-tag-chip-vision .tfi-tag-chip-dot,
+.tfi-tag-chip-vision.active .tfi-tag-chip-dot,
+.tfi-tag-chip-tools .tfi-tag-chip-dot,
+.tfi-tag-chip-tools.active .tfi-tag-chip-dot {
+  background: var(--magi-accent);
+}
+.tfi-tag-chip-free .tfi-tag-chip-dot,
+.tfi-tag-chip-free.active .tfi-tag-chip-dot {
+  background: var(--magi-success, #22c55e);
+}
+.tfi-tag-chip-longCtx .tfi-tag-chip-dot,
+.tfi-tag-chip-longCtx.active .tfi-tag-chip-dot {
+  background: var(--magi-warning, #f59e0b);
+}
+.tfi-tag-chip.active {
+  color: var(--magi-text-primary);
+  background: color-mix(in srgb, var(--magi-accent) 12%, transparent);
+  border-color: var(--magi-accent);
+}
+
 /* ----- Form layouts (multi-column grids) ----- */
 /* Recurring 2-col and 3-col form grids on the requirements card.
  * Use DS spacing tokens; the grid columns collapse to 1 col at the

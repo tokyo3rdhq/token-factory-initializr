@@ -90,10 +90,48 @@ const en: TranslationTree = {
     sectionOther: "Other matching",
     hintRecommendedTemplate: (n: number) => `Top ${n} matching`,
     hintOther: "match — pick if useful",
-    /** Template: "{n} selected" — the bottom-row counter on the Browse
-     *  page, sits next to the "Generate →" CTA. */
     selectedCountTemplate: (n: number) =>
       n === 1 ? "1 selected" : `${n} selected`,
+    selectAllVisibleTemplate: (n: number) =>
+      n === 1 ? "Select 1 visible model" : `Select all ${n} visible`,
+    clearAllTemplate: (n: number) =>
+      n === 1 ? "Clear 1 selected" : `Clear ${n} selected`,
+    countFilteredTemplate: (matching: number, visible: number) =>
+      `${matching} match out of ${visible} visible.`,
+    /** Shown when the user has filters active (tag / search) and no
+     *  models match. Distinct from emptyBefore which is shown when
+     *  the requirement filter is the only thing filtering. */
+    emptyFiltered:
+      "No models match the current filter — try clearing a tag or relaxing the search.",
+    /** Tag filter taxonomy. Each tag has a label (chip text) and a
+     *  description (title attribute on the chip for accessibility). */
+    tags: {
+      chat: {
+        label: "Chat",
+        description: "Models with chat-style conversation capability.",
+      },
+      vision: {
+        label: "Vision",
+        description: "Models that accept image inputs.",
+      },
+      tools: {
+        label: "Tools",
+        description: "Models that support tool / function calling.",
+      },
+      free: {
+        label: "Free",
+        description: "Endpoints with confirmed free pricing.",
+      },
+      longCtx: {
+        label: "128K+",
+        description: "Models with a 128,000+ token context window.",
+      },
+    },
+    /** Filter row strings. */
+    filters: {
+      searchPlaceholder: "Search by name, provider, or id",
+      reset: "Reset filters",
+    },
     fallbackPrefix: "Could not load KV catalog: ",
     fallbackFixture: "Falling back to bundled fixtures.",
     fallbackHelp: "Set TFI_USE_LOCAL_FIXTURES=1 to browse offline.",

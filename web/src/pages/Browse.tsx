@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Badge, Banner, Button, Checkbox, Container, EmptyState, Section, Stack } from "@tokyo3rdhq/magi-design-system";
+import { Badge, Banner, Button, Checkbox, Container, EmptyState, Input, Section, Stack } from "@tokyo3rdhq/magi-design-system";
 
 import { fmtContext, hasVision } from "../components/format";
 import { useSelection } from "../components/SelectionContext";
@@ -9,12 +9,88 @@ import { matchesRequirement, type ModelEndpoint, type ModelRequirement } from ".
 import { useI18n } from "../I18nProvider";
 
 /**
+ * Tag filter taxonomy for the Browse page.
+ *
+ * Each tag is a (id, predicate, color) triple. The predicate is a
+ * pure function over a ModelEndpoint; the color is one of the
+ * DS Badge variants (accent / success / warning / neutral).
+ *
+ * Tags are pure metadata — adding a new one is one new entry below.
+ * No magic string lookups anywhere else.
+ */
+export type TagId = "chat" | "vision" | "tools" | "free" | "longCtx";
+
+interface TagDef {
+  id: TagId;
+  /** i18n key suffix — the lookup is ts("browse.tags." + id + ".label"). */
+  variant: "accent" | "success" | "warning" | "neutral";
+}
+
+export const TAGS: TagDef[] = [
+  { id: "chat",    variant: "accent"  },
+  { id: "vision",  variant: "accent"  },
+  { id: "tools",   variant: "accent"  },
+  { id: "free",    variant: "success" },
+  { id: "longCtx", variant: "warning" },
+];
+
+/** Pure predicate — given an endpoint and a tag id, return whether
+ *  the endpoint has the tag. Centralized so the filter UI and the
+ *  per-row badge rendering stay in sync (single source of truth). */
+function hasTag(ep: ModelEndpoint, tag: TagId): boolean {
+  switch (tag) {
+    case "chat":
+      return !!ep.capabilities?.chat;
+    case "vision":
+      return hasVision(ep);
+    case "tools":
+      return !!ep.capabilities?.tool_calling;
+    case "free":
+      return ep.free === true;
+    case "longCtx":
+      return (ep.context_length ?? 0) >= 128_000;
+  }
+}
+
+/** Pure filter — keyword + active tag set. Returns the visible
+ *  subset. The Browse page applies this BEFORE matching against
+ *  the requirement so the requirement filter is applied on top of
+ *  the user's free-text + tag choices. */
+function applyFilters(
+  models: ModelEndpoint[],
+  query: string,
+  activeTags: ReadonlySet<TagId>,
+): ModelEndpoint[] {
+  const q = query.trim().toLowerCase();
+  return models.filter((m) => {
+    if (activeTags.size > 0) {
+      // AND — every selected tag must match.
+      for (const tag of activeTags) {
+        if (!hasTag(m, tag)) return false;
+      }
+    }
+    if (q) {
+      const hay =
+        (m.name ?? "").toLowerCase() +
+        " " + m.model_id.toLowerCase() +
+        " " + m.provider.toLowerCase() +
+        " " + m.data_source.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/**
  * Browse — model selection page.
  *
- * Uses the developer-infrastructure row pattern (MODEL / PROVIDER /
- * CONTEXT · tools · vision). Layout primitives come from the design
- * system; colors come from CSS custom properties via ProductTheme.
- * Strings are routed through the i18n provider.
+ * Filter row (above the list):
+ *   [keyword input] [tag toggles] [select-all visible] [reset]
+ *
+ * Lists split into Recommended (top N by context length) + Other
+ * matching, same as before. The recommendation is by requirement
+ * only; tag/keyword filters narrow the user's view BEFORE the
+ * recommendation split is computed.
  */
 export function BrowsePage() {
   const location = useLocation();
@@ -28,6 +104,24 @@ export function BrowsePage() {
   const [models, setModels] = useState<ModelEndpoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  /** Free-text keyword — matches name, model_id, provider, data_source. */
+  const [query, setQuery] = useState("");
+
+  /** Active tag filter set. Empty = no tag filter (show everything
+   *  that matches the other criteria). */
+  const [activeTags, setActiveTags] = useState<ReadonlySet<TagId>>(
+    () => new Set(),
+  );
+
+  const toggleTag = (tag: TagId) => {
+    setActiveTags((prev) => {
+      const next = new Set(prev);
+      if (next.has(tag)) next.delete(tag);
+      else next.add(tag);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!shouldUseLocalFixtures(import.meta.env.VITE_USE_LOCAL_FIXTURES)) {
@@ -53,9 +147,17 @@ export function BrowsePage() {
   }, [loading, models.length, error, navigate]);
 
   const target = requirement?.endpointCount ?? 3;
+
+  // Filter (query + tags) applies first, THEN the requirement.
+  // The "recommended / other matching" split is computed on the
+  // post-filter set so the sections stay aligned with the user's view.
+  const filtered = useMemo(
+    () => applyFilters(models, query, activeTags),
+    [models, query, activeTags],
+  );
   const matching = useMemo(
-    () => models.filter((m) => matchesRequirement(m, requirement ?? {})),
-    [models, requirement],
+    () => filtered.filter((m) => matchesRequirement(m, requirement ?? {})),
+    [filtered, requirement],
   );
 
   const sorted = useMemo(() => {
@@ -68,23 +170,93 @@ export function BrowsePage() {
 
   const recommended = sorted.slice(0, target);
   const others = sorted.slice(target);
+  const visible = [...recommended, ...others];
+
+  const filtersActive = query.trim().length > 0 || activeTags.size > 0;
+  const resetFilters = () => {
+    setQuery("");
+    setActiveTags(new Set());
+  };
+
+  const selectAllVisible = () => {
+    if (visible.length === 0) return;
+    // Idempotent — only adds models that aren't already selected.
+    // selection.toggle is a no-op on already-selected items.
+    visible.forEach((m) => {
+      if (!selection.isSelected(m)) selection.toggle(m);
+    });
+  };
 
   return (
     <Section spacing="lg">
       <Container>
-        {/* Hero — left-aligned, ~720px content block to match magi-portal's
-         * per-page hero rhythm (was centered; reverting). */}
-<Stack gap="3" className="tfi-page-hero">
+        {/* Hero — left-aligned, ~720px content block. */}
+        <Stack gap="3" className="tfi-page-hero">
           <span className="magi-eyebrow">{ts("browse.eyebrow")}</span>
           <h1 className="magi-h1">
             {requirement ? ts("browse.headingWithReq") : ts("browse.headingNoReq")}
           </h1>
           <p className="magi-body-lg tfi-page-hero-subhead">
-            {requirement
-              ? dict.browse.countWithReqTemplate(matching.length)
-              : dict.browse.countNoReqTemplate(matching.length)}
+            {filtersActive
+              ? dict.browse.countFilteredTemplate(matching.length, filtered.length)
+              : requirement
+                ? dict.browse.countWithReqTemplate(matching.length)
+                : dict.browse.countNoReqTemplate(matching.length)}
           </p>
         </Stack>
+
+        {/* Filter row — keyword input, tag toggles, select-all + reset. */}
+        <div className="tfi-filter-row">
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={ts("browse.filters.searchPlaceholder")}
+            aria-label={ts("browse.filters.searchPlaceholder")}
+            className="tfi-filter-search"
+          />
+          <div className="tfi-tag-row">
+            {TAGS.map((tag) => {
+              const active = activeTags.has(tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  className={`tfi-tag-chip tfi-tag-chip-${tag.id}${active ? " active" : ""}`}
+                  aria-pressed={active}
+                  onClick={() => toggleTag(tag.id)}
+                  title={ts(`browse.tags.${tag.id}.description` as never)}
+                >
+                  <span className="tfi-tag-chip-dot" aria-hidden="true" />
+                  {ts(`browse.tags.${tag.id}.label` as never)}
+                </button>
+              );
+            })}
+          </div>
+          <div className="tfi-filter-actions">
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={selectAllVisible}
+              disabled={visible.length === 0}
+            >
+              {dict.browse.selectAllVisibleTemplate(visible.length)}
+            </Button>
+            {selection.selected.length > 0 && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => selection.clear()}
+              >
+                {dict.browse.clearAllTemplate(selection.selected.length)}
+              </Button>
+            )}
+            {filtersActive && (
+              <Button size="sm" variant="ghost" onClick={resetFilters}>
+                {ts("browse.filters.reset")}
+              </Button>
+            )}
+          </div>
+        </div>
 
         {error && (
           <Banner
@@ -114,7 +286,9 @@ export function BrowsePage() {
           </EmptyState>
         ) : matching.length === 0 ? (
           <EmptyState>
-            {ts("browse.emptyBefore")}
+            {filtersActive
+              ? ts("browse.emptyFiltered")
+              : ts("browse.emptyBefore")}
             <Link to="/">{ts("browse.emptyAfter")}</Link>.
           </EmptyState>
         ) : (
@@ -231,7 +405,7 @@ function ModelRow({
         <div className="tfi-model-id">{endpoint.model_id}</div>
       </span>
       <span className="tfi-model-meta">
-        {ctx && <Badge variant="neutral">{ctx}</Badge>}
+        {ctx && <Badge variant="accent">{ctx}</Badge>}
         {hasTools && <Badge variant="accent">tools</Badge>}
         {hasVisionCap && <Badge variant="accent">vision</Badge>}
         {endpoint.free && <Badge variant="success" dot>free</Badge>}
@@ -239,3 +413,7 @@ function ModelRow({
     </label>
   );
 }
+
+// Re-export pure helpers so unit tests can exercise the filter logic
+// without rendering React. See web/src/__tests__/browse-filters.test.ts.
+export const __browseFilters = { hasTag, applyFilters };
