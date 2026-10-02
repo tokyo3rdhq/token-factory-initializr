@@ -8,46 +8,64 @@ import {
   EmptyState,
   FormField,
   Section,
+  Segmented,
   Stack,
 } from "@tokyo3rdhq/magi-design-system";
 
-import { useSelection } from "../components/SelectionContext";
+import { useInitializr } from "../initializr/InitializrContext";
 import { postGenerate, type GenerateResponse } from "../kv";
 import { useI18n } from "../I18nProvider";
+import { SUPPORTED_TOKEN_FACTORIES } from "../../functions/lib/generators";
 
 /**
- * Generate page.
+ * Generate page — the second half of the Initializr core workflow
+ * (per docs/tfi_phase_1_initializr_core_workflow.md §10).
  *
- * Flow:
- *   - format selector + Initialize button
- *   - server returns a YAML + shareable URL (5-minute TTL)
- *   - shareable URL as a small machine-friendly meta row
+ * The page drives the explicit InitializrState held in
+ * InitializrContext:
  *
- * All user-visible strings are routed through the i18n provider.
+ *   selectedModels     ← from Browse (selection-only role)
+ *   tokenFactory       ← Token Factory picker on this page
+ *
+ * Validation (§9) happens at two layers:
+ *   1. {@link InitializrContext.computeReadiness} computes the
+ *      readiness flag from selectedModels + tokenFactory.
+ *   2. The Generate API endpoint validates server-side
+ *      (returns 400 / 404 with an actionable error string).
+ *
+ * The page reads readiness from context and surfaces it as:
+ *   - Generate button disabled when not ready
+ *   - Inline Banner showing the reason (validated at domain level,
+ *     not just inferred from the disabled button)
+ *
+ * The Token Factory picker iterates SUPPORTED_TOKEN_FACTORIES (the
+ * server-authoritative list of registered generators) — so adding a
+ * new factory automatically extends the picker UI.
  */
 export function GeneratePage() {
   const navigate = useNavigate();
-  const selection = useSelection();
+  const initializr = useInitializr();
   const { ts, dict } = useI18n();
 
-  const [format, setFormat] = useState<"litellm">("litellm");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [copied, setCopied] = useState<"yaml" | "url" | "prompt" | null>(null);
 
   const onInitialize = async () => {
-    if (selection.selected.length === 0) return;
+    if (!initializr.readiness.ready || initializr.tokenFactory === null) {
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
       const resp = await postGenerate({
-        model_ids: selection.selected.map((m) => ({
+        model_ids: initializr.selectedModels.map((m) => ({
           data_source: m.data_source,
           provider: m.provider,
           model_id: m.model_id,
         })),
-        format,
+        format: initializr.tokenFactory,
       });
       setResult(resp);
     } catch (e) {
@@ -80,22 +98,29 @@ export function GeneratePage() {
     URL.revokeObjectURL(url);
   };
 
+  const factoryMeta =
+    initializr.tokenFactory === null
+      ? null
+      : dict.initializr.factories[initializr.tokenFactory];
+
   return (
     <Section spacing="lg">
       <Container size="md">
         {/* Hero — left-aligned, ~720px content block to match magi-portal's
          * per-page hero rhythm (was centered; reverting). */}
-<Stack gap="3" className="tfi-page-hero">
+        <Stack gap="3" className="tfi-page-hero">
           <span className="magi-eyebrow">{ts("generate.eyebrow")}</span>
           <h1 className="magi-h1">{ts("generate.headline")}</h1>
           <p className="magi-body-lg tfi-page-hero-subhead">
-            {selection.selected.length > 0
-              ? dict.generate.subheadWithSelectionTemplate(selection.selected.length)
+            {initializr.selectedModels.length > 0
+              ? dict.generate.subheadWithSelectionTemplate(
+                  initializr.selectedModels.length,
+                )
               : ts("generate.subheadNoSelection")}
           </p>
         </Stack>
 
-        {selection.selected.length === 0 ? (
+        {initializr.selectedModels.length === 0 ? (
           <EmptyState>
             {ts("generate.emptyBefore")}
             <Link to="/">{ts("nav.start")}</Link>
@@ -111,9 +136,9 @@ export function GeneratePage() {
                 {ts("generate.selectionHeader")}
               </span>
               <Stack gap="4">
-                {selection.selected.map((m) => (
+                {initializr.selectedModels.map((m) => (
                   <div
-                    className="tfi-meta-grid"
+                    className="tfi-meta-grid tfi-candidate-row"
                     key={`${m.data_source}::${m.provider}::${m.model_id}`}
                   >
                     <span className="tfi-meta-key">{ts("generate.fieldModel")}</span>
@@ -122,42 +147,85 @@ export function GeneratePage() {
                     <span className="tfi-meta-value">{m.provider}</span>
                     <span className="tfi-meta-key">{ts("generate.fieldId")}</span>
                     <span className="tfi-meta-value">{m.model_id}</span>
+                    <span className="tfi-meta-value tfi-candidate-row-action">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => initializr.removeModel(m)}
+                      >
+                        ✕
+                      </Button>
+                    </span>
                   </div>
                 ))}
               </Stack>
             </Card>
 
-            {/* Format + Initialize */}
+            {/* Token Factory picker — iterates the server-authoritative
+                list. The action is driven entirely by InitializrState. */}
             <Card>
-              <Stack direction="row" gap="4" align="center">
-                <FormField label={ts("generate.fieldFormat")}>
-                  <select
-                    id="format-select"
-                    className="tfi-select"
-                    value={format}
-                    onChange={(e) => setFormat(e.target.value as "litellm")}
-                  >
-                    <option value="litellm">{ts("generate.optionLitellm")}</option>
-                  </select>
-                </FormField>
-                <Button
-                  variant="primary"
-                  onClick={onInitialize}
-                  disabled={submitting}
-                  loading={submitting}
+              <FormField
+                label={ts("initializr.pickerHeading")}
+                helper={ts("initializr.pickerDescription")}
+              >
+                <Segmented
+                  value={initializr.tokenFactory ?? SUPPORTED_TOKEN_FACTORIES[0]}
+                  options={SUPPORTED_TOKEN_FACTORIES.map((id) => ({
+                    value: id,
+                    label: dict.initializr.factories[id].name,
+                  }))}
+                  onChange={(v) => initializr.setTokenFactory(v as never)}
+                  accent
+                />
+              </FormField>
+              {factoryMeta && (
+                <p
+                  className="magi-caption tfi-caption-secondary tfi-factory-description"
                 >
-                  {submitting ? ts("generate.btnInitializing") : ts("generate.btnInitialize")}
-                </Button>
+                  {factoryMeta.description}
+                </p>
+              )}
+            </Card>
+
+            {/* Generation preconditions + action (§9). */}
+            <Card>
+              <Stack gap="4">
+                <Stack direction="row" align="center" gap="4">
+                  <span className="magi-caption tfi-caption-secondary">
+                    {dict.initializr.selectionCountTemplate(
+                      initializr.selectedModels.length,
+                    )}
+                  </span>
+                  <Button
+                    variant="primary"
+                    onClick={onInitialize}
+                    disabled={!initializr.readiness.ready || submitting}
+                    loading={submitting}
+                  >
+                    {submitting ? ts("generate.btnInitializing") : ts("generate.btnInitialize")}
+                  </Button>
+                </Stack>
+                {!initializr.readiness.ready && initializr.readiness.reason && (
+                  <Banner variant="info">
+                    {ts(initializr.readiness.reason)}
+                  </Banner>
+                )}
               </Stack>
             </Card>
 
             {error && (
-              <Banner variant="error">{error}</Banner>
+              <Banner variant="error">
+                {ts("initializr.errorPrefix")} {error}
+              </Banner>
             )}
 
             {!result ? (
               <EmptyState>
-                {error ? "" : ts("generate.emptyClick")}
+                {error
+                  ? ""
+                  : initializr.readiness.ready
+                    ? ts("generate.emptyClick")
+                    : ""}
               </EmptyState>
             ) : (
               <ResultPanel

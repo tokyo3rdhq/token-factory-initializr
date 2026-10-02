@@ -17,6 +17,7 @@ import { BrowsePage } from "./pages/Browse";
 import { GeneratePage } from "./pages/Generate";
 import { SelectionProvider } from "./components/SelectionContext";
 import { I18nProvider } from "./I18nProvider";
+import { Provider as InitializrProvider } from "./initializr/InitializrContext";
 
 // Read the theme the FOUC script already stamped on <html>. Passing
 // it into <AppTheme theme=...> avoids a one-frame theme flip on
@@ -50,18 +51,20 @@ createRoot(rootEl).render(
     */}
     <AppTheme accent="cyan" name="token-factory-initializr" theme={readInitialTheme()}>
       <I18nProvider>
-        <BrowserRouter>
-          <SelectionProvider>
-            <Routes>
-              <Route path="/" element={<App />}>
-                <Route index element={<HomePage />} />
-                <Route path="browse" element={<BrowsePage />} />
-                <Route path="generate" element={<GeneratePage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Route>
-            </Routes>
-          </SelectionProvider>
-        </BrowserRouter>
+        <InitializrProvider>
+          <BrowserRouter>
+            <SelectionProvider>
+              <Routes>
+                <Route path="/" element={<App />}>
+                  <Route index element={<HomePage />} />
+                  <Route path="browse" element={<BrowsePage />} />
+                  <Route path="generate" element={<GeneratePage />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Route>
+              </Routes>
+            </SelectionProvider>
+          </BrowserRouter>
+        </InitializrProvider>
       </I18nProvider>
     </AppTheme>
   </StrictMode>,

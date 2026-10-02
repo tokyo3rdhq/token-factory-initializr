@@ -126,6 +126,35 @@ const en: TranslationTree = {
     fieldTtl: "TTL",
     ttlValue: "5 minutes — by design",
   },
+
+  initializr: {
+    pickerHeading: "Token Factory",
+    pickerDescription:
+      "Choose the gateway that runs your models. TFI will produce a config it understands.",
+    selectionCountTemplate: (n: number) =>
+      n === 1 ? "1 model selected" : `${n} models selected`,
+    validation: {
+      noModels:
+        "No models selected yet. Pick one or more from Browse, then come back to choose Token Factory and generate.",
+      noFactory:
+        "Choose a Token Factory to generate the configuration.",
+    },
+    errorPrefix: "Unable to generate configuration:",
+    formatLabelTemplate: (factoryName: string) =>
+      `${factoryName} configuration`,
+    factories: {
+      litellm: {
+        name: "LiteLLM",
+        description:
+          "Open-source Python SDK + proxy that unifies 100+ LLM APIs behind the OpenAI interface.",
+      },
+      newapi: {
+        name: "NewAPI",
+        description:
+          "Self-hostable LLM gateway (one-api compatible) that channels many upstream providers behind a single endpoint.",
+      },
+    },
+  },
 };
 
 export default en;

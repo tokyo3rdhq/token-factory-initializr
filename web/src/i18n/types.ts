@@ -10,6 +10,8 @@
  * Per docs/guidelines.md §5.1 (Internationalization), native-language
  * names (endonyms) are used in the switcher — never country flags.
  */
+import type { InitializrTranslations } from "../types";
+
 export type Locale = "en" | "zh";
 
 /**
@@ -151,4 +153,7 @@ export interface TranslationTree {
     /** "5 minutes — by design" */
     ttlValue: string;
   }
+
+  /** Phase-1 Initializr — picker, validation, factory descriptions. */
+  initializr: InitializrTranslations;
 }

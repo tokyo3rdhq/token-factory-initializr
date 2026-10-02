@@ -1,74 +1,49 @@
-import {
-  createContext,
-  ReactNode,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
-import type { ModelEndpoint } from "../types";
+// Backward-compat shim for the legacy SelectionContext API
+// (``useSelection`` returning ``selected/toggle/clear/isSelected``).
+//
+// The selection state has moved into the unified InitializrContext
+// (per docs/tfi_phase_1_initializr_core_workflow.md §3 — there must
+// be a single canonical selection state shared between Browse /
+// Generate). This module re-exports the legacy ``useSelection`` so
+// Browse.tsx and any other consumer continue to compile while the
+// canonical state lives in InitializrContext.
+//
+// New code should prefer ``useInitializr`` (which exposes the full
+// InitializrState, including tokenFactory). The ``useSelection`` hook
+// here is the thin convenience the pre-Phase-1 codebase relied on.
 
-/**
- * App-wide selection state: the set of endpoints the user has
- * chosen to include in the next generated config.
- *
- * We key each entry by ``(data_source, provider, model_id)`` so
- * the same endpoint can only be selected once even if the same
- * model appears under multiple providers (refactor §13 — e.g.
- * ``huggingface/novita/openai/gpt-oss-20b`` vs
- * ``huggingface/together/openai/gpt-oss-20b`` are distinct
- * endpoints).
- */
-interface SelectionStore {
+import { useMemo } from "react";
+import type { ModelEndpoint } from "../types";
+import { useInitializr } from "../initializr/InitializrContext";
+
+export interface SelectionStore {
   selected: ModelEndpoint[];
   toggle(ep: ModelEndpoint): void;
   clear(): void;
   isSelected(ep: ModelEndpoint): boolean;
 }
 
-const SelectionContext = createContext<SelectionStore | null>(null);
-
 function key(ep: ModelEndpoint): string {
   return `${ep.data_source}::${ep.provider}::${ep.model_id}`;
 }
 
-export function SelectionProvider({ children }: { children: ReactNode }) {
-  const [selected, setSelected] = useState<ModelEndpoint[]>([]);
-
-  const toggle = useCallback((ep: ModelEndpoint) => {
-    const k = key(ep);
-    setSelected((prev) => {
-      const idx = prev.findIndex((e) => key(e) === k);
-      if (idx >= 0) {
-        return prev.filter((_, i) => i !== idx);
-      }
-      return [...prev, ep];
-    });
-  }, []);
-
-  const clear = useCallback(() => setSelected([]), []);
-
-  const isSelected = useCallback(
-    (ep: ModelEndpoint) => selected.some((e) => key(e) === key(ep)),
-    [selected]
-  );
-
-  const value = useMemo(
-    () => ({ selected, toggle, clear, isSelected }),
-    [selected, toggle, clear, isSelected]
-  );
-
-  return (
-    <SelectionContext.Provider value={value}>
-      {children}
-    </SelectionContext.Provider>
-  );
-}
-
+/** Legacy surface — reads from InitializrContext. */
 export function useSelection(): SelectionStore {
-  const ctx = useContext(SelectionContext);
-  if (!ctx) {
-    throw new Error("useSelection must be used inside SelectionProvider");
-  }
-  return ctx;
+  const { selectedModels, toggleModel, reset } = useInitializr();
+  return useMemo<SelectionStore>(
+    () => ({
+      selected: selectedModels,
+      toggle: toggleModel,
+      clear: reset,
+      isSelected: (ep: ModelEndpoint) =>
+        selectedModels.some((m) => key(m) === key(ep)),
+    }),
+    [selectedModels, toggleModel, reset],
+  );
 }
+
+/** Provider shim. The new InitializrProvider lives in
+ * ``initializr/InitializrContext``; we re-export under the old name
+ * so `main.tsx` doesn't have to change its import line during the
+ * transition. The component itself is just an alias. */
+export { Provider as SelectionProvider } from "../initializr/InitializrContext";

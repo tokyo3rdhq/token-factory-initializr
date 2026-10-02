@@ -124,6 +124,32 @@ const zh: TranslationTree = {
     fieldTtl: "TTL",
     ttlValue: "5 分钟后过期 —— 这是设计如此",
   },
+
+  initializr: {
+    pickerHeading: "Token Factory",
+    pickerDescription:
+      "选择运行这些模型的网关。TFI 会生成它能识别的配置。",
+    selectionCountTemplate: (n: number) => `已选 ${n} 个模型`,
+    validation: {
+      noModels:
+        "尚未选择模型。先到「浏览」勾选模型,再回来选择 Token Factory 并生成配置。",
+      noFactory: "请选择一个 Token Factory 以生成配置。",
+    },
+    errorPrefix: "无法生成配置:",
+    formatLabelTemplate: (factoryName: string) => `${factoryName} 配置`,
+    factories: {
+      litellm: {
+        name: "LiteLLM",
+        description:
+          "开源 Python SDK + 代理,统一 100+ LLM API,提供 OpenAI 兼容接口。",
+      },
+      newapi: {
+        name: "NewAPI",
+        description:
+          "可自托管的 LLM 网关(one-api 兼容),在单一端点后汇聚多家上游 provider。",
+      },
+    },
+  },
 };
 
 export default zh;

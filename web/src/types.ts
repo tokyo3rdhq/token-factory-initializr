@@ -82,8 +82,38 @@ export interface GeneratedArtifact {
   models: ModelEndpoint[];
   /** Rendered LiteLLM config (YAML). */
   config_yaml: string;
-  /** Config format key (currently only "litellm"). */
+  /** Config format key (currently only "litellm"; "newapi"
+     *  follows from the Phase-1 Token Factory refactor). */
   format: string;
+}
+
+/** Phase-1 Token Factory refactor — single explicit Initializr state
+ *  shared between Browse and Generate. Mirrors
+ *  /web/functions/lib/generators/types.ts on the server side. */
+export interface InitializrTranslations {
+  /** Heading on the picker section. */
+  pickerHeading: string;
+  /** Picker description text. */
+  pickerDescription: string;
+  /** Selection summary text (e.g. "{n} models selected"). */
+  selectionCountTemplate: (n: number) => string;
+  /** Validation messages per doc §9 / §19. */
+  validation: {
+    noModels: string;
+    noFactory: string;
+  };
+  /** Generic error prefix when generation fails. Server-side errors
+   *  are usually actionable on their own; this is the fallback
+   *  when the request simply failed. */
+  errorPrefix: string;
+  /** Result-panel format label (e.g. "LiteLLM configuration"). */
+  formatLabelTemplate: (factoryName: string) => string;
+  /** Per-Token-Factory display labels / descriptions rendered in the
+   *  picker UI. Keys must match the server-side TokenFactoryId union. */
+  factories: {
+    litellm: { name: string; description: string };
+    newapi: { name: string; description: string };
+  };
 }
 
 /** Lifted to the top level because both KV and Functions use it. */
