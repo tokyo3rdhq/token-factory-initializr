@@ -70,8 +70,37 @@
   border: 0;
   white-space: nowrap;
 }
-.tfi-brand:hover { border: 0; }
-.tfi-brand:hover .tfi-brand-mark { opacity: 0.85; }
+/* Two-link brand split (App.tsx comment):
+ *   <a href="magi.website">MagiLockup</a> / <Link to="/">Token Factory</Link>
+ *
+ * The lockup wrapper is a plain <a> targeting the parent brand.
+ * The MagiLockup component itself uses currentColor + inherits from
+ * the wrapper, so the existing .tfi-brand color cascades through. */
+.tfi-brand-mark-link {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  color: inherit;
+  opacity: 0.9;
+  transition: opacity var(--magi-duration-fast, 120ms) ease;
+}
+.tfi-brand-mark-link:hover { opacity: 1; }
+.tfi-brand-mark-link:focus-visible {
+  outline: 2px solid var(--magi-accent);
+  outline-offset: 2px;
+  border-radius: var(--magi-radius-sm);
+}
+.tfi-brand-product-link {
+  color: var(--magi-text-primary);
+  font-weight: var(--magi-font-weight-semibold);
+  white-space: nowrap;
+  border: 0;
+  transition: color var(--magi-duration-fast, 120ms) ease;
+}
+.tfi-brand-product-link:hover { color: var(--magi-accent); }
+/* Legacy class — kept so the .tfi-brand-mark SVG inside the wrapper
+ * picks up the same dimensions; the actual click target is on the
+ * .tfi-brand-mark-link above. */
 .tfi-brand-mark {
   color: inherit;
   flex-shrink: 0;
@@ -82,11 +111,6 @@
   color: var(--magi-text-tertiary);
   font-weight: var(--magi-font-weight-normal);
   margin: 0 var(--magi-space-1);
-}
-.tfi-brand-product {
-  color: var(--magi-text-primary);
-  font-weight: var(--magi-font-weight-semibold);
-  white-space: nowrap;
 }
 
 .tfi-nav {
@@ -285,6 +309,19 @@
   color: var(--magi-text-tertiary);
   font-weight: var(--magi-font-weight-medium);
   margin: 0 0 var(--magi-space-4) 0;
+}
+/* Footer MAGI column header — wraps the column title in an external
+ * link to magi.website. The plain <a> inherits .tfi-footer-col a's
+ * color/transition; this rule just preserves the eyebrow styling
+ * (no border, no underline) so the link looks like a header label
+ * that happens to be clickable. Hover-state lives in the inherited
+ * .tfi-footer-col a:hover rule. */
+.tfi-footer-magi-link {
+  border: 0;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  font-weight: inherit;
+  color: inherit;
 }
 .tfi-footer-col ul {
   list-style: none;
