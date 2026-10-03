@@ -120,6 +120,10 @@
     "score": {
       "type": ["number", "null"],
       "description": "Future: quality/performance score"
+    },
+    "provenance": {
+      "type": ["object", "null"],
+      "description": "Field-level provenance records keyed by canonical field path (e.g. 'description', 'capabilities.input_modalities'). Populated by the enrichment stage."
     }
   },
   "additionalProperties": false

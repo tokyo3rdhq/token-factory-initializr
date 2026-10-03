@@ -40,10 +40,13 @@ def _build_default_registry() -> List[Tuple[str, Callable[[], List[dict]]]]:
     from data.providers.huggingface import fetch_huggingface_models
     from data.providers.nvidia import fetch_catalog_page
 
+    from data.providers.openrouter import fetch_openrouter_models
+
     return [
         ("nvidia", fetch_catalog_page),
         ("amd", fetch_amd_models),
         ("huggingface", fetch_huggingface_models),
+        ("openrouter", fetch_openrouter_models),
     ]
 
 
@@ -121,4 +124,6 @@ class FetchStage(Stage):
         fetched, errors = asyncio.run(_fetch_all_async(self.providers))
         context.data["fetched"] = fetched
         context.state["fetch_errors"] = errors
+        # Also expose OpenRouter models for downstream enrichment
+        context.data["openrouter_models"] = fetched.get("openrouter", [])
         return context

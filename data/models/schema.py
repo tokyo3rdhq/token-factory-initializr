@@ -8,10 +8,41 @@ from typing import Optional
 
 
 @dataclass(frozen=True)
+class FieldProvenance:
+    """A single provenance record for one canonical field.
+
+    Provenance keys are canonical field paths:
+      - ``description``
+      - ``capabilities.input_modalities``
+      - ``capabilities.output_modalities``
+      - ``context_length``
+      - ``architecture.input_modalities``
+
+    Attributes:
+        source: Data source name (``nvidia``, ``amd``, ``huggingface``,
+            ``openrouter``, ``models_dev``, ``modelparams``, ``provider_api``).
+        source_id: Source-specific model identifier (e.g. ``deepseek/deepseek-v4.1-flash``).
+        source_field: Field path in the source payload (e.g. ``description``,
+            ``architecture.input_modalities``).
+        method: How the canonical value was formed.
+            One of: ``native``, ``enriched``, ``normalized``, ``inferred``, ``derived``.
+        confidence: Confidence score 0.0–1.0.
+        observed_at: ISO timestamp when this value was observed.
+    """
+
+    source: str
+    source_id: str
+    source_field: str
+    method: str
+    confidence: float
+    observed_at: datetime
+
+
+@dataclass(frozen=True)
 class ModelEndpoint:
     """Immutable canonical model endpoint record.
 
-    Fields marked `None` are placeholders for future enrichment.
+    Fields marked ``None`` are placeholders for future enrichment.
     Do not add complex fields unless the current provider data requires them.
     """
 
@@ -36,7 +67,7 @@ class ModelEndpoint:
     # schema. The fields are NOT shared across providers — each
     # provider stamps a different shape:
     #
-    # * AMD: ``{family, context_length, free_status, original_id}``.
+    #   * AMD: ``{family, context_length, free_status, original_id}``.
     #   ``family`` is the publisher name; ``context_length`` is also
     #   lifted to the top-level ``context_length`` field (the
     #   metadata copy stays for back-compat); ``free_status`` is the
@@ -44,13 +75,13 @@ class ModelEndpoint:
     #   ``"paid"``); ``original_id`` preserves AMD's gateway-prefixed
     #   id (e.g. ``"model_gateway:MiMo-V2.6-Flash"``) so the stripped
     #   ``model_id`` can be disambiguated.
-    # * Hugging Face: ``{router_provider, context_length,
+    #   * Hugging Face: ``{router_provider, context_length,
     #   supports_tools, first_token_latency_ms, throughput}``.
     #   ``router_provider`` is the specific HF router provider
     #   (e.g. ``"huggingface"`` / ``"cloudflare"``) — one model may
-    #   appear under multiple providers as separate endpoints;
-    #   ``context_length`` is also lifted to the top-level field.
-    # * NVIDIA: ``{raw_obj?, attributes?, labels?}``. All three keys
+    #   appear under multiple providers as separate endpoints; ``context_length``
+    #   is also lifted to the top-level field.
+    #   * NVIDIA: ``{raw_obj?, attributes?, labels?}``. All three keys
     #   are optional and only present when the upstream RSC payload
     #   carries them. ``raw_obj`` is the full RSC object (debug /
     #   enrichment use; can be large — keep an eye on KV size);
@@ -72,9 +103,9 @@ class ModelEndpoint:
     # AMD exposes via ``model.output`` + ``provider_pricing``. The name
     # matches the upstream convention so downstream consumers don't need
     # per-provider renaming. NVIDIA doesn't expose modalities natively; we
-    # derive output_modalities from capabilities (``chat`` ->
-    # ``["text"]``, ``tool_calling`` -> ``["text", "tool_calls"]``) and leave
-    # input_modalities empty.
+    # derive output_modalities from capabilities (``chat`` -> ``["text"]``,
+    # ``tool_calling`` -> ``["text", "tool_calls"]``) and leave input_modalities
+    # empty.
     architecture: Optional[dict[str, list[str]]] = None
 
     # Lab / organization the model is attributed to (HF: ``owned_by``,
@@ -107,3 +138,9 @@ class ModelEndpoint:
     status: Optional[str] = None
     limits: Optional[dict] = None
     score: Optional[float] = None
+
+    # Provenance: per-canonical-field provenance records.
+    # Keyed by dotted field path (e.g. ``description``, ``capabilities.input_modalities``).
+    # Values are ``FieldProvenance`` objects with: source, source_id, source_field,
+    # method (native|enriched|normalized|inferred|derived), confidence, observed_at.
+    provenance: dict[str, FieldProvenance] = field(default_factory=dict)

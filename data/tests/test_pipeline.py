@@ -118,8 +118,8 @@ def test_default_pipeline_does_not_import_pipeline_in_misplaced_way():
         )
 
 
-def test_provider_registry_lists_three_providers():
-    assert {n for n, _ in PROVIDER_FETCHERS} == {"nvidia", "amd", "huggingface"}
+def test_provider_registry_lists_all_providers():
+    assert {n for n, _ in PROVIDER_FETCHERS} == {"nvidia", "amd", "huggingface", "openrouter"}
 
 
 # ---------------------------------------------------------------------------
@@ -288,18 +288,25 @@ def test_enrich_stage_forwards_valid_to_enriched():
     a2 = _mk_ep("nvidia", "y/2")
     ctx = PipelineContext()
     ctx.data["valid"] = [a1, a2]
+    ctx.data["openrouter_models"] = []
     out = EnrichStage().execute(ctx)
-    # EnrichStage is currently a placeholder; same-model-across-providers
-    # is preserved (doc §12) rather than deduplicated.
+    # EnrichStage preserves same-model-across-providers (doc §12) rather
+    # than deduplicating. With no OpenRouter observations, no provenance
+    # is added and the records pass through unchanged.
     assert out.data["enriched"] == [a1, a2]
+    assert all(ep.provenance == {} for ep in out.data["enriched"])
     # Same-model-different-provider must coexist as separate endpoints.
     b1 = _mk_ep("nvidia", "google/gemma-4")
     b2 = _mk_ep("amd", "google/gemma-4")
     ctx2 = PipelineContext()
     ctx2.data["valid"] = [b1, b2]
+    ctx2.data["openrouter_models"] = []
     out2 = EnrichStage().execute(ctx2)
     assert len(out2.data["enriched"]) == 2
-    assert out2.artifacts["enrich_facts"] == []
+    facts = out2.artifacts["enrich_facts"]
+    assert facts["total_endpoints"] == 2
+    assert facts["openrouter_matches"] == 0
+    assert facts["total_provenance_additions"] == 0
 
 
 def test_summarize_stage_populates_manifest_artifact():
