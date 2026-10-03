@@ -10,6 +10,11 @@
  * override propagates automatically.
  * ============================================================ */
 
+/* ---------- CSS custom properties ---------- */
+:root {
+  --tfi-topbar-offset: 44px;
+}
+
 /* ----- Topbar (3-section: brand / centered nav / utility) ----- */
 /* Matches magi-portal's topbar (Layout.astro lines 149-156):
  *   sticky top-0 z-40 backdrop-blur-xl bg-bg-raised/95 border-b
@@ -431,13 +436,21 @@
   margin-top: 2px;
   word-break: break-all;
 }
+.tfi-model-desc {
+  font-size: var(--magi-font-size-small);
+  color: var(--magi-text-secondary);
+  line-height: 1.4;
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
 .tfi-model-meta {
   display: inline-flex;
   flex-wrap: wrap;
   gap: var(--magi-space-2);
   justify-content: flex-end;
 }
-
 /* ----- Meta grid (developer-infrastructure MODEL / CONTEXT / PROVIDER / STATUS) ----- */
 .tfi-meta-grid {
   display: grid;
@@ -556,6 +569,11 @@
   background: var(--magi-surface);
   border: 1px solid var(--magi-border);
   border-radius: var(--magi-radius-lg);
+  position: sticky;
+  top: var(--tfi-topbar-offset);
+  z-index: 40;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 .tfi-filter-search {
   flex: 1 1 240px;
@@ -734,16 +752,100 @@
 @keyframes tfi-spin { to { transform: rotate(360deg); } }
 
 /* ----- Responsive ----- */
-@media (max-width: 720px) {
+/* Two breakpoints:
+ *   tablet (max-width: 960px): reduce paddings, tighten nav
+ *   mobile (max-width: 640px): stack everything vertically — topbar,
+ *     hero, filter row, model rows, bottom CTA — keep the developer
+ *     information density readable at phone widths. */
+
+/* ----- Tablet ----- */
+@media (max-width: 960px) {
+  .tfi-topbar-inner { gap: var(--magi-space-3); padding: 0 var(--magi-space-4); }
+  .tfi-brand-product { display: none; }
+  .tfi-nav { gap: var(--magi-space-4); }
+  .tfi-nav-link { font-size: 12px; }
+  .tfi-page-hero { max-width: 100%; margin-bottom: var(--magi-space-6); }
+  .tfi-page-hero-subhead { max-width: 100%; }
+  .tfi-filter-row { padding: var(--magi-space-2); }
+  .tfi-footer-cols { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ----- Mobile ----- */
+@media (max-width: 640px) {
+  /* Topbar — stack brand / nav / utility vertically so the brand
+   * "Token Factory Initializr" doesn't collide with the nav links on
+   * narrow viewports. The inner keeps the constrained max-width so
+   * the utility row stays right-aligned. */
+  .tfi-topbar-inner {
+    flex-direction: column;
+    align-items: stretch;
+    height: auto;
+    gap: var(--magi-space-2);
+    padding: var(--magi-space-2) var(--magi-space-4);
+  }
+  .tfi-brand {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .tfi-brand-product { display: none; }
+  .tfi-nav {
+    width: 100%;
+    justify-content: space-around;
+    gap: var(--magi-space-1);
+  }
+  .tfi-nav-link { font-size: 11px; padding: 0 2px; }
+  .tfi-topbar-utility { justify-content: flex-end; }
+
+  /* Hero — smaller typography on phone widths. */
+  .tfi-page-hero { margin-bottom: var(--magi-space-4); }
+  .tfi-page-hero .magi-eyebrow { font-size: 10px; }
+  .tfi-page-hero .magi-display { font-size: 2rem; line-height: 1.1; }
+
+  /* Filter row — wrap is already on; tighten spacing. */
+  .tfi-filter-row { padding: var(--magi-space-2); }
+  .tfi-filter-search { flex: 1 1 100%; }
+  .tfi-tag-row { gap: var(--magi-space-1); }
+  .tfi-filter-actions { width: 100%; justify-content: stretch; }
+  .tfi-filter-actions .magi-button { flex: 1; }
+
+  /* BrowseSection — wrap header so heading / hint don't collide. */
+  .tfi-section-header {
+    flex-wrap: wrap;
+    gap: var(--magi-space-1);
+  }
+  .tfi-section-header .magi-eyebrow { font-size: 10px; }
+
+  /* Model row — collapse the multi-column grid into a single
+   * stacked column with badges wrapping below the model id. */
+  .tfi-model-row {
+    grid-template-columns: 24px 1fr;
+    gap: var(--magi-space-2);
+    padding: var(--magi-space-3);
+  }
+  .tfi-model-meta {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    margin-top: var(--magi-space-1);
+  }
+  .tfi-model-meta .magi-badge { font-size: 10px; }
+
+  /* Bottom CTA row — stack. */
+  .tfi-bottom-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--magi-space-2);
+  }
+  .tfi-bottom-row .magi-button { width: 100%; }
+
+  /* Form grids — existing 1-col behaviour. */
   .tfi-form-grid-2col,
   .tfi-form-grid-3col {
     grid-template-columns: 1fr;
   }
-  .tfi-footer-cols { grid-template-columns: repeat(2, 1fr); }
+
+  /* Footer — already 2-col on tablet; on phone stack to 1. */
+  .tfi-footer-cols { grid-template-columns: 1fr; }
   .tfi-footer-meta { flex-direction: column; gap: var(--magi-space-2); }
-  .tfi-model-row {
-    grid-template-columns: 24px 1fr;
-    gap: var(--magi-space-3);
-  }
-  .tfi-model-meta { grid-column: 2; text-align: left; }
 }
+

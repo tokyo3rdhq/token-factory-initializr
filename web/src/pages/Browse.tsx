@@ -398,6 +398,9 @@ function ModelRow({
       <span>
         <span className="tfi-model-name">{endpoint.name || endpoint.model_id}</span>
         <div className="tfi-model-id">{endpoint.model_id}</div>
+        {endpoint.description && (
+          <div className="tfi-model-desc">{endpoint.description}</div>
+        )}
       </span>
       <span className="tfi-model-meta">
         {ctx && <Badge variant="accent">{ctx}</Badge>}
