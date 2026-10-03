@@ -205,7 +205,7 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
         # its way through. Provider adapters that bypass the normalize
         # stage still see this raw shape.
         "capabilities": {
-            "use_case": derive_use_case(detail),
+            "use_case": derive_use_case(m),
         },
         # Structured modalities matching the canonical schema. AMD's API
         # splits input vs output natively; we mirror that directly under
@@ -227,6 +227,19 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
         # this field).
         "pricing": pricing,
         "metadata": {
+            # TFI-authored raw signal that the normalize stage consumes
+            # to map AMD into the canonical 7-key capabilities shape.
+            # We store it under ``metadata`` rather than under
+            # ``capabilities`` (which the normalize stage overwrites
+            # with the canonical shape) so legacy consumers that read
+            # ``ep.capabilities`` directly without going through
+            # ``normalize_endpoints`` still see the AMD ``use_case``
+            # string. ``derive_use_case`` reads from the model dict
+            # (``m``), not the wrapper (``detail``), so we pass ``m``
+            # here to avoid an off-by-one bug where the legacy
+            # ``capabilities.use_case`` field silently came back as
+            # ``None`` in production.
+            "use_case": derive_use_case(m),
             # Back-compat metadata fields preserved for any consumer
             # that reads metadata directly.
             "family": tf.get("publisher", {}).get("name") or m.get("family", "unknown"),
