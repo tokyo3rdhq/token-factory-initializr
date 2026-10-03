@@ -379,6 +379,14 @@ function ModelRow({
   const ctx = fmtContext(endpoint.context_length);
   const hasTools = !!endpoint.capabilities?.tool_calling;
   const hasVisionCap = hasVision(endpoint);
+  // Row badges mirror the Browse tag-filter chips for the capabilities
+  // a user is most likely to scan for in the row. ``chat`` is the most
+  // common capability so it's surfaced as an ``accent`` badge whenever
+  // the canonical normalize shape flags it. The full set lives in
+  // ``ep.capabilities``; this is a curation, not the whole set.
+  const hasChat = !!endpoint.capabilities?.chat;
+  const hasSpeech = !!endpoint.capabilities?.speech;
+  const hasEmbedding = !!endpoint.capabilities?.embedding;
   return (
     <label className={`tfi-model-row${selected ? " selected" : ""}`}>
       <Checkbox
@@ -393,8 +401,11 @@ function ModelRow({
       </span>
       <span className="tfi-model-meta">
         {ctx && <Badge variant="accent">{ctx}</Badge>}
+        {hasChat && <Badge variant="accent">chat</Badge>}
         {hasTools && <Badge variant="accent">tools</Badge>}
         {hasVisionCap && <Badge variant="accent">vision</Badge>}
+        {hasSpeech && <Badge variant="accent">speech</Badge>}
+        {hasEmbedding && <Badge variant="warning">embed</Badge>}
         {endpoint.free && <Badge variant="success" dot>free</Badge>}
       </span>
     </label>
