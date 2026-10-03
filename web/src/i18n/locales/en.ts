@@ -88,8 +88,10 @@ const en: TranslationTree = {
     emptyAfter: "edit requirements",
     sectionRecommended: "Recommended",
     sectionOther: "Other matching",
+    sectionAll: "All matching",
     hintRecommendedTemplate: (n: number) => `Top ${n} matching`,
     hintOther: "match — pick if useful",
+    hintAllTemplate: (n: number) => `All ${n} matching`,
     selectedCountTemplate: (n: number) =>
       n === 1 ? "1 selected" : `${n} selected`,
     selectAllVisibleTemplate: (n: number) =>

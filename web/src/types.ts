@@ -23,8 +23,22 @@ export interface ModelEndpoint {
   /** True iff the upstream provider offers free access. */
   free: boolean;
 
-  /** Capability flags (chat, tool_calling, vision, speech, embedding, ...). */
-  capabilities: Record<string, unknown>;
+  /** Canonical capability flags — the normalize stage
+   *  (``data.process.normalize.normalize_capabilities``) writes a
+   *  fixed 7-key boolean shape into this field so every endpoint
+   *  across nvidia / huggingface / amd reads the same axis. Keys
+   *  that upstream doesn't surface are explicitly False rather than
+   *  undefined. See ``CANONICAL_CAPABILITY_KEYS`` in
+   *  data/process/normalize.py for the source-of-truth list. */
+  capabilities: {
+    chat?: boolean;
+    vision?: boolean;
+    speech?: boolean;
+    embedding?: boolean;
+    tool_calling?: boolean;
+    structured_output?: boolean;
+    reasoning?: boolean;
+  };
 
   /** Input / output modalities — null when upstream doesn't expose them. */
   architecture: { input: string[]; output: string[] } | null;
@@ -123,6 +137,13 @@ export const TTL_SECONDS = 300;
 // Used by the web UI to filter / rank endpoints against what the user
 // actually needs. Every field is optional; an empty requirement
 // matches every endpoint.
+//
+// Capabilities keys here are camelCase (user-facing — they appear in
+// the requirement shape the URL state passes through). The matcher
+// below reads the canonical snake_case keys from
+// ``endpoint.capabilities`` (set by the normalize stage) — the
+// mapping is fixed and one-to-one, so we just translate the
+// requirement's camelCase to the endpoint's snake_case.
 export interface ModelRequirement {
   /** Use-case tags the user wants to satisfy. */
   useCases?: string[];
@@ -198,14 +219,12 @@ export function matchesRequirement(
   endpoint: ModelEndpoint,
   requirement: ModelRequirement,
 ): boolean {
-  // capabilities — vision / toolCalling / structuredOutput
-  //
-  // The capability flag in the schema is camelCase (user-facing).
-  // The actual data emits snake_case (``tool_calling``,
-  // ``structured_output``). We accept either, and additionally
-  // derive ``vision`` from architecture when the explicit flag is
-  // missing — AMD/NVIDIA/HF all carry modality info on
-  // architecture.input rather than the capability flag.
+  // capabilities — every flag is read directly off the canonical
+  // snake_case keys written by the normalize stage
+  // (``data.process.normalize.normalize_capabilities``). The
+  // requirement uses camelCase (user-facing — the URL state carries
+  // it); the matcher translates each one to its snake_case endpoint
+  // counterpart. No dual-key fallback needed.
   const caps = requirement.capabilities;
   if (caps) {
     if (caps.vision === true && !hasVision(endpoint)) return false;
@@ -261,14 +280,14 @@ export function matchesRequirement(
 }
 
 // ---------------------------------------------------------------------------
-// Capability predicates — bridge the user-facing camelCase schema to the
-// per-provider snake_case capability keys / architecture modalities.
+// Capability predicates — read the canonical snake_case keys written
+// by the normalize stage (``data.process.normalize.normalize_capabilities``).
+// Vision falls back to ``architecture.input`` because AMD's vision
+// flag is derived from modalities rather than a top-level boolean.
 // ---------------------------------------------------------------------------
 
 function hasVision(ep: ModelEndpoint): boolean {
-  const eCaps = ep.capabilities || {};
-  if (eCaps.vision) return true;
-  if (eCaps.image_input) return true;
+  if (ep.capabilities?.vision) return true;
   const arch = ep.architecture;
   if (arch && Array.isArray(arch.input) && arch.input.includes("image")) {
     return true;
@@ -277,25 +296,15 @@ function hasVision(ep: ModelEndpoint): boolean {
 }
 
 function hasToolCalling(ep: ModelEndpoint): boolean {
-  const eCaps = ep.capabilities || {};
-  if (eCaps.tool_calling || eCaps.toolCalling) return true;
-  // AMD stores the tool flag inside metadata. We don't read metadata
-  // here (capability-style), but the dedicated AMD capability key
-  // ``use_case == "chat+tools"`` etc. would route through this path
-  // if AMD ever stops omitting the boolean on the top-level dict.
-  return false;
+  return ep.capabilities?.tool_calling === true;
 }
 
 function hasStructuredOutput(ep: ModelEndpoint): boolean {
-  const eCaps = ep.capabilities || {};
-  if (eCaps.structured_output || eCaps.structuredOutput) return true;
-  return false;
+  return ep.capabilities?.structured_output === true;
 }
 
 function hasReasoning(ep: ModelEndpoint): boolean {
-  const eCaps = ep.capabilities || {};
-  if (eCaps.reasoning) return true;
-  return false;
+  return ep.capabilities?.reasoning === true;
 }
 
 /** Read a numeric price field, tolerating string-encoded values. */

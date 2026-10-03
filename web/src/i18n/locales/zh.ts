@@ -91,8 +91,10 @@ emptyBefore: "没有匹配的模型。试着放宽一些条件 —— ",
     emptyFiltered: "当前过滤条件下没有匹配的模型 —— 试着取消某个 tag 或清空搜索。",
     sectionRecommended: "推荐",
     sectionOther: "其他匹配",
+    sectionAll: "全部匹配",
     hintRecommendedTemplate: (n: number) => `前 ${n} 个匹配`,
     hintOther: "匹配 —— 视情况选用",
+    hintAllTemplate: (n: number) => `共 ${n} 个匹配`,
     countFilteredTemplate: (matching: number, visible: number) =>
       `${visible} 个中匹配 ${matching} 个。`,
     selectAllVisibleTemplate: (n: number) =>

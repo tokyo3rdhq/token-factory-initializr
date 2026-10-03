@@ -146,11 +146,14 @@ export function BrowsePage() {
     }
   }, [loading, models.length, error, navigate]);
 
-  const target = requirement?.endpointCount ?? 3;
-
   // Filter (query + tags) applies first, THEN the requirement.
-  // The "recommended / other matching" split is computed on the
-  // post-filter set so the sections stay aligned with the user's view.
+  // The result is a single ordered list — sorted by context length
+  // descending so the most capable models surface at the top of the
+  // user's view. Per doc §26 ("TFI is not yet an AI model
+  // recommender"), we don't pre-select a subset: every model that
+  // passes the filters is presented with equal weight, and the user
+  // opts in to as many as they want via the filter row's Select-all
+  // button.
   const filtered = useMemo(
     () => applyFilters(models, query, activeTags),
     [models, query, activeTags],
@@ -168,9 +171,8 @@ export function BrowsePage() {
     });
   }, [matching]);
 
-  const recommended = sorted.slice(0, target);
-  const others = sorted.slice(target);
-  const visible = [...recommended, ...others];
+  // Single visible list — no Recommended / Other matching split.
+  const visible = sorted;
 
   const filtersActive = query.trim().length > 0 || activeTags.size > 0;
   const resetFilters = () => {
@@ -294,16 +296,16 @@ export function BrowsePage() {
         ) : (
           <Stack gap="10">
             <BrowseSection
-              heading={ts("browse.sectionRecommended")}
-              hint={dict.browse.hintRecommendedTemplate(recommended.length)}
+              heading={ts("browse.sectionAll")}
+              hint={dict.browse.hintAllTemplate(visible.length)}
             >
               <ModelList>
-                {recommended.length === 0 ? (
+                {visible.length === 0 ? (
                   <div className="tfi-empty-muted">
                     Nothing in this bucket.
                   </div>
                 ) : (
-                  recommended.map((m) => (
+                  visible.map((m) => (
                     <ModelRow
                       key={`${m.data_source}::${m.provider}::${m.model_id}`}
                       endpoint={m}
@@ -314,21 +316,6 @@ export function BrowsePage() {
                 )}
               </ModelList>
             </BrowseSection>
-
-            {others.length > 0 && (
-              <BrowseSection heading={ts("browse.sectionOther")} hint={ts("browse.hintOther")} muted>
-                <ModelList>
-                  {others.map((m) => (
-                    <ModelRow
-                      key={`${m.data_source}::${m.provider}::${m.model_id}`}
-                      endpoint={m}
-                      selected={selection.isSelected(m)}
-                      onToggle={selection.toggle}
-                    />
-                  ))}
-                </ModelList>
-              </BrowseSection>
-            )}
 
             <Stack
               direction="row"

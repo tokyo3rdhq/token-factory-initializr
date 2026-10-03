@@ -121,9 +121,14 @@ export interface TranslationTree {
     emptyFiltered: string;
     sectionRecommended: string;
     sectionOther: string;
+    /** Single "All matching" section heading used when the
+     *  Recommended / Other matching split is collapsed. */
+    sectionAll: string;
     /** Template: "Top {n} matching" */
     hintRecommendedTemplate: (n: number) => string;
     hintOther: string;
+    /** Template: "All {n} matching" — single-section equivalent. */
+    hintAllTemplate: (n: number) => string;
     /** Template: "{n} selected" — bottom-row counter. */
     selectedCountTemplate: (n: number) => string;
     /** Template: "Select all {n} visible" — primary filter action. */
