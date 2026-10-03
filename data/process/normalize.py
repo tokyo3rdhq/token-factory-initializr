@@ -284,7 +284,23 @@ def _is_valid_architecture(value: Any) -> bool:
 
 
 def endpoint_to_dict(endpoint: ModelEndpoint) -> dict[str, Any]:
-    """Serialize a ModelEndpoint to a plain dict for JSON storage."""
+    """Serialize a ModelEndpoint to a plain dict for JSON storage.
+
+    Handles two non-JSON-native types:
+
+    * ``fetched_at`` (top-level ``datetime``) — ISO 8601 string.
+    * ``provenance[<path>].observed_at`` (``datetime`` inside each
+      :class:`FieldProvenance`) — also ISO 8601. Provenance was added
+      after the original serializer was written and previously broke
+      PublishStage with ``TypeError: Object of type datetime is not
+      JSON serializable`` because ``asdict`` recurses but doesn't
+      format datetime values.
+    """
     data = asdict(endpoint)
     data["fetched_at"] = data["fetched_at"].isoformat()
+    prov = data.get("provenance")
+    if isinstance(prov, dict):
+        for key, fp in prov.items():
+            if isinstance(fp, dict) and isinstance(fp.get("observed_at"), datetime):
+                fp["observed_at"] = fp["observed_at"].isoformat()
     return data
