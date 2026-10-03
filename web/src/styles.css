@@ -443,7 +443,7 @@
   white-space: normal;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 280px;
+  max-width: 720px;
 }
 .tfi-model-meta {
   display: inline-flex;
