@@ -52,9 +52,40 @@ def _strip_model_version(model_id: str) -> str:
     return re.sub(r"-\d{8}$", "", model_id)
 
 
+def _normalize_version_separator(model_id: str) -> str:
+    """Unify version-number separators.
+
+    OpenRouter spells minor versions with a dot (``glm-5.3``) while
+    NVIDIA spells the same model with a dash (``glm-5-3``). Without
+    normalization these never collide even though they refer to the
+    same release.
+
+    This pass only rewrites ``<digit><sep><digit>`` patterns — i.e.
+    sequences that look like version numbers. It does not touch
+    dashes elsewhere in the slug, so ``qwen3-vl-plus`` stays put.
+    """
+
+    def _replace(match: re.Match[str]) -> str:
+        return match.group(1) + "-" + match.group(2)
+
+    return re.sub(r"(\d)[._](\d)", _replace, model_id)
+
+
 def _normalize_id(model_id: str) -> str:
-    """Return a comparable normalized form of an identifier."""
-    return _normalize_owner(_strip_model_version(model_id.lower().strip()))
+    """Return a comparable normalized form of an identifier.
+
+    Order matters:
+      1. ``lower().strip()`` — case + whitespace.
+      2. ``_normalize_version_separator`` — ``5.3`` → ``5-3`` etc.
+         Run BEFORE the date-suffix strip so a trailing ``-20251022``
+         is still recognised as a date.
+      3. ``_strip_model_version`` — drop trailing ``-YYYYMMDD``.
+      4. ``_normalize_owner`` — collapse owner aliases
+         (``deepseek-ai`` → ``deepseek``).
+    """
+    lowered = model_id.lower().strip()
+    version_unified = _normalize_version_separator(lowered)
+    return _normalize_owner(_strip_model_version(version_unified))
 
 
 # ---------------------------------------------------------------------------
