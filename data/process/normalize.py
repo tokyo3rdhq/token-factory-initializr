@@ -40,6 +40,7 @@ def normalize_capabilities(
     data_source: str,
     raw_metadata: dict[str, Any] | None,
     architecture: dict[str, Any] | None,
+    cross_source_signals: dict[str, Any] | None = None,
 ) -> dict[str, bool]:
     """Provider-specific raw signals → canonical 7-key boolean flags.
 
@@ -60,6 +61,16 @@ def normalize_capabilities(
       emitted by TFI's own ``derive_use_case`` helper) plus the
       architecture block for vision fallback.
 
+    Cross-source enrichment (option A in
+    docs/tfi_provenance_enrichment_architecture.md): when ``data_source``
+    is one of the canonical providers (nvidia/amd/huggingface), the
+    caller may pass ``cross_source_signals`` carrying raw OpenRouter
+    signals for the same canonical model — typically
+    ``{"architecture": {input, output}, "metadata": {supported_parameters,
+    reasoning}}``. These are merged with the primary source's signals
+    before the canonical bool shape is computed, so the final
+    capabilities are produced by exactly ONE normalize pass.
+
     Adding a new provider = add a new ``elif data_source == ...`` branch
     with the same shape; no other code needs to change.
     """
@@ -71,8 +82,25 @@ def normalize_capabilities(
     # this function is safe regardless of caller hygiene.
     arch = architecture if isinstance(architecture, dict) else {}
     raw_meta = raw_metadata if isinstance(raw_metadata, dict) else {}
+
+    # Merge cross-source signals (OpenRouter) into the working
+    # raw_signals. The primary source's signals win when both sources
+    # disagree — OR only fills gaps. Concretely:
+    #   * OR's architecture modalities extend the primary arch's
+    #     input/output sets (union, never subtraction).
+    #   * OR's metadata.supported_parameters is checked for tool/reasoning
+    #     flags only if the primary source didn't already set them.
+    cs = cross_source_signals if isinstance(cross_source_signals, dict) else {}
+    cs_arch = cs.get("architecture") if isinstance(cs.get("architecture"), dict) else {}
+    cs_meta = cs.get("metadata") if isinstance(cs.get("metadata"), dict) else {}
+
     input_modes = set(arch.get("input") or [])
     output_modes = set(arch.get("output") or [])
+    if isinstance(cs_arch.get("input"), list):
+        input_modes |= set(cs_arch.get("input") or [])
+    if isinstance(cs_arch.get("output"), list):
+        output_modes |= set(cs_arch.get("output") or [])
+
     attrs = raw_meta
 
     # Architecture-derived flags — common to every provider that
@@ -134,16 +162,40 @@ def normalize_capabilities(
         elif use_case in ("transcription", "asr"):
             out["speech"] = True
 
-    # structured_output / reasoning: no provider currently emits raw
-    # signals for these. Future providers can extend normalize() with
-    # detection rules. Default-False here is the safe answer for the
-    # consumer — the matcher reads ep.capabilities.structured_output
-    # and only filters when the user explicitly asked for it.
+    # Cross-source signal promotion: OR explicitly declares
+    # ``supported_parameters`` like "tools"/"tool_choice" and
+    # ``reasoning`` (either as a supported_parameter or via the
+    # ``reasoning.default_enabled`` field). Apply these ONLY if the
+    # primary source didn't already set the flag — OR is the fallback.
+    if not out.get("tool_calling"):
+        cs_params = cs_meta.get("supported_parameters") if isinstance(cs_meta, dict) else None
+        if isinstance(cs_params, list):
+            if "tools" in cs_params or "tool_choice" in cs_params:
+                out["tool_calling"] = True
+
+    if not out.get("reasoning"):
+        cs_params = cs_meta.get("supported_parameters") if isinstance(cs_meta, dict) else None
+        cs_reasoning = cs_meta.get("reasoning") if isinstance(cs_meta, dict) else None
+        if isinstance(cs_params, list) and "reasoning" in cs_params:
+            out["reasoning"] = True
+        elif isinstance(cs_reasoning, dict) and (
+            cs_reasoning.get("mandatory") or cs_reasoning.get("default_enabled")
+        ):
+            out["reasoning"] = True
+
+    # structured_output: no provider currently emits raw signals for
+    # this. Future providers can extend normalize() with detection
+    # rules. Default-False here is the safe answer for the consumer —
+    # the matcher reads ep.capabilities.structured_output and only
+    # filters when the user explicitly asked for it.
 
     return out
 
 
-def normalize_endpoints(raw: list[dict[str, Any]]) -> list[ModelEndpoint]:
+def normalize_endpoints(
+    raw: list[dict[str, Any]],
+    cross_source_index: dict[str, dict[str, Any]] | None = None,
+) -> list[ModelEndpoint]:
     """Convert a list of provider dicts into a list of ModelEndpoint records.
 
     Side effects on ``item``:
@@ -155,6 +207,14 @@ def normalize_endpoints(raw: list[dict[str, Any]]) -> list[ModelEndpoint]:
       shape themselves — they only fill in raw signals (architecture
       modalities, AMD use-case string, NVIDIA legacy attributes) and
       the normalize stage does the rest.
+
+      When ``cross_source_index`` is provided, OpenRouter raw
+      observations for the same canonical model are fused into the
+      primary source's signals before this pass runs (option A from
+      docs/tfi_provenance_enrichment_architecture.md). The result is a
+      single normalize pass per endpoint — capabilities end up with
+      provenance ``method=native`` regardless of which underlying
+      signal fed them.
     * Lifts ``metadata.context_length`` (if present and int) to the
       top-level ``ModelEndpoint.context_length`` field. The metadata
       copy is left in place for back-compat with readers that look at
@@ -168,7 +228,10 @@ def normalize_endpoints(raw: list[dict[str, Any]]) -> list[ModelEndpoint]:
       dict; HF puts them under ``architecture`` at the model level
       (then ``to_endpoint_dicts`` re-emits them per provider); both
       land at the top level of the endpoint dict and need to be
-      copied onto the dataclass field of the same name.
+      copied onto the dataclass field of the same name. The merged
+      cross-source modalities (from ``cross_source_index``) take
+      precedence here so the canonical ``architecture`` field on the
+      endpoint reflects what the normalize stage saw.
     * Lifts ``item["pricing"]`` (if a non-empty dict) to
       ``ModelEndpoint.pricing``. AMD stamps per-token prices at
       ``model.provider_pricing[0].pricing`` (``{"prompt": ...,
@@ -213,10 +276,23 @@ def normalize_endpoints(raw: list[dict[str, Any]]) -> list[ModelEndpoint]:
                 f"Provider record missing required field '{missing}': {item}"
             ) from exc
 
+        # Look up the matching OpenRouter raw observation (if any) for
+        # this endpoint's canonical model_id. The stage precomputes
+        # ``cross_source_index`` keyed by the alias-normalized id
+        # (so ``deepseek-ai/...`` and ``deepseek/...`` collapse to one
+        # entry), so we must normalize the lookup key the same way.
+        or_signals = None
+        if cross_source_index:
+            from data.identity_matcher import _normalize_id as _im_norm
+
+            lookup_key = _im_norm(ep.model_id)
+            or_signals = cross_source_index.get(lookup_key)
+
         # Lift capabilities — single canonical shape for the whole
         # catalog. Provider-specific raw signals live in ``metadata`` and
-        # ``architecture``; this call fuses them into the 7-key
-        # canonical bool dict. See normalize_capabilities() above.
+        # ``architecture``; this call fuses them with cross-source
+        # OpenRouter signals (if any) into the 7-key canonical bool
+        # dict. See normalize_capabilities() above.
         object.__setattr__(
             ep,
             "capabilities",
@@ -224,6 +300,7 @@ def normalize_endpoints(raw: list[dict[str, Any]]) -> list[ModelEndpoint]:
                 ep.data_source,
                 ep.metadata,
                 item.get("architecture"),
+                cross_source_signals=or_signals,
             ),
         )
 
@@ -242,11 +319,25 @@ def normalize_endpoints(raw: list[dict[str, Any]]) -> list[ModelEndpoint]:
 
         # Lift architecture: AMD/HF parsed dicts carry the structured
         # modalities at top level (``architecture: {input: [...],
-        # output: [...]}``). Validate the shape before assigning so a
-        # malformed payload fails loudly instead of silently storing a
-        # bad value. NVIDIA goes through ``ModelEndpoint`` directly and
-        # doesn't reach this code path.
+        # output: [...]}``). When cross-source signals were merged
+        # into capabilities, surface the merged modalities here too so
+        # the canonical ``architecture`` field agrees with what the
+        # normalize stage saw.
         arch = item.get("architecture")
+        if or_signals is not None:
+            cs_arch = or_signals.get("architecture") if isinstance(or_signals, dict) else None
+            if (
+                isinstance(cs_arch, dict)
+                and isinstance(cs_arch.get("input"), list)
+                and isinstance(cs_arch.get("output"), list)
+            ):
+                cs_input = [m for m in cs_arch.get("input") or [] if isinstance(m, str)]
+                cs_output = [m for m in cs_arch.get("output") or [] if isinstance(m, str)]
+                base_input = list(arch.get("input") or []) if isinstance(arch, dict) else []
+                base_output = list(arch.get("output") or []) if isinstance(arch, dict) else []
+                merged_input = list(dict.fromkeys([*base_input, *cs_input]))
+                merged_output = list(dict.fromkeys([*base_output, *cs_output]))
+                arch = {"input": merged_input, "output": merged_output}
         if _is_valid_architecture(arch):
             object.__setattr__(ep, "architecture", arch)
 
