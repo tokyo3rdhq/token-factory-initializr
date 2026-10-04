@@ -38,8 +38,8 @@ PROVIDER_FETCHERS: List[Tuple[str, Callable[[], List[dict]]]] = []
 def _build_default_registry() -> List[Tuple[str, Callable[[], List[dict]]]]:
     from data.providers.amd import fetch_amd_models
     from data.providers.huggingface import fetch_huggingface_models
+    from data.providers.models_dev import fetch_models_dev_models
     from data.providers.nvidia import fetch_catalog_page
-
     from data.providers.openrouter import fetch_openrouter_models
 
     return [
@@ -47,6 +47,7 @@ def _build_default_registry() -> List[Tuple[str, Callable[[], List[dict]]]]:
         ("amd", fetch_amd_models),
         ("huggingface", fetch_huggingface_models),
         ("openrouter", fetch_openrouter_models),
+        ("models_dev", fetch_models_dev_models),
     ]
 
 
@@ -124,6 +125,9 @@ class FetchStage(Stage):
         fetched, errors = asyncio.run(_fetch_all_async(self.providers))
         context.data["fetched"] = fetched
         context.state["fetch_errors"] = errors
-        # Also expose OpenRouter models for downstream enrichment
+        # Also expose cross-source observations for downstream enrichment.
+        # Both are fused into the primary source's normalize pass via
+        # the matching identity-matcher path.
         context.data["openrouter_models"] = fetched.get("openrouter", [])
+        context.data["models_dev_models"] = fetched.get("models_dev", [])
         return context
