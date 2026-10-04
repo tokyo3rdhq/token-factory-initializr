@@ -301,15 +301,33 @@ def normalize_endpoints(
         # for this endpoint's canonical model_id. The stage precomputes
         # ``cross_source_index`` keyed by the alias-normalized id
         # (so ``deepseek-ai/...`` and ``deepseek/...`` collapse to one
-        # entry), so we must normalize the lookup key the same way.
-        # Each entry is the full list of observations (OR + models.dev)
-        # for that model — every signal contributes.
+        # entry), but owner-less endpoint ids (e.g. AMD's
+        # ``MiniCPM5-2B``) only collide with the ``openbmb/minicpm5-2b``
+        # entry via slug fallback, not via a literal normalized key
+        # match. Walk the index and use the identity matcher to resolve
+        # — that keeps normalize_endpoints consistent with how
+        # EnrichStage does its matching and ensures slug-fallback hits
+        # actually contribute signals.
         cross_source_signals_for_endpoint: list[dict] | None = None
         if cross_source_index:
-            from data.identity_matcher import _normalize_id as _im_norm
+            from data.identity_matcher import DefaultIdentityMatcher
 
-            lookup_key = _im_norm(ep.model_id)
-            cross_source_signals_for_endpoint = cross_source_index.get(lookup_key)
+            matcher = DefaultIdentityMatcher()
+            best_obs: list[dict] | None = None
+            best_conf = 0.0
+            for key, observations in cross_source_index.items():
+                for obs in observations:
+                    obs_id = obs.get("model_id") or obs.get("id") or ""
+                    if not obs_id:
+                        continue
+                    r = matcher.match(
+                        ep.model_id,
+                        [{"id": obs_id, "source": obs.get("data_source") or "unknown"}],
+                    )
+                    if r is not None and r.confidence > best_conf:
+                        best_conf = r.confidence
+                        best_obs = observations
+            cross_source_signals_for_endpoint = best_obs
 
         # Lift capabilities — single canonical shape for the whole
         # catalog. Provider-specific raw signals live in ``metadata`` and

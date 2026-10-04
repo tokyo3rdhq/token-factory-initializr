@@ -137,3 +137,28 @@ def test_backward_compat_single_dict_still_works():
     assert caps["chat"] is True
     assert caps["tool_calling"] is True
     assert caps["reasoning"] is True
+
+
+def test_amd_slug_fallback_lookup_resolves_minicpm5_2b():
+    """Regression: the cross-source index keys by the OR-side normalized
+    id (``openbmb/minicpm5-2b``). AMD's endpoint id is owner-less
+    (``MiniCPM5-2B``) and would only collide via the identity matcher's
+    slug-fallback path. normalize_endpoints must walk the index via the
+    matcher, not by a literal dict lookup, otherwise AMD endpoints with
+    owner-less ids miss the cross-source fill-in."""
+    from data.process.normalize import normalize_endpoints
+
+    endpoints = normalize_endpoints(
+        [_amd_endpoint_dict()],
+        cross_source_index={
+            # Indexed by the models.dev-side normalized id, not by
+            # the AMD-side normalized id.
+            "openbmb/minicpm5-2b": [_md_observation()],
+        },
+    )
+    caps = endpoints[0].capabilities
+    assert caps["tool_calling"] is True
+    assert caps["reasoning"] is True
+    # Description is only replaced at the enrich stage, not normalize;
+    # verify normalize didn't drop the AMD description.
+    assert endpoints[0].description == "Dynamic sglang-router service managed by Model Ops"
