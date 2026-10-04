@@ -40,7 +40,7 @@ def normalize_capabilities(
     data_source: str,
     raw_metadata: dict[str, Any] | None,
     architecture: dict[str, Any] | None,
-    cross_source_signals: dict[str, Any] | None = None,
+    cross_source_signals: list[dict[str, Any]] | None = None,
 ) -> dict[str, bool]:
     """Provider-specific raw signals → canonical 7-key boolean flags.
 
@@ -64,12 +64,14 @@ def normalize_capabilities(
     Cross-source enrichment (option A in
     docs/tfi_provenance_enrichment_architecture.md): when ``data_source``
     is one of the canonical providers (nvidia/amd/huggingface), the
-    caller may pass ``cross_source_signals`` carrying raw OpenRouter
-    signals for the same canonical model — typically
-    ``{"architecture": {input, output}, "metadata": {supported_parameters,
-    reasoning}}``. These are merged with the primary source's signals
-    before the canonical bool shape is computed, so the final
-    capabilities are produced by exactly ONE normalize pass.
+    caller may pass ``cross_source_signals`` — a list of raw OpenRouter
+    / models.dev / other-provider observations for the same canonical
+    model. Each observation carries ``architecture: {input, output}``
+    + ``metadata: {supported_parameters, reasoning}``. Signals from
+    every observation are unioned into the primary source's working
+    raw_signals before the canonical bool shape is computed, so the
+    final capabilities are produced by exactly ONE normalize pass
+    even when multiple cross-source providers contribute.
 
     Adding a new provider = add a new ``elif data_source == ...`` branch
     with the same shape; no other code needs to change.
@@ -83,23 +85,46 @@ def normalize_capabilities(
     arch = architecture if isinstance(architecture, dict) else {}
     raw_meta = raw_metadata if isinstance(raw_metadata, dict) else {}
 
-    # Merge cross-source signals (OpenRouter) into the working
-    # raw_signals. The primary source's signals win when both sources
-    # disagree — OR only fills gaps. Concretely:
-    #   * OR's architecture modalities extend the primary arch's
-    #     input/output sets (union, never subtraction).
-    #   * OR's metadata.supported_parameters is checked for tool/reasoning
-    #     flags only if the primary source didn't already set them.
-    cs = cross_source_signals if isinstance(cross_source_signals, dict) else {}
-    cs_arch = cs.get("architecture") if isinstance(cs.get("architecture"), dict) else {}
-    cs_meta = cs.get("metadata") if isinstance(cs.get("metadata"), dict) else {}
+    # Merge cross-source signals (OpenRouter / models.dev / etc.) into
+    # the working raw_signals. The primary source's signals win when
+    # both sources disagree — cross-source only fills gaps. Concretely:
+    #   * Each observation's architecture modalities extend the primary
+    #     arch's input/output sets (union, never subtraction).
+    #   * Each observation's metadata.supported_parameters is checked
+    #     for tool/reasoning flags only if the primary source didn't
+    #     already set them.
+    if isinstance(cross_source_signals, dict):
+        # Backward-compat: a single dict was the historical shape;
+        # treat it as a one-element list so the merge loop below
+        # works the same way for old callers.
+        cross_source_signals = [cross_source_signals]
+    elif not isinstance(cross_source_signals, list):
+        cross_source_signals = []
 
     input_modes = set(arch.get("input") or [])
     output_modes = set(arch.get("output") or [])
-    if isinstance(cs_arch.get("input"), list):
-        input_modes |= set(cs_arch.get("input") or [])
-    if isinstance(cs_arch.get("output"), list):
-        output_modes |= set(cs_arch.get("output") or [])
+    cs_params: list[str] = []
+    cs_reasoning_default_enabled = False
+    cs_reasoning_mandatory = False
+
+    for cs in cross_source_signals:
+        if not isinstance(cs, dict):
+            continue
+        cs_arch = cs.get("architecture") if isinstance(cs.get("architecture"), dict) else {}
+        cs_meta = cs.get("metadata") if isinstance(cs.get("metadata"), dict) else {}
+        if isinstance(cs_arch.get("input"), list):
+            input_modes |= set(m for m in cs_arch["input"] if isinstance(m, str))
+        if isinstance(cs_arch.get("output"), list):
+            output_modes |= set(m for m in cs_arch["output"] if isinstance(m, str))
+        params = cs_meta.get("supported_parameters") if isinstance(cs_meta, dict) else None
+        if isinstance(params, list):
+            cs_params.extend(p for p in params if isinstance(p, str))
+        cs_reasoning = cs_meta.get("reasoning") if isinstance(cs_meta, dict) else None
+        if isinstance(cs_reasoning, dict):
+            if cs_reasoning.get("default_enabled"):
+                cs_reasoning_default_enabled = True
+            if cs_reasoning.get("mandatory"):
+                cs_reasoning_mandatory = True
 
     attrs = raw_meta
 
@@ -162,25 +187,19 @@ def normalize_capabilities(
         elif use_case in ("transcription", "asr"):
             out["speech"] = True
 
-    # Cross-source signal promotion: OR explicitly declares
-    # ``supported_parameters`` like "tools"/"tool_choice" and
-    # ``reasoning`` (either as a supported_parameter or via the
-    # ``reasoning.default_enabled`` field). Apply these ONLY if the
-    # primary source didn't already set the flag — OR is the fallback.
+    # Cross-source signal promotion: every observation's
+    # ``supported_parameters`` is checked for tool/reasoning flags, plus
+    # OR's ``reasoning.default_enabled`` / ``reasoning.mandatory``
+    # booleans. Apply these ONLY if the primary source didn't already
+    # set the flag — cross-source is the fallback.
     if not out.get("tool_calling"):
-        cs_params = cs_meta.get("supported_parameters") if isinstance(cs_meta, dict) else None
-        if isinstance(cs_params, list):
-            if "tools" in cs_params or "tool_choice" in cs_params:
-                out["tool_calling"] = True
+        if "tools" in cs_params or "tool_choice" in cs_params:
+            out["tool_calling"] = True
 
     if not out.get("reasoning"):
-        cs_params = cs_meta.get("supported_parameters") if isinstance(cs_meta, dict) else None
-        cs_reasoning = cs_meta.get("reasoning") if isinstance(cs_meta, dict) else None
-        if isinstance(cs_params, list) and "reasoning" in cs_params:
+        if "reasoning" in cs_params:
             out["reasoning"] = True
-        elif isinstance(cs_reasoning, dict) and (
-            cs_reasoning.get("mandatory") or cs_reasoning.get("default_enabled")
-        ):
+        elif cs_reasoning_default_enabled or cs_reasoning_mandatory:
             out["reasoning"] = True
 
     # structured_output: no provider currently emits raw signals for
@@ -194,7 +213,7 @@ def normalize_capabilities(
 
 def normalize_endpoints(
     raw: list[dict[str, Any]],
-    cross_source_index: dict[str, dict[str, Any]] | None = None,
+    cross_source_index: dict[str, list[dict[str, Any]]] | None = None,
 ) -> list[ModelEndpoint]:
     """Convert a list of provider dicts into a list of ModelEndpoint records.
 
@@ -208,13 +227,15 @@ def normalize_endpoints(
       modalities, AMD use-case string, NVIDIA legacy attributes) and
       the normalize stage does the rest.
 
-      When ``cross_source_index`` is provided, OpenRouter raw
-      observations for the same canonical model are fused into the
+      When ``cross_source_index`` is provided, OpenRouter / models.dev
+      raw observations for the same canonical model are fused into the
       primary source's signals before this pass runs (option A from
       docs/tfi_provenance_enrichment_architecture.md). The result is a
       single normalize pass per endpoint — capabilities end up with
       provenance ``method=native`` regardless of which underlying
-      signal fed them.
+      signal fed them. The index maps each canonical model_id to the
+      full list of observations (OR + models.dev + future providers)
+      so every cross-source signal contributes.
     * Lifts ``metadata.context_length`` (if present and int) to the
       top-level ``ModelEndpoint.context_length`` field. The metadata
       copy is left in place for back-compat with readers that look at
@@ -276,23 +297,25 @@ def normalize_endpoints(
                 f"Provider record missing required field '{missing}': {item}"
             ) from exc
 
-        # Look up the matching OpenRouter raw observation (if any) for
-        # this endpoint's canonical model_id. The stage precomputes
+        # Look up the matching cross-source raw observations (if any)
+        # for this endpoint's canonical model_id. The stage precomputes
         # ``cross_source_index`` keyed by the alias-normalized id
         # (so ``deepseek-ai/...`` and ``deepseek/...`` collapse to one
         # entry), so we must normalize the lookup key the same way.
-        or_signals = None
+        # Each entry is the full list of observations (OR + models.dev)
+        # for that model — every signal contributes.
+        cross_source_signals_for_endpoint: list[dict] | None = None
         if cross_source_index:
             from data.identity_matcher import _normalize_id as _im_norm
 
             lookup_key = _im_norm(ep.model_id)
-            or_signals = cross_source_index.get(lookup_key)
+            cross_source_signals_for_endpoint = cross_source_index.get(lookup_key)
 
         # Lift capabilities — single canonical shape for the whole
         # catalog. Provider-specific raw signals live in ``metadata`` and
         # ``architecture``; this call fuses them with cross-source
-        # OpenRouter signals (if any) into the 7-key canonical bool
-        # dict. See normalize_capabilities() above.
+        # OpenRouter / models.dev signals (if any) into the 7-key
+        # canonical bool dict. See normalize_capabilities() above.
         object.__setattr__(
             ep,
             "capabilities",
@@ -300,7 +323,7 @@ def normalize_endpoints(
                 ep.data_source,
                 ep.metadata,
                 item.get("architecture"),
-                cross_source_signals=or_signals,
+                cross_source_signals=cross_source_signals_for_endpoint,
             ),
         )
 
@@ -324,20 +347,22 @@ def normalize_endpoints(
         # the canonical ``architecture`` field agrees with what the
         # normalize stage saw.
         arch = item.get("architecture")
-        if or_signals is not None:
-            cs_arch = or_signals.get("architecture") if isinstance(or_signals, dict) else None
-            if (
-                isinstance(cs_arch, dict)
-                and isinstance(cs_arch.get("input"), list)
-                and isinstance(cs_arch.get("output"), list)
-            ):
-                cs_input = [m for m in cs_arch.get("input") or [] if isinstance(m, str)]
-                cs_output = [m for m in cs_arch.get("output") or [] if isinstance(m, str)]
-                base_input = list(arch.get("input") or []) if isinstance(arch, dict) else []
-                base_output = list(arch.get("output") or []) if isinstance(arch, dict) else []
-                merged_input = list(dict.fromkeys([*base_input, *cs_input]))
-                merged_output = list(dict.fromkeys([*base_output, *cs_output]))
-                arch = {"input": merged_input, "output": merged_output}
+        if cross_source_signals_for_endpoint:
+            base_input = list(arch.get("input") or []) if isinstance(arch, dict) else []
+            base_output = list(arch.get("output") or []) if isinstance(arch, dict) else []
+            cs_input: list[str] = []
+            cs_output: list[str] = []
+            for cs_obs in cross_source_signals_for_endpoint:
+                if not isinstance(cs_obs, dict):
+                    continue
+                cs_arch = cs_obs.get("architecture") if isinstance(cs_obs.get("architecture"), dict) else {}
+                if isinstance(cs_arch.get("input"), list):
+                    cs_input.extend(m for m in cs_arch["input"] if isinstance(m, str))
+                if isinstance(cs_arch.get("output"), list):
+                    cs_output.extend(m for m in cs_arch["output"] if isinstance(m, str))
+            merged_input = list(dict.fromkeys([*base_input, *cs_input]))
+            merged_output = list(dict.fromkeys([*base_output, *cs_output]))
+            arch = {"input": merged_input, "output": merged_output}
         if _is_valid_architecture(arch):
             object.__setattr__(ep, "architecture", arch)
 

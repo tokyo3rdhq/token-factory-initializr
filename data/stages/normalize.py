@@ -199,19 +199,13 @@ class NormalizeStage(Stage):
                     endpoints.append(ep)
                 continue
             # AMD/HF path goes through normalize_endpoints which
-            # already accepts cross_source_index. Build a
-            # single-source dict keyed by normalized id from the
-            # merged index, but we need to be careful: a key may map
-            # to multiple observations (OR + models.dev). Use the
-            # first observation per key for AMD/HF to preserve the
-            # existing call shape; the merge logic in
-            # normalize_endpoints handles the architecture union for
-            # a single observation per call.
+            # already accepts cross_source_index. The index is a
+            # ``{normalized_id: [obs1, obs2, ...]}`` map — every
+            # cross-source observation contributes its signals to
+            # the single normalize pass for the matching endpoint.
             for ep in normalize_endpoints(
                 items,
-                cross_source_index={
-                    k: v[0] for k, v in cross_index.items() if v
-                },
+                cross_source_index=cross_index,
             ):
                 endpoints.append(ep)
         context.data["endpoints"] = endpoints
