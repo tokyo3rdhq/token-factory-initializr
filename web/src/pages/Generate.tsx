@@ -138,24 +138,27 @@ export function GeneratePage() {
               <Stack gap="4">
                 {initializr.selectedModels.map((m) => (
                   <div
-                    className="tfi-meta-grid tfi-candidate-row"
+                    className="tfi-candidate-row"
                     key={`${m.data_source}::${m.provider}::${m.model_id}`}
                   >
-                    <span className="tfi-meta-key">{ts("generate.fieldModel")}</span>
-                    <span className="tfi-meta-value">{m.name || m.model_id}</span>
-                    <span className="tfi-meta-key">{ts("generate.fieldProvider")}</span>
-                    <span className="tfi-meta-value">{m.provider}</span>
-                    <span className="tfi-meta-key">{ts("generate.fieldId")}</span>
-                    <span className="tfi-meta-value">{m.model_id}</span>
-                    <span className="tfi-meta-value tfi-candidate-row-action">
+                    <div className="tfi-meta-grid">
+                      <span className="tfi-meta-key">{ts("generate.fieldModel")}</span>
+                      <span className="tfi-meta-value">{m.name || m.model_id}</span>
+                      <span className="tfi-meta-key">{ts("generate.fieldProvider")}</span>
+                      <span className="tfi-meta-value">{m.provider}</span>
+                      <span className="tfi-meta-key">{ts("generate.fieldId")}</span>
+                      <span className="tfi-meta-value">{m.model_id}</span>
+                    </div>
+                    <div className="tfi-candidate-row-action">
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => initializr.removeModel(m)}
+                        aria-label="Remove"
                       >
                         ✕
                       </Button>
-                    </span>
+                    </div>
                   </div>
                 ))}
               </Stack>

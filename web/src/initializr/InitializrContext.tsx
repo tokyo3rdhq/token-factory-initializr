@@ -13,6 +13,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { SUPPORTED_TOKEN_FACTORIES } from "../../functions/lib/generators";
 import type { InitializrState, InitializrReadiness, SelectedModel, TokenFactoryId } from "./types";
 
 /**
@@ -81,9 +82,13 @@ function selectionKey(ep: SelectedModel): string {
  */
 export function Provider({ children }: { children: ReactNode }) {
   const [selectedModels, setSelectedModels] = useState<SelectedModel[]>([]);
-  const [tokenFactory, setTokenFactoryState] = useState<TokenFactoryId | null>(
-    null,
-  );
+  // Default to the first registered factory so the picker's visual
+  // state matches the context state on initial mount. Before this,
+  // the Segmented control rendered with `value ?? SUPPORTED_TOKEN_FACTORIES[0]`
+  // (litellm visually) but the context stayed `null`, so the
+  // Generate button was disabled until the user toggled the picker.
+  const [tokenFactory, setTokenFactoryState] =
+    useState<TokenFactoryId | null>(SUPPORTED_TOKEN_FACTORIES[0]);
 
   const toggleModel = useCallback((ep: SelectedModel) => {
     const k = selectionKey(ep);
