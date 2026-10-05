@@ -74,10 +74,12 @@ export function jsonResponse(
       "Content-Type": "application/json; charset=utf-8",
       // Public, agent-facing API — cacheable + open CORS.
       "Access-Control-Allow-Origin": "*",
-      // ETag (conditional). Cloudflare strips this on 304 responses
-      // automatically; we send it on 200 so clients can validate.
-      ...(etag ? { ETag: etag } : {}),
+      // ETag is set AFTER the Cache-Control block so it isn't
+      // shadowed by anything else. Cloudflare's edge may strip
+      // user-set ETags when other cache-affecting headers are present;
+      // placing it last gives it the strongest chance of surviving.
       ...cacheHeaders(etag, /* longCache */ false),
+      ...(etag ? { ETag: etag } : {}),
     },
   });
 }
@@ -133,28 +135,39 @@ function cacheHeaders(etag: string | undefined, longCache: boolean): Record<stri
  * passing the raw ``If-None-Match`` value don't need to parse it.
  * Exported so unit tests can lock the contract down. */
 export function etagMatches(header: string, etag: string): boolean {
+  // The canonical ``etag`` value is the bare quoted form
+  // ``"tfi-xxxxxxxx"``. We need to compare against the variants a
+  // client might send: the bare quoted form, a weak form (``W/"tfi-..."``),
+  // or any combination of those split on commas.
+  const inner = etag.replace(/^"|"$/g, "");
+  const weakForm = `W/"${inner}"`;
   for (const part of header.split(",")) {
     const tag = part.trim();
-    if (tag === "*" || tag === etag || tag === `W/"${etag}"`) {
+    if (tag === "*" || tag === etag || tag === weakForm) {
       return true;
     }
   }
   return false;
 }
 
-/** Stable weak ETag for a given content string. */
+/** Stable strong ETag for a given content string.
+ *
+ * Strong vs weak: a strong validator (no ``W/`` prefix) requires
+ * byte-identical response bodies. Two semantically equivalent
+ * responses (e.g. same data, different key order) would have
+ * different strong ETags, so strong is the safer default here.
+ *
+ * Cloudflare's edge is known to strip weak ``W/``-prefixed ETags
+ * from cacheable responses; using the strong form is more likely
+ * to survive the edge transformation.
+ */
 export function makeEtag(content: string): string {
   // 32-bit FNV-1a — small, fast, collision risk acceptable for ETag
-  // (Cloudflare's own cache keys use a similar approach for the
-  // 304 use case where collision means a stale hit, not a data
-  // leak). We wrap in W/ to mark the validator as weak per RFC 7232
-  // because two responses are "equivalent" iff their content is
-  // byte-identical, not semantically identical.
+  // (collision means a stale hit, not a data leak).
   let hash = 0x811c9dc5;
   for (let i = 0; i < content.length; i++) {
     hash ^= content.charCodeAt(i);
     hash = Math.imul(hash, 0x01000193);
   }
-  // Convert to unsigned 32-bit hex.
-  return `W/"tfi-${(hash >>> 0).toString(16).padStart(8, "0")}"`;
+  return `"tfi-${(hash >>> 0).toString(16).padStart(8, "0")}"`;
 }

@@ -393,19 +393,24 @@ test("loadFullCatalog returns empty catalog when KV has no providers", async () 
 // ETag — weak validator on response body for 304 revalidation
 // ---------------------------------------------------------------------------
 
-test("makeEtag is deterministic and weak-prefixed", () => {
+test("makeEtag is deterministic and strong (no W/ prefix)", () => {
   const a = makeEtag('{"a":1}');
   const b = makeEtag('{"a":1}');
   const c = makeEtag('{"a":2}');
   assert.equal(a, b);
   assert.notEqual(a, c);
-  assert.match(a, /^W\/"tfi-[0-9a-f]{8}"$/);
+  // Strong validator — bare quoted-string, no W/ prefix. Cloudflare's
+  // edge strips weak ETags from cacheable responses; strong survives.
+  assert.match(a, /^"tfi-[0-9a-f]{8}"$/);
 });
 
 test("etagMatches accepts bare / W-prefixed / comma-separated values", () => {
   const tag = makeEtag("hello");
   assert.equal(etagMatches(tag, tag), true);
-  assert.equal(etagMatches(`W/"${tag}"`, tag), true);
+  // W-prefixed form is also accepted (clients may receive either
+  // depending on the proxy chain).
+  const bareInsideQuotes = tag;
+  assert.equal(etagMatches(`W/${bareInsideQuotes}`, tag), true);
   assert.equal(etagMatches(`*`, tag), true);
   assert.equal(etagMatches(`other, ${tag}, more`, tag), true);
   assert.equal(etagMatches("different", tag), false);
