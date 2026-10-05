@@ -198,20 +198,49 @@ class NormalizeStage(Stage):
             )
 
         endpoints: list[ModelEndpoint] = []
+        # Build a single matcher instance — repeated construction is
+        # cheap but it also keeps the alias/version/quantization state
+        # consistent across both the NVIDIA and AMD/HF lookup paths.
+        from data.identity_matcher import DefaultIdentityMatcher
+
+        matcher = DefaultIdentityMatcher()
         for provider, items in parsed.items():
             if provider == "nvidia":
                 # NVIDIA provider yields ModelEndpoint objects directly,
                 # bypassing normalize_endpoints. We still need
                 # cross-source architecture + supported_parameters to
-                # feed the canonical 7-key capabilities shape, so look
-                # up the observations and merge in-place.
+                # feed the canonical 7-key capabilities shape, so walk
+                # the cross-source index via the matcher (token-subset
+                # fallback) instead of a literal normalized-key dict
+                # lookup — owner-prefixed NVIDIA ids like
+                # ``nvidia/nemotron-3.5-lightning-30b-a3b`` only
+                # collide with OR's shorter base slug via the matcher.
                 for ep in items:
                     if not isinstance(ep, ModelEndpoint):
                         continue
-                    key = _normalize_id(ep.model_id)
-                    observations = cross_index.get(key)
-                    if observations:
-                        _apply_cross_source_signals_to_nvidia_endpoint(ep, observations)
+                    best_observations: list[dict] = []
+                    best_conf = 0.0
+                    for observations in cross_index.values():
+                        if not observations:
+                            continue
+                        for obs in observations:
+                            obs_id = obs.get("model_id") or obs.get("id") or ""
+                            if not obs_id:
+                                continue
+                            r = matcher.match(
+                                ep.model_id,
+                                [
+                                    {
+                                        "id": obs_id,
+                                        "source": obs.get("data_source") or "unknown",
+                                    }
+                                ],
+                            )
+                            if r is not None and r.confidence > best_conf:
+                                best_conf = r.confidence
+                                best_observations = observations
+                    if best_observations:
+                        _apply_cross_source_signals_to_nvidia_endpoint(ep, best_observations)
                     endpoints.append(ep)
                 continue
             # AMD/HF path goes through normalize_endpoints which
