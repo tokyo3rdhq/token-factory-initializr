@@ -111,6 +111,11 @@ export interface TranslationTree {
      *  when filters are active so the user sees how many models the
      *  filter excluded. */
     countFilteredTemplate: (matching: number, visible: number) => string;
+    /** Separator between per-provider timestamp pills on the Browse
+     *  page subhead. Default English: " · ". */
+    providerTimestampsSeparator: string;
+    /** Tooltip explaining the per-provider timestamps line. */
+    providerTimestampsTitle: string;
     noReqBannerBefore: string;
     noReqBannerAfter: string;
     emptyBefore: string;

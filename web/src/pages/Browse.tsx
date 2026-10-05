@@ -4,9 +4,10 @@ import { Badge, Banner, Button, Checkbox, Container, EmptyState, Input, Section,
 
 import { fmtContext, hasVision } from "../components/format";
 import { useSelection } from "../components/SelectionContext";
-import { fetchModels, FIXTURES, shouldUseLocalFixtures } from "../kv";
-import { matchesRequirement, type ModelEndpoint, type ModelRequirement } from "../types";
+import { fetchManifest, fetchModels, FIXTURES, shouldUseLocalFixtures } from "../kv";
+import { matchesRequirement, type Manifest, type ModelEndpoint, type ModelRequirement } from "../types";
 import { useI18n } from "../I18nProvider";
+import { formatProviderTimestamps, resolveTimeZone } from "../utils/datetime";
 
 /**
  * Tag filter taxonomy for the Browse page.
@@ -96,7 +97,7 @@ export function BrowsePage() {
   const location = useLocation();
   const navigate = useNavigate();
   const selection = useSelection();
-  const { ts, dict } = useI18n();
+  const { ts, dict, locale } = useI18n();
 
   const requirement: ModelRequirement | null =
     (location.state as { requirement?: ModelRequirement } | null)?.requirement ?? null;
@@ -104,6 +105,11 @@ export function BrowsePage() {
   const [models, setModels] = useState<ModelEndpoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Manifest fetched in parallel with the model list. Used to surface
+  // each provider's last successful catalog fetch time under the
+  // catalog-count subhead. Optional — older / failed fetches leave
+  // this null and the timestamps line stays hidden.
+  const [manifest, setManifest] = useState<Manifest | null>(null);
 
   /** Free-text keyword — matches name, model_id, provider, data_source. */
   const [query, setQuery] = useState("");
@@ -134,8 +140,17 @@ export function BrowsePage() {
           setError(e instanceof Error ? e.message : String(e));
           setLoading(false);
         });
+      // Fire-and-forget: the manifest powers a non-essential
+      // subhead line so we don't block catalog rendering on it.
+      fetchManifest()
+        .then(setManifest)
+        .catch(() => setManifest(null));
     } else {
       setModels(FIXTURES.models.flatMap((s) => s.models));
+      // Use the bundled fixture as the manifest source so local dev
+      // also gets the per-provider timestamp pills (with the
+      // fixture's static timestamp).
+      setManifest(FIXTURES.manifest as Manifest);
       setLoading(false);
     }
   }, []);
@@ -189,6 +204,15 @@ export function BrowsePage() {
     });
   };
 
+  // Per-provider last-updated timestamps for the subhead line. Built
+  // from the manifest fetched in parallel with the catalog so the
+  // count line + timestamp pills update together when the pipeline
+  // re-runs. ``null`` (no manifest yet / fetch failed) → line hidden.
+  const providerTimestamps = useMemo(() => {
+    if (!manifest) return [];
+    return formatProviderTimestamps(manifest, locale, resolveTimeZone());
+  }, [manifest, locale]);
+
   return (
     <Section spacing="lg">
       <Container>
@@ -205,6 +229,27 @@ export function BrowsePage() {
                 ? dict.browse.countWithReqTemplate(matching.length)
                 : dict.browse.countNoReqTemplate(matching.length)}
           </p>
+          {providerTimestamps.length > 0 && (
+            <p
+              className="magi-caption tfi-page-hero-timestamps"
+              title={ts("browse.providerTimestampsTitle")}
+              data-testid="provider-timestamps"
+            >
+              {providerTimestamps.map((entry, idx) => (
+                <span key={entry.provider} className="tfi-provider-timestamp">
+                  <strong className="tfi-provider-timestamp-label">
+                    {entry.label}
+                  </strong>
+                  <span className="tfi-provider-timestamp-value">
+                    {entry.timestamp}
+                  </span>
+                  {idx < providerTimestamps.length - 1
+                    ? dict.browse.providerTimestampsSeparator
+                    : null}
+                </span>
+              ))}
+            </p>
+          )}
         </Stack>
 
         {/* Filter row — keyword input, tag toggles, select-all + reset. */}

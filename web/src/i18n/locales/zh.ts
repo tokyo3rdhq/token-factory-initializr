@@ -97,6 +97,9 @@ emptyBefore: "没有匹配的模型。试着放宽一些条件 —— ",
     hintAllTemplate: (n: number) => `共 ${n} 个匹配`,
     countFilteredTemplate: (matching: number, visible: number) =>
       `${visible} 个中匹配 ${matching} 个。`,
+    /** 每个 provider 上次采集时间，按当前 locale + 时区格式化。 */
+    providerTimestampsSeparator: " · ",
+    providerTimestampsTitle: "每个 provider 最近一次成功采集时间",
     selectAllVisibleTemplate: (n: number) =>
       n === 1 ? "选择 1 个可见模型" : `全选可见 ${n} 个`,
     clearAllTemplate: (n: number) =>

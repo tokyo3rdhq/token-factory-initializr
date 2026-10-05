@@ -544,6 +544,35 @@
 .tfi-page-hero-subhead {
   max-width: 600px;
 }
+
+/* Per-provider last-updated pills shown under the catalog count.
+ * Mirrors the same muted-caption typography as the count line and
+ * stacks the label + timestamp inline so the row reads naturally
+ * even at narrow widths. */
+.tfi-page-hero-timestamps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--magi-space-2) var(--magi-space-3);
+  margin-top: var(--magi-space-2);
+  color: var(--magi-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.tfi-provider-timestamp {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--magi-space-2);
+  white-space: nowrap;
+}
+.tfi-provider-timestamp-label {
+  color: var(--magi-text-secondary);
+  font-weight: var(--magi-font-weight-medium);
+  letter-spacing: 0.04em;
+  font-size: var(--magi-font-size-caption);
+}
+.tfi-provider-timestamp-value {
+  color: var(--magi-text-tertiary);
+  font-size: var(--magi-font-size-caption);
+}
 .tfi-page-cta-row {
   margin-top: var(--magi-space-3);
 }

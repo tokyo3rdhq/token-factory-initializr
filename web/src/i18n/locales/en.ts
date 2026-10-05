@@ -100,6 +100,14 @@ const en: TranslationTree = {
       n === 1 ? "Clear 1 selected" : `Clear ${n} selected`,
     countFilteredTemplate: (matching: number, visible: number) =>
       `${matching} match out of ${visible} visible.`,
+    /** Per-provider last-updated line shown under the catalog count.
+     *  Each entry is `{provider, timestamp}` formatted in the user's
+     *  locale + time zone by ``utils/datetime.ts``. The separator
+     *  string sits between entries (default: bullet). */
+    providerTimestampsSeparator: " · ",
+    /** Tooltip for each timestamp pill; explains the value comes from
+     *  the data pipeline's publish stage. */
+    providerTimestampsTitle: "Last successful catalog fetch per provider",
     /** Shown when the user has filters active (tag / search) and no
      *  models match. Distinct from emptyBefore which is shown when
      *  the requirement filter is the only thing filtering. */
