@@ -76,6 +76,10 @@ import {
   SUPPORTED_TOKEN_FACTORIES,
   type TokenFactoryId,
 } from "../../functions/lib/generators";
+import {
+  NATIVE_PROVIDERS,
+  PROVIDER_API_KEY_ENV,
+} from "../../functions/lib/generators/bifrost";
 import type { ModelEndpoint } from "../types";
 
 const ep = (overrides: Partial<ModelEndpoint>): ModelEndpoint => ({
@@ -216,6 +220,43 @@ suite("custom provider: amd emits custom_provider_config + network_config.base_u
   check("network_config.base_url is AMD Radeon Cloud", p.network_config?.base_url, "https://developer.amd.com.cn/radeon/api/v1");
   check("key value references RADEON_API_KEY", p.keys[0].value, "env.RADEON_API_KEY");
   check("key name is 'amd-primary'", p.keys[0].name, "amd-primary");
+});
+
+suite("custom provider: together emits custom_provider_config + Together base URL", () => {
+  // Together AI exposes an OpenAI-compatible chat completions endpoint
+  // per docs.together.ai/docs/openai-api-compatibility. Regression for
+  // the 'Bifrost config does not support provider \"together\"' bug.
+  const out = bifrostGenerator.generate(
+    [ep({ provider: "together", model_id: "meta-llama/Llama-3-70b" })],
+    { generatedUrl: URL },
+  );
+  const parsed = JSON.parse(out.content);
+  const p = parsed.providers.together;
+  check("together provider exists", p !== undefined, true);
+  check("custom_provider_config.base_provider_type = 'openai'", p.custom_provider_config?.base_provider_type, "openai");
+  check("network_config.base_url is Together AI", p.network_config?.base_url, "https://api.together.xyz/v1");
+  check("key value references TOGETHER_API_KEY", p.keys[0].value, "env.TOGETHER_API_KEY");
+  check("key name is 'together-primary'", p.keys[0].name, "together-primary");
+});
+
+suite("custom provider: every HF-router upstream listed in PROVIDER_API_KEY_ENV has a base URL", () => {
+  // Regression guard: the previous bug ('together not supported') came
+  // from adding TOGETHER_API_KEY but forgetting the base URL — or vice
+  // versa. Both tables must stay in lockstep for every custom provider.
+  for (const provider of Object.keys(PROVIDER_API_KEY_ENV)) {
+    if (NATIVE_PROVIDERS.has(provider)) continue; // native providers don't need a base URL
+    const out = bifrostGenerator.generate(
+      [ep({ provider, model_id: "sample-model" })],
+      { generatedUrl: URL },
+    );
+    let threw = false;
+    try {
+      JSON.parse(out.content);
+    } catch {
+      threw = true;
+    }
+    check(`${provider}: output parses as JSON (no throw)`, threw, false);
+  }
 });
 
 // ---------------------------------------------------------------------------

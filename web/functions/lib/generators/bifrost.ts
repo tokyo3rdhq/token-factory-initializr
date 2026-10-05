@@ -64,6 +64,10 @@
 //                     chat completions endpoint per the AMD Radeon Cloud
 //                     docs at amd-aim.github.io/radeon-cloud-docs)
 //                    baseURL = https://developer.amd.com.cn/radeon/api/v1
+//   * HF router upstreams routed through their own OpenAI-compatible
+//     endpoints (when they reach Bifrost via the HF router): together,
+//     deepinfra, cerebras, novita, cohere, fireworks, baseten,
+//     scaleway, nscale, ovhcloud, publicai, featherless.
 //
 // Providers that need a fixed public base URL but Bifrost has no
 // first-class type for (e.g. AMD Radeon Cloud, whose endpoint URL
@@ -92,18 +96,37 @@ const META: TokenFactoryMeta = {
  *
  *  Bifrost's docs explicitly recommend the `env.<VAR>` prefix — we
  *  never inline a literal key. Adding a new Bifrost-native provider
- *  is a one-line change here. */
-const PROVIDER_API_KEY_ENV: Record<string, string> = {
+ *  is a one-line change here.
+ *
+ *  Exported so the regression test in bifrost.test.ts can iterate
+ *  every entry to lock the api-key ↔ base-URL pair in lockstep
+ *  (a missing pair used to surface as the 'X not supported' bug). */
+export const PROVIDER_API_KEY_ENV: Record<string, string> = {
   huggingface: "HF_TOKEN",
   groq: "GROQ_API_KEY",
   openrouter: "OPENROUTER_API_KEY",
   nvidia: "NVIDIA_API_KEY",
   amd: "RADEON_API_KEY",
+  together: "TOGETHER_API_KEY",
+  deepinfra: "DEEPINFRA_API_KEY",
+  cerebras: "CEREBRAS_API_KEY",
+  novita: "NOVITA_API_KEY",
+  cohere: "COHERE_API_KEY",
+  fireworks: "FIREWORKS_API_KEY",
+  baseten: "BASETEN_API_KEY",
+  scaleway: "SCALEWAY_API_KEY",
+  nscale: "NSCALE_API_KEY",
+  ovhcloud: "OVH_AI_ENDPOINTS_ACCESS_TOKEN",
+  publicai: "PUBLICAI_API_KEY",
+  featherless: "FEATHERLESS_API_KEY",
 };
 
 /** Providers Bifrost has a built-in type for. Anything outside this
- *  list goes through `custom_provider_config` (or errors). */
-const NATIVE_PROVIDERS = new Set([
+ *  list goes through `custom_provider_config` (or errors).
+ *
+ *  Exported so the regression test can distinguish native providers
+ *  (no base URL needed) from custom OpenAI-compatible providers. */
+export const NATIVE_PROVIDERS = new Set([
   "huggingface",
   "groq",
   "openrouter",
@@ -111,15 +134,45 @@ const NATIVE_PROVIDERS = new Set([
 
 /** Custom OpenAI-compatible providers we explicitly support in TFI's
  *  first iteration. Each carries a documented public base URL the
- *  user can sanity-check against their own deployment. */
+ *  user can sanity-check against their own deployment.
+ *
+ *  All base URLs here come from each vendor's official "OpenAI
+ *  compatibility" docs — never from blog posts or third-party
+ *  examples. When a vendor changes its URL, only this map needs
+ *  to update.
+ *
+ *  Hugging Face router providers (together, deepinfra, cerebras,
+ *  novita, etc.) are routed by HF via its own router base URL
+ *  — but the TFI catalog carries the per-model upstream provider
+ *  name from the HF router payload (e.g. `provider: "together"`),
+ *  and the user has the matching provider API key, not an HF
+ *  router token. So we map those to the vendor's own OpenAI
+ *  endpoint. */
 const CUSTOM_OPENAI_BASE_URLS: Record<string, string> = {
   nvidia: "https://integrate.api.nvidia.com/v1",
   // AMD Radeon Cloud — OpenAI-compatible chat completions per the
   // official AMD Radeon Cloud docs (amd-aim.github.io/radeon-cloud-docs
-  // Quickstart). The Authorization header carries the bearer token
-  // (RADEON_API_KEY), which Bifrost passes through unchanged when
-  // the upstream is OpenAI-compatible.
+  // Quickstart).
   amd: "https://developer.amd.com.cn/radeon/api/v1",
+  // HF router upstreams — each vendor ships a public OpenAI-compatible
+  // endpoint. Bifrost treats these as `custom_provider_config` with
+  // `base_provider_type = "openai"` + the vendor's base_url.
+  together: "https://api.together.xyz/v1",
+  deepinfra: "https://api.deepinfra.com/v1/openai",
+  cerebras: "https://api.cerebras.ai/v1",
+  novita: "https://api.novita.ai/v3/openai",
+  cohere: "https://api.cohere.ai/v1",
+  fireworks: "https://api.fireworks.ai/inference/v1",
+  baseten: "https://api.baseten.co/v1",
+  scaleway: "https://api.scaleway.ai/v1",
+  nscale: "https://api.nscale.com/v1",
+  // OVHcloud AI Endpoints uses a per-deployment URL pattern; the
+  // common OpenAI-compatible base is documented at the OVHcloud
+  // AI Endpoints docs. Users typically customize this in their
+  // generated config after TFI emits it.
+  ovhcloud: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1",
+  publicai: "https://api.publicai.co/v1",
+  featherless: "https://api.featherless.ai/v1",
 };
 
 /** Per-provider ordering for stable JSON output. Bifrost doesn't
@@ -131,6 +184,18 @@ const PROVIDER_ORDER = [
   "huggingface",
   "groq",
   "openrouter",
+  "together",
+  "deepinfra",
+  "cerebras",
+  "novita",
+  "cohere",
+  "fireworks",
+  "baseten",
+  "scaleway",
+  "nscale",
+  "ovhcloud",
+  "publicai",
+  "featherless",
 ];
 
 interface BifrostProviderConfig {
