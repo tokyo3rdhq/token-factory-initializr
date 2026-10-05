@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 def _build_cross_source_index(
     *source_lists: list[dict],
-) -> dict[str, dict]:
+) -> dict[str, list[dict]]:
     """Index cross-source raw observations by normalized canonical model_id.
 
     Accepts one or more observation lists (OpenRouter, models.dev, …)
@@ -43,6 +43,15 @@ def _build_cross_source_index(
     unification + slug fallback) is applied on the key side so callers
     can do a single ``index[ep.model_id]`` lookup regardless of how
     the primary source spells its id.
+
+    Additionally, when an observation carries an OpenRouter
+    ``metadata.hugging_face_id`` (the upstream HF id the OR entry
+    points to), the observation is also indexed under that HF id's
+    normalized form. This lets a HF endpoint whose id differs from OR's
+    ``id`` — e.g. ``prism-ml/Ternary-Bonsai-2-27B-gguf`` (HF) ↔
+    ``prism-ml/ternary-bonsai-2-27b`` (OR) with ``hugging_face_id``
+    pointing back to the HF id — still hit via a single observation
+    lookup rather than the slug-fallback path.
 
     When two observations from the same provider collide on the same
     normalized key, the first one wins. When two observations from
@@ -59,12 +68,19 @@ def _build_cross_source_index(
             continue
         for obs in source_list:
             obs_id = obs.get("model_id") or obs.get("id") or ""
-            if not obs_id:
-                continue
-            key = _normalize_id(obs_id)
-            if not key:
-                continue
-            index.setdefault(key, []).append(obs)
+            if obs_id:
+                key = _normalize_id(obs_id)
+                if key:
+                    index.setdefault(key, []).append(obs)
+            # OR entries carry metadata.hugging_face_id, which is the
+            # upstream HF id. Index the same observation under that
+            # HF id too so HF endpoints can find it directly.
+            or_meta = obs.get("metadata") if isinstance(obs.get("metadata"), dict) else {}
+            hf_id = or_meta.get("hugging_face_id")
+            if hf_id and isinstance(hf_id, str) and hf_id != obs_id:
+                hf_key = _normalize_id(hf_id)
+                if hf_key and hf_key not in index:
+                    index.setdefault(hf_key, []).append(obs)
     return index
 
 
