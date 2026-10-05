@@ -7,7 +7,7 @@
 // workflow. Does NOT promise functionality that isn't implemented
 // yet (e.g. the artifact-generation API is intentionally omitted).
 
-import { textResponse } from "./lib/errors";
+import { textResponse } from "../lib/errors";
 
 const BODY = `# TFI Agent Interface
 

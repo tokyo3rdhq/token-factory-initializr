@@ -6,7 +6,7 @@
 // a copy of the marketing website copy. Agents land here, scan
 // the URLs, and follow the one they need.
 
-import { textResponse } from "./lib/errors";
+import { textResponse } from "../lib/errors";
 
 const BODY = `# Token Factory Initializr
 
