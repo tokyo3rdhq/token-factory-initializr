@@ -70,6 +70,29 @@ const en: TranslationTree = {
     },
     summaryTemplate: (n, m) =>
       `We'll match ${n} model${n === 1 ? "" : "s"} from ${m} provider${m === 1 ? "" : "s"}.`,
+    // ----- Agent Access (docs/tfi_homepage_agent_access.md) -----
+    ctaAgent: "I'm an Agent",
+    agentHeading: "Use TFI with an AI Agent",
+    agentBlurb:
+      "Let your AI agent discover TFI's model catalog and help you configure your Token Factory.",
+    agentCopy: "Copy Prompt",
+    agentCopied: "Copied",
+    agentReadGuide: "Read Agent Guide",
+    agentClose: "Close",
+    agentPrompt: `I want to use Token Factory Initializr (TFI) to select models and configure my Token Factory.
+
+Start by reading:
+https://start.magi.website/agents.md
+
+Use TFI's public model catalog to discover and inspect available models:
+https://start.magi.website/api/v1/models
+
+Help me choose suitable models based on my requirements, then use TFI's configuration workflow at:
+https://start.magi.website/
+
+If I provide a generated TFI configuration URL, fetch it and help me safely apply the generated configuration to my existing Token Factory configuration.
+
+Do not expose or modify secrets. Preserve my existing configuration unless I explicitly ask you to replace it.`,
   },
 
   browse: {

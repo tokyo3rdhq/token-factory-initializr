@@ -94,6 +94,30 @@ export interface TranslationTree {
     };
     /** Template: "We'll match {n} model(s) from {m} provider(s)." */
     summaryTemplate: (n: number, m: number) => string;
+    /** Secondary CTA — opens the Agent Access dialog. Doc:
+     *  docs/tfi_homepage_agent_access.md §2 — wording must NOT use
+     *  emoji as the primary icon (lucide Bot icon is used instead).
+     *  This entry MUST stay visually quieter than ctaBrowse. */
+    ctaAgent: string;
+    /** Dialog: heading. */
+    agentHeading: string;
+    /** Dialog: short explanation (one sentence). */
+    agentBlurb: string;
+    /** Dialog: copy button default label. */
+    agentCopy: string;
+    /** Dialog: copy button transient confirmation label. */
+    agentCopied: string;
+    /** Dialog: secondary "Read Agent Guide" link label. */
+    agentReadGuide: string;
+    /** Dialog: close button a11y label. */
+    agentClose: string;
+    /** The default bootstrap prompt body (verbatim from §5 of the
+     *  spec doc). Kept as a string (not a template) because the
+     *  prompt is intentionally fixed across locales to give every
+     *  visitor — human and agent — the same canonical entry point.
+     *  Localization would break the agent's ability to recognize
+     *  the prompt across clients. */
+    agentPrompt: string;
   };
 
   /** Browse page. */

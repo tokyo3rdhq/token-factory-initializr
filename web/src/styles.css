@@ -786,6 +786,112 @@
 }
 @keyframes tfi-spin { to { transform: rotate(360deg); } }
 
+/* ----- Agent Access dialog (homepage) -----
+ * Per docs/tfi_homepage_agent_access.md §4 / §9 / §16.
+ *
+ * Single consumer (HomePage) so this lives in tfi styles rather than
+ * being promoted to the design system. If a second consumer ever
+ * needs the same dialog, that's the signal to extract a shared
+ * <Dialog> primitive into @tokyo3rdhq/magi-design-system.
+ *
+ * Design constraints (doc §16):
+ *   - visually quiet — no glow, no AI gradients, no animated orbs
+ *   - native to MAGI/TFI tokens (--magi-*)
+ *   - responsive (doc §17): dialog fits narrow screens, prompt wraps
+ *     rather than overflowing horizontally
+ */
+.tfi-agent-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--magi-space-4);
+  z-index: 1000;
+}
+.tfi-agent-dialog {
+  width: min(640px, 100%);
+  max-height: min(80vh, 720px);
+  overflow: auto;
+  /* Card already provides surface + border; we just tighten the
+   * dialog's interior rhythm. */
+  padding: var(--magi-space-6);
+}
+/* Doc §17 — narrow screens. The dialog already caps at 100% width,
+ * so on mobile we just shrink its interior padding so the prompt
+ * block fits without horizontal overflow. */
+@media (max-width: 640px) {
+  .tfi-agent-dialog {
+    padding: var(--magi-space-4);
+  }
+}
+.tfi-agent-blurb {
+  margin: 0;
+  color: var(--magi-text-secondary);
+}
+.tfi-agent-prompt {
+  margin: 0;
+  padding: var(--magi-space-4);
+  background: var(--magi-surface);
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-md);
+  font-family: var(--magi-font-mono, ui-monospace, monospace);
+  font-size: var(--magi-font-size-caption);
+  line-height: var(--magi-leading-snug);
+  color: var(--magi-text-primary);
+  /* Doc §17 — wrap rather than overflow horizontally on narrow
+   * screens. Preserves full text selectability. */
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+  max-height: min(50vh, 360px);
+  overflow-y: auto;
+}
+.tfi-agent-prompt code {
+  /* Reset the design-system .magi-code inline styling so the block
+   * reads as a single block of preformatted text rather than a
+   * wrapped inline-code chip. */
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+.tfi-agent-footer {
+  /* The footer uses justify-content:flex-end via inline style (see
+   * Home.tsx) so the link + button sit on the right. This rule is
+   * kept so any future migration back to class-based layout has a
+   * single anchor to flip. */
+}
+.tfi-agent-guide-link {
+  /* §11 — secondary link, must NOT compete with Copy Prompt. */
+  color: var(--magi-text-secondary);
+  font-size: var(--magi-font-size-caption);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--magi-border-strong);
+  padding-bottom: 1px;
+}
+.tfi-agent-guide-link:hover,
+.tfi-agent-guide-link:focus-visible {
+  color: var(--magi-text-primary);
+  border-bottom-color: var(--magi-text-secondary);
+}
+/* Tab-stop focus ring on the trigger button + dialog controls —
+ * the design-system Button primitive ships its own focus ring but
+ * the trigger button here uses a custom .magi-button layout via
+ * the secondary variant. We only add a safety rule for any future
+ * manual anchor/button inside the dialog. */
+.tfi-agent-dialog a:focus-visible,
+.tfi-agent-dialog button:focus-visible {
+  outline: 2px solid var(--magi-accent);
+  outline-offset: 2px;
+  border-radius: var(--magi-radius-sm);
+}
+
 /* ----- Responsive ----- */
 /* Two breakpoints:
  *   tablet (max-width: 960px): reduce paddings, tighten nav

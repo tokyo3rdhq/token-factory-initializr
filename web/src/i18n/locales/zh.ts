@@ -70,6 +70,28 @@ const zh: TranslationTree = {
     },
     summaryTemplate: (n, m) =>
       `我们会从 ${m} 个 provider 中匹配 ${n} 个模型。`,
+    // ----- Agent Access (docs/tfi_homepage_agent_access.md) -----
+    ctaAgent: "我是 Agent",
+    agentHeading: "把 TFI 接入你的 AI Agent",
+    agentBlurb: "让 AI Agent 读取 TFI 模型目录,并协助你完成 Token Factory 配置。",
+    agentCopy: "复制 Prompt",
+    agentCopied: "已复制",
+    agentReadGuide: "查看 Agent 指南",
+    agentClose: "关闭",
+    agentPrompt: `I want to use Token Factory Initializr (TFI) to select models and configure my Token Factory.
+
+Start by reading:
+https://start.magi.website/agents.md
+
+Use TFI's public model catalog to discover and inspect available models:
+https://start.magi.website/api/v1/models
+
+Help me choose suitable models based on my requirements, then use TFI's configuration workflow at:
+https://start.magi.website/
+
+If I provide a generated TFI configuration URL, fetch it and help me safely apply the generated configuration to my existing Token Factory configuration.
+
+Do not expose or modify secrets. Preserve my existing configuration unless I explicitly ask you to replace it.`,
   },
 
   browse: {
