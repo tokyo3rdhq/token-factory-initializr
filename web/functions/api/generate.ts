@@ -19,7 +19,12 @@ import {
 } from "../lib/kv";
 import { FIXTURE_PROVIDERS } from "../lib/fixtures";
 import { generateId } from "../lib/litellm";
-import { generateWith, SUPPORTED_TOKEN_FACTORIES, type TokenFactoryId } from "../lib/generators";
+import {
+  buildAgentPrompt,
+  generateWith,
+  SUPPORTED_TOKEN_FACTORIES,
+  type TokenFactoryId,
+} from "../lib/generators";
 import { GeneratorError } from "../lib/generators/types";
 
 interface GenerateRequest {
@@ -132,6 +137,17 @@ export async function onRequestPost(context: {
     format: generated.format,
   });
 
+  // Per-selection agent prompt — the React result panel surfaces it
+  // via the "Agent Prompt" copy button. The prompt is regenerated
+  // every time the user clicks Initialize (no server state beyond the
+  // KV artifact), so the prompt's selection manifest and the
+  // artifact URL stay in sync at all times.
+  const agent_prompt = buildAgentPrompt(
+    requestedFormat,
+    generatedUrl,
+    resolved,
+  );
+
   const url = generatedUrl;
   return json({
     id,
@@ -139,6 +155,7 @@ export async function onRequestPost(context: {
     expires_at: now + ttl * 1000,
     format: generated.format,
     yaml: generated.content,
+    agent_prompt,
   });
 }
 

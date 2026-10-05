@@ -170,6 +170,7 @@ const en: TranslationTree = {
     yamlCopied: "Copied",
     yamlDownload: "Download",
     yamlAgentPrompt: "Agent Prompt",
+    yamlAgentPromptHelp: "Copy the generated URL and a per-selection agent prompt to your clipboard in one go.",
     fieldUrl: "URL",
     fieldTtl: "TTL",
     ttlValue: "5 minutes — by design",

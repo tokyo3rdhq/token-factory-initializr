@@ -85,6 +85,21 @@ export function GeneratePage() {
     }
   };
 
+  /** Copy the generated URL AND the per-selection agent prompt in a
+   *  single clipboard payload so pasting into an agent chat hands the
+   *  agent both the URL (its source of truth) and the workflow
+   *  instructions in one go. The two are joined by a blank line — the
+   *  prompt body already opens with "You are updating...". */
+  const copyHandoff = async (res: GenerateResponse) => {
+    const prompt = res.agent_prompt ?? "";
+    // The prompt body contains the URL twice (literal <GENERATED_URL>
+    // placeholder + the rendered Example line). Prepend the resolved
+    // URL on its own line so a single paste immediately gives the
+    // agent the canonical URL it must fetch.
+    const payload = `${res.url}\n\n${prompt}`;
+    await copy(payload, "prompt");
+  };
+
   const download = () => {
     if (!result) return;
     const blob = new Blob([result.yaml], { type: "text/yaml" });
@@ -238,6 +253,7 @@ export function GeneratePage() {
                 agentPrompt={result.agent_prompt}
                 copied={copied}
                 onCopy={copy}
+                onCopyHandoff={() => copyHandoff(result)}
                 onDownload={download}
               />
             )}
@@ -261,6 +277,7 @@ function ResultPanel({
   agentPrompt,
   copied,
   onCopy,
+  onCopyHandoff,
   onDownload,
 }: {
   yaml: string;
@@ -269,6 +286,7 @@ function ResultPanel({
   agentPrompt?: string;
   copied: "yaml" | "url" | "prompt" | null;
   onCopy: (text: string, key: "yaml" | "url" | "prompt") => void;
+  onCopyHandoff: () => void;
   onDownload: () => void;
 }) {
   const { ts } = useI18n();
@@ -289,7 +307,9 @@ function ResultPanel({
         <Button
           size="sm"
           variant="secondary"
-          onClick={() => onCopy(agentPrompt ?? "", "prompt")}
+          onClick={onCopyHandoff}
+          disabled={!agentPrompt}
+          title={ts("generate.yamlAgentPromptHelp")}
         >
           {copied === "prompt" ? ts("generate.yamlCopied") : ts("generate.yamlAgentPrompt")}
         </Button>

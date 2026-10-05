@@ -184,6 +184,9 @@ export interface TranslationTree {
     yamlCopied: string;
     yamlDownload: string;
     yamlAgentPrompt: string;
+    /** Tooltip / a11y label for the Agent Prompt button — describes
+     *  the clipboard payload (URL + prompt in a single copy). */
+    yamlAgentPromptHelp: string;
     fieldUrl: string;
     fieldTtl: string;
     /** "5 minutes — by design" */

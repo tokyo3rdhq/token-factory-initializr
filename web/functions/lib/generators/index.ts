@@ -64,3 +64,4 @@ export type { TokenFactoryId, TokenFactoryMeta, GeneratedConfig } from "./types"
 export { GeneratorError } from "./types";
 export { litellmGenerator } from "./litellm";
 export { newapiGenerator } from "./newapi";
+export { buildAgentPrompt } from "./agentPrompt";
