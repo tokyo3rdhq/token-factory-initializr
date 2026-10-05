@@ -204,6 +204,20 @@ suite("custom provider: nvidia emits custom_provider_config + network_config.bas
   check("key value references NVIDIA_API_KEY", p.keys[0].value, "env.NVIDIA_API_KEY");
 });
 
+suite("custom provider: amd emits custom_provider_config + network_config.base_url", () => {
+  const out = bifrostGenerator.generate(
+    [ep({ provider: "amd", model_id: "MiMo-V2.6-Flash" })],
+    { generatedUrl: URL },
+  );
+  const parsed = JSON.parse(out.content);
+  const p = parsed.providers.amd;
+  check("amd provider exists", p !== undefined, true);
+  check("custom_provider_config.base_provider_type = 'openai'", p.custom_provider_config?.base_provider_type, "openai");
+  check("network_config.base_url is AMD Radeon Cloud", p.network_config?.base_url, "https://developer.amd.com.cn/radeon/api/v1");
+  check("key value references RADEON_API_KEY", p.keys[0].value, "env.RADEON_API_KEY");
+  check("key name is 'amd-primary'", p.keys[0].name, "amd-primary");
+});
+
 // ---------------------------------------------------------------------------
 // Model IDs containing `/`
 // ---------------------------------------------------------------------------
@@ -231,13 +245,15 @@ suite("secrets: never embedded as literals", () => {
   const out = bifrostGenerator.generate(
     [
       ep({ provider: "nvidia", model_id: "x" }),
-      ep({ provider: "huggingface", model_id: "y" }),
-      ep({ provider: "openrouter", model_id: "z" }),
+      ep({ provider: "amd", model_id: "y" }),
+      ep({ provider: "huggingface", model_id: "z" }),
+      ep({ provider: "openrouter", model_id: "w" }),
     ],
     { generatedUrl: URL },
   );
   checkContains("references HF_TOKEN via env.", out.content, "env.HF_TOKEN");
   checkContains("references NVIDIA_API_KEY via env.", out.content, "env.NVIDIA_API_KEY");
+  checkContains("references RADEON_API_KEY via env.", out.content, "env.RADEON_API_KEY");
   checkContains("references OPENROUTER_API_KEY via env.", out.content, "env.OPENROUTER_API_KEY");
   check("no literal 'sk-' key fragment", out.content.includes("sk-"), false);
 });
@@ -264,21 +280,31 @@ suite("multi-provider: separate providers keyed by provider field", () => {
 // Unsupported providers throw explicit error
 // ---------------------------------------------------------------------------
 
-suite("unsupported provider: amd throws GeneratorError", () => {
+suite("unsupported provider: amd now supported via custom_provider_config (regression)", () => {
+  // AMD Radeon Cloud exposes a documented OpenAI-compatible chat
+  // completions endpoint. Bifrost handles it via
+  // custom_provider_config + network_config.base_url.
+  const out = bifrostGenerator.generate(
+    [ep({ provider: "amd", model_id: "MiMo-V2.6-Flash" })],
+    { generatedUrl: URL },
+  );
+  const parsed = JSON.parse(out.content);
+  const p = parsed.providers.amd;
+  check("amd provider exists", p !== undefined, true);
+  check("no error thrown", !!p, true);
+});
+
+suite("unsupported provider: bogus provider name throws", () => {
   let thrown = false;
-  let msg = "";
   try {
     bifrostGenerator.generate(
-      [ep({ provider: "amd", model_id: "MiMo-V2.6-Flash" })],
+      [ep({ provider: "totally-fake", model_id: "x" })],
       { generatedUrl: URL },
     );
   } catch (e) {
-    thrown = true;
-    msg = e instanceof Error ? e.message : String(e);
+    thrown = e instanceof Error && e.constructor.name === "GeneratorError";
   }
-  check("threw", thrown, true);
-  check("error message mentions amd", msg.includes("amd"), true);
-  check("error message is actionable (lists supported providers)", msg.includes("huggingface") || msg.includes("nvidia"), true);
+  check("threw GeneratorError", thrown, true);
 });
 
 suite("unsupported provider: bogus provider name throws", () => {

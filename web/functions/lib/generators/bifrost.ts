@@ -59,6 +59,11 @@
 //   * `nvidia`      — Bifrost custom OpenAI-compatible provider
 //                     (NVIDIA NIM uses the OpenAI-compatible API)
 //                    baseURL = https://integrate.api.nvidia.com/v1
+//   * `amd`         — Bifrost custom OpenAI-compatible provider
+//                     (AMD Radeon Cloud exposes an OpenAI-compatible
+//                     chat completions endpoint per the AMD Radeon Cloud
+//                     docs at amd-aim.github.io/radeon-cloud-docs)
+//                    baseURL = https://developer.amd.com.cn/radeon/api/v1
 //
 // Providers that need a fixed public base URL but Bifrost has no
 // first-class type for (e.g. AMD Radeon Cloud, whose endpoint URL
@@ -93,6 +98,7 @@ const PROVIDER_API_KEY_ENV: Record<string, string> = {
   groq: "GROQ_API_KEY",
   openrouter: "OPENROUTER_API_KEY",
   nvidia: "NVIDIA_API_KEY",
+  amd: "RADEON_API_KEY",
 };
 
 /** Providers Bifrost has a built-in type for. Anything outside this
@@ -108,6 +114,12 @@ const NATIVE_PROVIDERS = new Set([
  *  user can sanity-check against their own deployment. */
 const CUSTOM_OPENAI_BASE_URLS: Record<string, string> = {
   nvidia: "https://integrate.api.nvidia.com/v1",
+  // AMD Radeon Cloud — OpenAI-compatible chat completions per the
+  // official AMD Radeon Cloud docs (amd-aim.github.io/radeon-cloud-docs
+  // Quickstart). The Authorization header carries the bearer token
+  // (RADEON_API_KEY), which Bifrost passes through unchanged when
+  // the upstream is OpenAI-compatible.
+  amd: "https://developer.amd.com.cn/radeon/api/v1",
 };
 
 /** Per-provider ordering for stable JSON output. Bifrost doesn't
@@ -115,6 +127,7 @@ const CUSTOM_OPENAI_BASE_URLS: Record<string, string> = {
  *  diff-friendly across runs. */
 const PROVIDER_ORDER = [
   "nvidia",
+  "amd",
   "huggingface",
   "groq",
   "openrouter",
