@@ -51,7 +51,19 @@ class SummarizeStage(Stage):
         endpoints = context.data.get("enriched", [])
         errors = context.state.get("fetch_errors", {})
         plan = context.artifacts.get("reconciliation_plan")
-        manifest = summarize_all(endpoints, errors, reconciliation_plan=plan)
+        # Per-ds write timestamps from the publish stage. Falls back
+        # to ``{}`` when publish didn't run (e.g. KV init failed);
+        # ``summarize_all`` then defaults the per-ds ``generated_at``
+        # to ``None`` and the top-level ``generated_at`` to
+        # ``datetime.now()``.
+        publish_summary = context.artifacts.get("publish_summary") or {}
+        per_ds_ts = publish_summary.get("per_data_source_timestamps") or {}
+        manifest = summarize_all(
+            endpoints,
+            errors,
+            reconciliation_plan=plan,
+            per_data_source_timestamps=per_ds_ts,
+        )
         context.artifacts["manifest"] = manifest
 
         kv = self.kv

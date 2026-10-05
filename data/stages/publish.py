@@ -102,6 +102,13 @@ def publish_plan(
             instead of silently skipping. The Stage wraps this so the
             error surfaces to ``context.errors`` and the notify stage
             can alert.
+
+    The summary dict gains a ``per_data_source_timestamps`` field
+    (``{data_source: iso_timestamp}``) that records when the per-ds
+    provider manifest was actually PUT to KV. The summarize stage
+    surfaces this as ``providers.{ds}.generated_at`` in the
+    aggregated manifest so consumers can tell exactly when each ds
+    was last written without re-running the pipeline.
     """
     summary = {
         "added": 0,
@@ -109,6 +116,7 @@ def publish_plan(
         "removed": 0,
         "manifests_written": 0,
         "skipped_unsafe": [],
+        "per_data_source_timestamps": {},
     }
 
     for ds, bucket in plan["by_data_source"].items():
@@ -155,14 +163,20 @@ def publish_plan(
             summary["removed"] += 1
             logger.info("publish: DELETE models:%s:%s", ds, provider)
 
-        # Step 4: PUT provider manifest LAST.
+        # Step 4: PUT provider manifest LAST — record the actual
+        # write time so the aggregated manifest can surface it as
+        # ``providers.{ds}.generated_at``.
         try:
             kv.put_provider_manifest(ds, _emit_manifest(desired_bucket))
             summary["manifests_written"] += 1
+            summary["per_data_source_timestamps"][ds] = (
+                datetime.now(timezone.utc).isoformat()
+            )
             logger.info(
-                "publish: PUT providers:%s (%d providers)",
+                "publish: PUT providers:%s (%d providers) at %s",
                 ds,
                 len(desired_bucket["provider_order"]),
+                summary["per_data_source_timestamps"][ds],
             )
         except Exception as exc:  # noqa: BLE001
             logger.error(

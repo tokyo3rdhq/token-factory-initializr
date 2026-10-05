@@ -132,18 +132,21 @@ const FIXTURE_MANIFEST: Manifest = {
       count: NVIDIA_FIXTURE.models.length,
       status: "success",
       last_success: "2026-09-25T00:00:00Z",
+      generated_at: "2026-09-25T00:00:00Z",
     },
     amd: {
       data_source: "amd",
       count: AMD_FIXTURE.models.length,
       status: "success",
       last_success: "2026-09-25T00:00:00Z",
+      generated_at: "2026-09-25T00:00:00Z",
     },
     huggingface: {
       data_source: "huggingface",
       count: HF_FIXTURE.models.length,
       status: "success",
       last_success: "2026-09-25T00:00:00Z",
+      generated_at: "2026-09-25T00:00:00Z",
     },
   },
 };

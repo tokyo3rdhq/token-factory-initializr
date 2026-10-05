@@ -70,6 +70,10 @@ export interface Manifest {
       status: "success" | "partial" | "failed" | "invalid";
       last_success?: string;
       error?: string;
+      /** ISO timestamp when this provider's catalog was last PUT to KV.
+       * Optional because older manifest records (pre-provenance-rewrite)
+       * may not carry the field yet. */
+      generated_at?: string;
     }
   >;
 }
