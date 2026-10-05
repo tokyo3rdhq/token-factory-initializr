@@ -20,9 +20,13 @@ export interface PublicModel {
    *  timestamp for every endpoint — use 0 (the documented "unknown"
    *  sentinel) rather than fabricate a value. */
   created: number;
-  /** OpenAI: owner string. We surface the data_source as the
-   *  human-readable owner label; e.g. nvidia, huggingface. */
-  owned_by: string;
+  /** Model owner (creator / publisher), e.g. "deepseek-ai", "xiaomi",
+   *  "z-ai". Optional — omitted when TFI cannot derive a reliable
+   *  owner (we never substitute the endpoint provider for the model
+   *  owner; that would mislead agents about who actually created
+   *  the model). When omitted, clients should treat it as unknown
+   *  rather than infer anything. */
+  owned_by?: string;
   /** TFI extension: data source (nvidia / amd / huggingface /
    *  openrouter / models_dev). */
   data_source: string;
@@ -51,6 +55,30 @@ const CAPABILITY_ORDER = [
   "tool_calling",
   "structured_output",
 ] as const;
+
+/**
+ * Derive the model owner (creator / publisher) for a canonical
+ * ``model_id``. The owner is the segment of the id before the first
+ * ``/`` — e.g. ``deepseek-ai/deepseek-v4.1-flash`` → ``deepseek-ai``.
+ *
+ * This is a fallback only. When the canonical model carries an
+ * explicit ``lab`` field (HF data path: ``owned_by`` in the upstream
+ * API, AMD's ``token_factory.publisher.name``), we prefer that.
+ *
+ * For ids that don't follow the ``owner/name`` shape (rare; e.g.
+ * some AMD provider entries without a publisher prefix), we return
+ * ``null`` and the projection omits ``owned_by`` from the response.
+ */
+function deriveOwner(modelId: string, lab: string | null | undefined): string | null {
+  if (typeof lab === "string" && lab.trim().length > 0) {
+    return lab.trim();
+  }
+  if (typeof modelId !== "string" || !modelId.includes("/")) {
+    return null;
+  }
+  const owner = modelId.slice(0, modelId.indexOf("/")).trim();
+  return owner.length > 0 ? owner : null;
+}
 
 /**
  * Project a canonical ``ModelEndpoint`` into the public API shape.
@@ -86,11 +114,19 @@ export function toPublicModel(model: ModelEndpoint): PublicModel {
     id: model.model_id,
     object: "model",
     created: 0,
-    owned_by: model.data_source || model.provider || "unknown",
     data_source: model.data_source,
     provider: model.provider,
     capabilities: caps,
   };
+
+  // ``owned_by`` is the model creator, not the endpoint provider.
+  // We never substitute data_source / provider for owned_by — that
+  // would mislead consumers (e.g. a DeepSeek model served on
+  // NVIDIA NIM is still owned by DeepSeek, not NVIDIA).
+  const owner = deriveOwner(model.model_id, model.lab);
+  if (owner) {
+    publicModel.owned_by = owner;
+  }
 
   if (typeof model.name === "string" && model.name.length > 0) {
     publicModel.name = model.name;
@@ -125,3 +161,25 @@ export function toPublicModel(model: ModelEndpoint): PublicModel {
 export function toPublicModels(models: ModelEndpoint[]): PublicModel[] {
   return models.map(toPublicModel);
 }
+
+/** Documented vocabulary for the ``capabilities`` field.
+ *
+ * The full public vocabulary is fixed (per doc §12 — we never add
+ * new capability names without bumping the API contract). When TFI's
+ * data pipeline doesn't have capability data for a model, the
+ * public API returns an empty array — see the schema docstring on
+ * ``PublicModel.capabilities`` for the semantics.
+ */
+export const PUBLIC_CAPABILITY_VOCABULARY: ReadonlyArray<string> = [
+  ...CAPABILITY_ORDER,
+] as ReadonlyArray<string>;
+
+/** Documented vocabulary for ``architecture.{input,output}``
+ *  modalities. Same fixed-vocabulary contract. */
+export const PUBLIC_MODALITY_VOCABULARY: ReadonlyArray<string> = [
+  "text",
+  "image",
+  "audio",
+  "video",
+  "embedding",
+] as const;

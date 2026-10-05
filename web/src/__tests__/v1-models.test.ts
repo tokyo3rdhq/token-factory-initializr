@@ -8,8 +8,16 @@ import assert from "node:assert/strict";
 import {
   toPublicModel,
   toPublicModels,
+  PUBLIC_CAPABILITY_VOCABULARY,
+  PUBLIC_MODALITY_VOCABULARY,
   type PublicModel,
 } from "../../functions/lib/projection.ts";
+import {
+  makeEtag,
+  etagMatches,
+  jsonResponse,
+  textResponse,
+} from "../../functions/lib/errors.ts";
 import {
   filterEndpoints,
   filterPublicModels,
@@ -54,10 +62,102 @@ test("toPublicModel exposes only canonical public fields", () => {
   assert.equal(out.id, "openai/gpt-oss-120b");
   assert.equal(out.object, "model");
   assert.equal(out.created, 0);
-  assert.equal(out.owned_by, "groq");
+  // owned_by must reflect the model creator, NOT the endpoint
+  // provider — ``openai/gpt-oss-120b`` is owned by OpenAI even
+  // though it's served on Groq here.
+  assert.equal(out.owned_by, "openai");
   assert.equal(out.data_source, "groq");
   assert.equal(out.provider, "groq");
   assert.deepEqual(out.capabilities, ["chat", "reasoning", "tool_calling"]);
+});
+
+test("toPublicModel prefers canonical lab over model_id derivation", () => {
+  // AMD/HF entries carry an explicit ``lab`` (publisher name). When
+  // set, that wins over the model_id prefix derivation.
+  const ep = makeEndpoint({
+    model_id: "some-org/llama-3-8b-instruct",
+    data_source: "huggingface",
+    provider: "meta",
+    lab: "meta-llama",
+  });
+  const out = toPublicModel(ep);
+  assert.equal(out.owned_by, "meta-llama");
+  assert.equal(out.provider, "meta");
+  assert.equal(out.data_source, "huggingface");
+});
+
+test("toPublicModel omits owned_by when neither lab nor prefix is derivable", () => {
+  // AMD entries without a publisher prefix land with no owner info.
+  // We OMIT the field rather than fabricate it from data_source —
+  // agents should treat absence as "unknown", not as an attribution
+  // claim.
+  const ep = makeEndpoint({
+    model_id: "MiMo-V2.6-Flash",
+    data_source: "amd",
+    provider: "amd",
+    lab: null,
+  });
+  const out = toPublicModel(ep);
+  assert.equal("owned_by" in out, false);
+  assert.equal(out.provider, "amd");
+  assert.equal(out.data_source, "amd");
+});
+
+test("toPublicModel vocabulary surfaces unknown keys as a forward-compat shim", () => {
+  // If a future data source emits a capability TFI doesn't yet
+  // recognize, it appears after the canonical ones (preserving
+  // backward-compatible ordering).
+  const ep = makeEndpoint({
+    model_id: "vendor/test",
+    capabilities: {
+      tool_calling: true,
+      chat: true,
+      // Future capability key — preserved.
+      image_generation: true,
+    },
+  });
+  const out = toPublicModel(ep);
+  assert.deepEqual(out.capabilities, [
+    "chat",
+    "tool_calling",
+    "image_generation",
+  ]);
+});
+
+test("PUBLIC_CAPABILITY_VOCABULARY exposes the documented enum", () => {
+  // The vocabulary is part of the API contract — adding a new key
+  // requires a doc + test bump so consumers know.
+  assert.deepEqual([...PUBLIC_CAPABILITY_VOCABULARY], [
+    "chat",
+    "vision",
+    "speech",
+    "embedding",
+    "reasoning",
+    "tool_calling",
+    "structured_output",
+  ]);
+});
+
+test("PUBLIC_MODALITY_VOCABULARY exposes the documented enum", () => {
+  assert.ok(PUBLIC_MODALITY_VOCABULARY.includes("text"));
+  assert.ok(PUBLIC_MODALITY_VOCABULARY.includes("image"));
+  assert.ok(PUBLIC_MODALITY_VOCABULARY.includes("audio"));
+  assert.ok(PUBLIC_MODALITY_VOCABULARY.includes("video"));
+  assert.ok(PUBLIC_MODALITY_VOCABULARY.includes("embedding"));
+});
+
+test("capabilities empty array means 'unavailable', not 'no capabilities'", () => {
+  // Per doc §11 — an empty array is a signal that the data pipeline
+  // didn't have capability info for this model, NOT that the model
+  // itself has no capabilities. The vocabulary contract is tested
+  // above; here we just confirm the shape stays ``[]`` (not null,
+  // not omitted) so filter implementation can stay simple.
+  const ep = makeEndpoint({
+    model_id: "vendor/unknown",
+    capabilities: {},
+  });
+  const out = toPublicModel(ep);
+  assert.deepEqual(out.capabilities, []);
 });
 
 test("toPublicModel strips provenance + metadata + pricing + raw fields", () => {
@@ -287,4 +387,64 @@ test("loadFullCatalog returns empty catalog when KV has no providers", async () 
   assert.deepEqual(cat.endpoints, []);
   assert.deepEqual(cat.snapshots, []);
   assert.deepEqual(cat.pairs, []);
+});
+
+// ---------------------------------------------------------------------------
+// ETag — weak validator on response body for 304 revalidation
+// ---------------------------------------------------------------------------
+
+test("makeEtag is deterministic and weak-prefixed", () => {
+  const a = makeEtag('{"a":1}');
+  const b = makeEtag('{"a":1}');
+  const c = makeEtag('{"a":2}');
+  assert.equal(a, b);
+  assert.notEqual(a, c);
+  assert.match(a, /^W\/"tfi-[0-9a-f]{8}"$/);
+});
+
+test("etagMatches accepts bare / W-prefixed / comma-separated values", () => {
+  const tag = makeEtag("hello");
+  assert.equal(etagMatches(tag, tag), true);
+  assert.equal(etagMatches(`W/"${tag}"`, tag), true);
+  assert.equal(etagMatches(`*`, tag), true);
+  assert.equal(etagMatches(`other, ${tag}, more`, tag), true);
+  assert.equal(etagMatches("different", tag), false);
+});
+
+test("jsonResponse emits 304 + no body when If-None-Match matches", async () => {
+  const body = { ok: 1 };
+  const etag = makeEtag(JSON.stringify(body));
+  const res = jsonResponse(body, {
+    etag,
+    ifNoneMatch: etag,
+  });
+  assert.equal(res.status, 304);
+  // Per RFC 7232 §4.1, 304 responses MUST NOT include a message body
+  // and the spec also strips most custom headers (we only see
+  // Content-Length, which Cloudflare sets to 0). The validator
+  // header is preserved on 304 for revalidation chains.
+  const text = await res.text();
+  assert.equal(text, "");
+});
+
+test("jsonResponse omits ETag header when no etag is passed", () => {
+  const res = jsonResponse({ ok: 1 });
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("ETag"), null);
+  // Cache-Control still present.
+  assert.match(res.headers.get("Cache-Control") || "", /max-age=/);
+});
+
+test("textResponse also revalidates via ETag", async () => {
+  const body = "# hello\n";
+  const etag = makeEtag(body);
+  const res = textResponse(body, "text/plain", {
+    etag,
+    ifNoneMatch: etag,
+  });
+  assert.equal(res.status, 304);
+  // 304 has no body and most custom headers are stripped; just
+  // verify the empty-body contract.
+  const text = await res.text();
+  assert.equal(text, "");
 });
