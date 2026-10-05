@@ -345,6 +345,76 @@ function renderNewApiPrompt(
  * (the Generate page prepends the generated URL so a single paste
  * hands the agent both the URL and the prompt).
  */
+function renderBifrostPrompt(
+  generatedUrl: string,
+  models: ModelEndpoint[],
+): string {
+  // Bifrost consumes a single declarative `config.json` (per the
+  // official Bifrost docs at docs.getbifrost.ai). The merge is an
+  // **id-based upsert** on `providers.<name>.keys[].models[]` —
+  // the agent must not invent providers that aren't in the artifact.
+  return [
+    renderHeader("Bifrost", generatedUrl, models),
+    "",
+    "## Objective",
+    "",
+    "Update the existing Bifrost `config.json` so that the models represented by the generated TFI configuration are registered with the Bifrost gateway.",
+    "",
+    "Bifrost stores its provider + key roster as a flat `providers` map. Each provider has a `keys[]` array of `{ name, value, models, weight }` entries — and for OpenAI-compatible providers Bifrost doesn't have a built-in type for (e.g. NVIDIA NIM), it additionally uses `custom_provider_config.base_provider_type = \"openai\"` plus `network_config.base_url`. The merge is therefore an **id-based upsert on `providers[<provider>].keys[]`** rather than a key-based replace.",
+    "",
+    "The goal is to **integrate the generated configuration into the existing configuration**, not blindly replace the existing configuration.",
+    "",
+    "## Merge Strategy (factory-specific)",
+    "",
+    "For each generated `providers[<provider>]` entry:",
+    "",
+    "1. Look up an existing entry with the same `<provider>` key.",
+    "2. For each generated `keys[]` entry:",
+    "   1. Look up an existing key with the same `name` (e.g. `nvidia-primary`).",
+    "   2. If found, decide whether to **update** the existing key (use the generated `models[]` array when the project does not maintain a hand-curated override) or **leave alone**.",
+    "   3. If not found, **append** the generated key to the existing `keys[]`.",
+    "3. If the generated provider has `custom_provider_config` / `network_config`, prefer the generated values — they encode the upstream base URL the gateway must hit.",
+    "",
+    "Do not delete existing entries unless the generated artifact explicitly says so (it does not — TFI's artifact is an additive manifest, not an authoritative delete list).",
+    "",
+    "## Wiring Reminder",
+    "",
+    "Bifrost needs an `encryption_key` and a config-store (SQLite or Postgres) at the gateway level, plus environment variables for every provider's API key. These are gateway-level settings, NOT per-model entries. They live outside the artifact URL and outside the `providers` map. Confirm they exist in the project's existing `config.json` before assuming the new `providers[]` is wired up:",
+    "",
+    "```json",
+    "{",
+    '  "encryption_key": "env.BIFROST_ENCRYPTION_KEY"',
+    "}",
+    "```",
+    "",
+    renderCommonSubsection(generatedUrl),
+    "",
+    "## Important Principle",
+    "",
+    "TFI is the **model-selection and configuration-generation layer**.",
+    "",
+    "The local Bifrost gateway remains the **source of truth for runtime-specific configuration**, secrets, upstream provider wiring, governance, and operational settings.",
+    "",
+    "Therefore:",
+    "",
+    "```text",
+    "TFI Generated Configuration (config.json)",
+    "        ↓",
+    "Desired providers[] roster",
+    "",
+    "Existing Bifrost Configuration",
+    "        ↓",
+    "Gateway / encryption / governance / cluster",
+    "",
+    "Agent",
+    "        ↓",
+    "Safely reconciles the two",
+    "```",
+    "",
+    "Do not treat the generated configuration as permission to overwrite the entire Bifrost configuration.",
+  ].join("\n");
+}
+
 export function buildAgentPrompt(
   format: TokenFactoryId,
   generatedUrl: string,
@@ -355,6 +425,8 @@ export function buildAgentPrompt(
       return renderLiteLLMPrompt(generatedUrl, models);
     case "newapi":
       return renderNewApiPrompt(generatedUrl, models);
+    case "bifrost":
+      return renderBifrostPrompt(generatedUrl, models);
     default: {
       // Exhaustive guard — TS will flag a missing case if a new
       // factory is added to the union without a prompt variant.

@@ -26,6 +26,20 @@ The public Agent interface is **read-only** and does not require
 authentication. There are no Agent accounts, no Agent API keys,
 and no Agent-specific cookies.
 
+TFI supports three Token Factory implementations today:
+
+- **LiteLLM** — \`model_list:\` YAML fragment with \`litellm_params\`
+  entries (\`model\`, \`api_key\` env reference).
+- **NewAPI** — flat \`models[]\` array with \`{ id, name }\` entries.
+- **Bifrost** — \`config.json\` with a \`providers\` map; each provider
+  has a \`keys[]\` array of \`{ name, value, models, weight }\` entries.
+  Bifrost also accepts OpenAI-compatible upstream providers via
+  \`custom_provider_config.base_provider_type\` set to \`"openai"\`
+  plus a \`network_config.base_url\`.
+
+The Token Factory id returned in the generated artifact tells the
+Agent which configuration schema to apply.
+
 ## Base URL
 
 \`\`\`

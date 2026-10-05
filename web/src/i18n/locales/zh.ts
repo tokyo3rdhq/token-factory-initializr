@@ -196,6 +196,11 @@ emptyBefore: "没有匹配的模型。试着放宽一些条件 —— ",
         description:
           "可自托管的 LLM 网关(one-api 兼容),在单一端点后汇聚多家上游 provider。",
       },
+      bifrost: {
+        name: "Bifrost",
+        description:
+          "高性能 LLM 网关,在 OpenAI 兼容接口背后路由并服务多家上游 provider。",
+      },
     },
   },
 };

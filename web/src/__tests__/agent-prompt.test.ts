@@ -181,6 +181,52 @@ suite("newapi: differs from litellm prompt", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Bifrost prompt
+// ---------------------------------------------------------------------------
+
+suite("bifrost: factory-specific naming", () => {
+  const p = buildAgentPrompt("bifrost", URL, samples);
+  checkContains("header mentions Bifrost", p, "Bifrost");
+  checkContains(
+    "factory-specific merge strategy names providers[] semantics",
+    p,
+    "providers[]",
+  );
+});
+
+suite("bifrost: selection manifest still included", () => {
+  const p = buildAgentPrompt("bifrost", URL, samples);
+  for (const m of samples) {
+    checkContains(
+      `manifest lists ${m.model_id}`,
+      p,
+      `${m.data_source} :: ${m.provider} :: ${m.model_id}`,
+    );
+  }
+});
+
+suite("bifrost: URL rendered as concrete example", () => {
+  const p = buildAgentPrompt("bifrost", URL, samples);
+  checkContains("URL appears as concrete example", p, URL);
+});
+
+suite("bifrost: factory-agnostic workflow steps render", () => {
+  const p = buildAgentPrompt("bifrost", URL, samples);
+  checkContains("step 1 heading", p, "## 1. Inspect the Current Project");
+  checkContains("step 6 heading", p, "## 6. Preserve Secrets");
+  checkContains("step 10 heading", p, "## 10. Final Report");
+  checkContains("important principle heading", p, "## Important Principle");
+});
+
+suite("bifrost: differs from litellm + newapi prompts", () => {
+  const a = buildAgentPrompt("litellm", URL, samples);
+  const b = buildAgentPrompt("newapi", URL, samples);
+  const c = buildAgentPrompt("bifrost", URL, samples);
+  check("bifrost ≠ litellm", a !== c, true);
+  check("bifrost ≠ newapi", b !== c, true);
+});
+
+// ---------------------------------------------------------------------------
 // Cross-cutting invariants
 // ---------------------------------------------------------------------------
 

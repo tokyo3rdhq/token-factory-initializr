@@ -6,6 +6,7 @@
 //
 //   SelectedModels           →   LiteLLMGenerator   → GeneratedConfig
 //                          →   NewAPIGenerator    → GeneratedConfig
+//                          →   BifrostGenerator   → GeneratedConfig
 //                          →   FutureGenerator    → GeneratedConfig
 //
 // rather than baking LiteLLM-specific logic into the UI / shared
@@ -18,7 +19,7 @@ import type { ModelEndpoint } from "../kv";
  * by implementing the {@link TokenFactoryGenerator} interface and
  * registering the implementation in {@link getGenerator}.
  */
-export type TokenFactoryId = "litellm" | "newapi";
+export type TokenFactoryId = "litellm" | "newapi" | "bifrost";
 
 /**
  * Display metadata for a Token Factory — what the picker UI renders

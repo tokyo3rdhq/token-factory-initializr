@@ -1,6 +1,6 @@
 // POST /api/generate
 //
-// Body: { model_ids: Array<{ data_source, provider, model_id }>, format?: "litellm" | "newapi" }
+// Body: { model_ids: Array<{ data_source, provider, model_id }>, format?: "litellm" | "newapi" | "bifrost" }
 // Returns: { id, url, expires_at, format, content }
 //
 // Validates the requested models against the current KV catalog

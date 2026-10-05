@@ -13,6 +13,7 @@
 import type { ModelEndpoint } from "../kv";
 import { litellmGenerator } from "./litellm";
 import { newapiGenerator } from "./newapi";
+import { bifrostGenerator } from "./bifrost";
 import { GeneratorError, type GenerationContext, type GeneratedConfig, type TokenFactoryGenerator, type TokenFactoryId, type TokenFactoryMeta } from "./types";
 
 /**
@@ -26,6 +27,7 @@ import { GeneratorError, type GenerationContext, type GeneratedConfig, type Toke
 export const GENERATORS: Record<TokenFactoryId, TokenFactoryGenerator> = {
   litellm: litellmGenerator,
   newapi: newapiGenerator,
+  bifrost: bifrostGenerator,
 };
 
 /** Token Factory metadata in picker-display order. */
@@ -64,4 +66,5 @@ export type { TokenFactoryId, TokenFactoryMeta, GeneratedConfig } from "./types"
 export { GeneratorError } from "./types";
 export { litellmGenerator } from "./litellm";
 export { newapiGenerator } from "./newapi";
+export { bifrostGenerator } from "./bifrost";
 export { buildAgentPrompt } from "./agentPrompt";

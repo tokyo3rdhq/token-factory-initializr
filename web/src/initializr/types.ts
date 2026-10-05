@@ -20,11 +20,11 @@ export interface SelectedModel extends ModelEndpoint {}
 
 /**
  * Token Factory implementation identifiers. Mirrors the server-side
- * definition in ``web/functions/lib/generators/types.ts``. Adding
- * a new factory = extend this union AND register a generator on
+ * definition in ``web/functions/lib/generators/types.ts``. Adding a
+ * new factory = extend this union AND register a generator on
  * the server.
  */
-export type TokenFactoryId = "litellm" | "newapi";
+export type TokenFactoryId = "litellm" | "newapi" | "bifrost";
 
 /**
  * The complete session state. ``tokenFactory === null`` means the user

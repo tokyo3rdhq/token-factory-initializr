@@ -225,6 +225,11 @@ Do not expose or modify secrets. Preserve my existing configuration unless I exp
         description:
           "Self-hostable LLM gateway (one-api compatible) that channels many upstream providers behind a single endpoint.",
       },
+      bifrost: {
+        name: "Bifrost",
+        description:
+          "A high-performance LLM gateway for routing and serving multiple model providers behind an OpenAI-compatible API.",
+      },
     },
   },
 };

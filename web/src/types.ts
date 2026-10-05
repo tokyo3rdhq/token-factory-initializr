@@ -131,6 +131,7 @@ export interface InitializrTranslations {
   factories: {
     litellm: { name: string; description: string };
     newapi: { name: string; description: string };
+    bifrost: { name: string; description: string };
   };
 }
 
