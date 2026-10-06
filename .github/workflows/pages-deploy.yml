@@ -37,7 +37,12 @@ jobs:
 
       - name: Install npm dependencies
         working-directory: web
-        run: npm ci
+        # ``--include=dev`` because the test + build steps need
+        # devDependencies (tsx, vite, typescript, wrangler). The
+        # default ``npm ci`` honors the ``production`` lockfile
+        # setting (which some package-lock.json files set to true),
+        # which would skip devDependencies and break the build.
+        run: npm ci --include=dev
 
       - name: TypeScript type-check (tsc --noEmit)
         working-directory: web
