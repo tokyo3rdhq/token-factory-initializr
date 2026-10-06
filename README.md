@@ -9,7 +9,7 @@
 
 <p align="left">
   <!-- Project metadata -->
-  <a href="./LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/github/license/tokyo3rdhq/token-factory-initializr?label=License&color=blue" /></a>
+  <a href="./LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" /></a>
   <a href="https://github.com/tokyo3rdhq/token-factory-initializr/releases"><img alt="Release" src="https://img.shields.io/github/v/release/tokyo3rdhq/token-factory-initializr?label=Release&color=blue" /></a>
   <img alt="Python ≥ 3.10" src="https://img.shields.io/badge/python-≥3.10-3776AB?logo=python&logoColor=white" />
   <img alt="Node 22" src="https://img.shields.io/badge/node-22-339933?logo=node.js&logoColor=white" />
