@@ -109,7 +109,7 @@ export function App() {
               <li>
                 <a
                   className="tfi-footer-ext"
-                  href="https://github.com/yw79641760/token-factory-initializr"
+                  href="https://github.com/tokyo3rdhq/token-factory-initializr"
                   target="_blank"
                   rel="noreferrer"
                 >
