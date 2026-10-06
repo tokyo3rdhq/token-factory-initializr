@@ -26,6 +26,7 @@ dev = [
     "ruff>=0.6",
     "hypothesis>=6.92",
     "requests-mock>=1.12",
+    "python-dotenv",
 ]
 socks = ["PySocks>=1.7"]   # local-dev SOCKS5 proxy for the HF provider
 
