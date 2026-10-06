@@ -68,5 +68,7 @@ skip-magic-trailing-comma = true
 
 [tool.setuptools.packages.find]
 where = [".."]
-include = ["data", "data.*"]
-exclude = ["data.tests*"]
+include = ["data", "data.*", "data.tests.fixtures"]
+
+[tool.setuptools.package-data]
+"data.tests.fixtures" = ["*.json", "*.html"]

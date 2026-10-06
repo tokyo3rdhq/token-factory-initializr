@@ -31,10 +31,12 @@ def check_token(token, label):
     resp = requests.get(kv_url, headers=headers)
     assert resp.status_code == 200, f"{label} KV read failed: {resp.text}"
 
+@pytest.mark.integration
 def test_data_token():
     token = get_env_val("data/.env", "CLOUDFLARE_API_TOKEN")
     check_token(token, "Data")
 
+@pytest.mark.integration
 def test_web_token_pages_edit():
     token = get_env_val("web/.env", "CLOUDFLARE_API_TOKEN")
     assert token, "Web token not found"
