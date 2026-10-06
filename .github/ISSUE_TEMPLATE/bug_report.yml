@@ -1,0 +1,114 @@
+name: Bug Report
+description: Something in the web app or data pipeline isn't working as documented.
+title: "[bug]: "
+labels: ["bug", "triage"]
+assignees: []
+
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the codebase is affected?
+      options:
+        - Web UI (React app on https://start.magi.website/)
+        - Pages Functions (the API endpoints)
+        - Data pipeline (Python `data/` module)
+        - Provider integration (one of nvidia / amd / huggingface / openrouter / models_dev)
+        - Generator (litellm / newapi / bifrost)
+        - SEO / metadata / sitemap / robots
+        - Documentation
+        - CI / build
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How broken is it? (Be honest — we'll triage on our end.)
+      options:
+        - S0 — Site down / 5xx / data loss
+        - S1 — Major feature broken (browse, generate, copy URL)
+        - S2 — Visual / UX issue
+        - S3 — Minor / cosmetic
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: "Steps to reproduce"
+      description: |
+        Concrete steps. Example:
+          1. Go to https://start.magi.website/
+          2. Click Browse models
+          3. Toggle the 'Vision' tag
+          4. Observe: nothing filters
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected behavior"
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Actual behavior"
+      description: What actually happened? (Paste console errors, screenshots, curl output.)
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: "URL (if applicable)"
+      description: The page where you observed the bug.
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options:
+        - Chrome / Edge
+        - Firefox
+        - Safari
+        - Mobile Safari
+        - Mobile Chrome
+        - Other
+        - N/A (data pipeline / CI)
+
+  - type: dropdown
+    id: locale
+    attributes:
+      label: UI Locale
+      options:
+        - en
+        - zh
+
+  - type: input
+    id: commit
+    attributes:
+      label: "Commit SHA (if you have one)"
+      description: |
+        If you can identify the affected commit / release:
+          git rev-parse HEAD   from your clone
+        Helps us bisect when investigating.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Anything else?"
+      description: Screenshots, logs, related issues, hypotheses.
+    validations:
+      required: false

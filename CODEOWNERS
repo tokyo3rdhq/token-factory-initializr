@@ -1,0 +1,77 @@
+# CODEOWNERS — default review assignment for Token Factory Initializr.
+#
+# Lines starting with `#` are comments. Each non-comment line is a
+# pattern that assigns ownership for matching paths. The last
+# matching pattern wins (so put more-specific patterns after
+# broader ones).
+#
+# GitHub uses these to request review automatically when a PR
+# touches the listed paths. Order: global default first, then
+# directory-specific overrides.
+
+# ─── Default ──────────────────────────────────────────────────
+# Catch-all: anything not matched by a more-specific rule below
+# requires review from the tokyo3rdhq org's default maintainers.
+*                                          @tokyo3rdhq/tokyo3rdhq
+
+# ─── Data pipeline ────────────────────────────────────────────
+# Python ingestion lives under data/. Generators (provider adapters,
+# stages, storage) need careful review because schema changes here
+# affect every downstream consumer.
+/data/                                      @tokyo3rdhq/tokyo3rdhq
+/data/providers/                            @tokyo3rdhq/tokyo3rdhq
+/data/stages/                               @tokyo3rdhq/tokyo3rdhq
+/data/models/                               @tokyo3rdhq/tokyo3rdhq
+/data/storage/                              @tokyo3rdhq/tokyo3rdhq
+/data/pyproject.toml                        @tokyo3rdhq/tokyo3rdhq
+
+# ─── Web app ──────────────────────────────────────────────────
+# React UI + Pages Functions + SEO assets.
+/web/                                       @tokyo3rdhq/tokyo3rdhq
+/web/src/pages/                             @tokyo3rdhq/tokyo3rdhq
+/web/src/initializr/                        @tokyo3rdhq/tokyo3rdhq
+/web/src/seo/                               @tokyo3rdhq/tokyo3rdhq
+/web/src/i18n/                              @tokyo3rdhq/tokyo3rdhq
+/web/functions/                             @tokyo3rdhq/tokyo3rdhq
+/web/functions/lib/generators/              @tokyo3rdhq/tokyo3rdhq
+/web/public/                                @tokyo3rdhq/tokyo3rdhq
+/web/package.json                           @tokyo3rdhq/tokyo3rdhq
+/web/tsconfig.json                          @tokyo3rdhq/tokyo3rdhq
+/web/vite.config.ts                         @tokyo3rdhq/tokyo3rdhq
+/web/wrangler.toml                          @tokyo3rdhq/tokyo3rdhq
+
+# ─── Cross-runtime contract ──────────────────────────────────
+# The shared/ JSON schema is the source of truth for what counts
+# as a "canonical model endpoint". Changes here ripple through
+# every generator, every projection, every cache lookup.
+/shared/                                    @tokyo3rdhq/tokyo3rdhq
+
+# ─── Documentation ───────────────────────────────────────────
+# Specs in docs/ drive implementation. Treat them as part of
+# the code review surface.
+/docs/                                      @tokyo3rdhq/tokyo3rdhq
+/README.md                                  @tokyo3rdhq/tokyo3rdhq
+/AGENTS.md                                  @tokyo3rdhq/tokyo3rdhq
+/CHANGELOG.md                               @tokyo3rdhq/tokyo3rdhq
+/CONTRIBUTING.md                            @tokyo3rdhq/tokyo3rdhq
+/CODE_OF_CONDUCT.md                         @tokyo3rdhq/tokyo3rdhq
+/SECURITY.md                                @tokyo3rdhq/tokyo3rdhq
+/LICENSE                                    @tokyo3rdhq/tokyo3rdhq
+
+# ─── CI / workflows ──────────────────────────────────────────
+# Workflow changes are risky — they affect how every PR / push
+# runs and can lock out contributors if broken.
+/.github/                                   @tokyo3rdhq/tokyo3rdhq
+/.github/workflows/                         @tokyo3rdhq/tokyo3rdhq
+/.github/ISSUE_TEMPLATE/                     @tokyo3rdhq/tokyo3rdhq
+/.github/PULL_REQUEST_TEMPLATE.md            @tokyo3rdhq/tokyo3rdhq
+/.gitignore                                 @tokyo3rdhq/tokyo3rdhq
+
+# ─── Tests ───────────────────────────────────────────────────
+# Tests are part of every change. They get the default maintainer
+# review automatically; no special-case override needed.
+
+# ─── Doc-files: spec-driven ──────────────────────────────────
+# If you add a new docs/tfi_<topic>.md spec, also bump the
+# index in README.md so newcomers can find it. The default
+# maintainer review catches the README index omission.

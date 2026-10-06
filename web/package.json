@@ -1,8 +1,9 @@
 {
   "name": "token-factory-initializr-web",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
+  "license": "Apache-2.0",
   "description": "Cloudflare Pages application for browsing and selecting free model endpoints.",
   "scripts": {
     "dev": "wrangler pages dev ./dist --var TFI_USE_LOCAL_FIXTURES=1",

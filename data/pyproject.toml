@@ -7,6 +7,9 @@ name = "token-factory-initializr-data"
 version = "0.1.0"
 description = "Open Model Intelligence and Supply Layer that turns provider model data into user-oriented AI model stacks."
 requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "MAGI / tokyo3rdhq" }]
+keywords = ["ai", "model-catalog", "litellm", "bifrost", "newapi", "cloudflare-pages"]
 
 dependencies = [
     "requests>=2.31",       # NVIDIA fetcher (data/providers/nvidia.py)
@@ -27,7 +30,9 @@ dev = [
 socks = ["PySocks>=1.7"]   # local-dev SOCKS5 proxy for the HF provider
 
 [project.urls]
-Repository = "https://github.com/yw79641760/token-factory-initializr"
+Repository = "https://github.com/tokyo3rdhq/token-factory-initializr"
+Issues = "https://github.com/tokyo3rdhq/token-factory-initializr/issues"
+Changelog = "https://github.com/tokyo3rdhq/token-factory-initializr/blob/main/CHANGELOG.md"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

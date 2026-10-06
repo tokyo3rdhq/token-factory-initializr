@@ -292,7 +292,35 @@ PRs to `main` automatically deploy via `.github/workflows/pages-deploy.yml`. The
 
 ## License
 
-Proprietary — internal use by the MAGI project family. Reach out via [issues](https://github.com/tokyo3rdhq/token-factory-initializr/issues) for licensing questions.
+Apache License 2.0 — see [`LICENSE`](./LICENSE) for the full text.
+
+Copyright 2026 MAGI / tokyo3rdhq. Licensed under the Apache License,
+Version 2.0 (the "License"); you may not use this file except in
+compliance with the License. A copy of the License may be obtained at
+<http://www.apache.org/licenses/LICENSE-2.0>.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+implied. See the License for the specific language governing
+permissions and limitations under the License.
+
+## Contributing
+
+We welcome issues and pull requests. See [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+for the workflow, testing requirements, and commit conventions.
+By submitting a contribution, you agree to license it under the
+Apache License 2.0.
+
+## Code of Conduct
+
+This project adheres to the [Contributor Covenant](https://www.contributor-covenant.org/)
+— see [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md).
+
+## Security
+
+To report a vulnerability privately, see [`SECURITY.md`](./SECURITY.md).
+Do **not** open a public GitHub issue for security bugs.
 
 ## Acknowledgments
 

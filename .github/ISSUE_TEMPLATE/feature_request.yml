@@ -1,0 +1,103 @@
+name: Feature Request
+description: Propose a new Token Factory, data source, or product capability.
+title: "[feat]: "
+labels: ["enhancement", "triage"]
+assignees: []
+
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: "What kind of feature?"
+      description: |
+        Pick the closest fit. (Don't worry about getting this exact —
+        we'll recategorize on triage.)
+      options:
+        - New Token Factory implementation (e.g. LiteLLM / NewAPI / Bifrost / future)
+        - New model data source (e.g. NVIDIA / AMD / HF / OpenRouter / models_dev / future)
+        - New UI feature (e.g. /browse filter, /generate option)
+        - New agent / API capability (e.g. /api/v1/* endpoint)
+        - Documentation / example
+        - Tooling / CI improvement
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Problem / motivation"
+      description: |
+        What user-facing problem does this solve? Why is it worth
+        building? (One paragraph is plenty — we want the use case,
+        not the implementation sketch.)
+      placeholder: |
+        As a [role], when I [do Y], I have to [do Z] because [W].
+        Today this is hard because [X].
+    validations:
+      required: true
+
+  - type: textarea
+    id: workflow
+    attributes:
+      label: "Proposed workflow"
+      description: |
+        Walk us through the user journey end-to-end after the
+        feature ships. Click on (mouseless UI paths are fine), URL
+        it lands on, what data the API returns, what the agent
+        prompt adds.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alt
+    attributes:
+      label: "Alternatives considered"
+      description: |
+        What did you try first? What workarounds are you using?
+        Helps us evaluate whether the proposed feature is the right
+        abstraction.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: docs
+    attributes:
+      label: "Documentation"
+      description: |
+        Which docs need to be added / updated when the feature ships?
+        README? A new docs/tfi_*.md spec? agents.md?
+      options:
+        - README only
+        - New docs/tfi_<name>.md spec required (see CONTRIBUTING.md)
+        - agents.md update
+        - UI strings only (en + zh)
+        - None — no doc change needed
+    validations:
+      required: true
+
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: "Backwards-compatible?"
+      description: |
+        Does this require a model catalog schema change, a /api/*
+        contract change, or a UX change that breaks existing users?
+      options:
+        - Yes — breaking change (call out in description above)
+        - No — additive only
+        - Unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: "Implementation sketch (optional)"
+      description: |
+        If you have a concrete idea of how to implement it, sketch it
+        here. Which existing module would it extend? Any new files?
+        This helps reviewers evaluate the surface area before you
+        write code — not required.
+    validations:
+      required: false
