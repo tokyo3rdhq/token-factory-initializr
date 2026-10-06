@@ -172,5 +172,8 @@ export async function onRequestGet(context: {
   return textResponse(BODY.trim() + "\n", "text/markdown", {
     etag: makeEtag(BODY),
     ifNoneMatch: context.request.headers.get("If-None-Match"),
+    // Per docs/tfi_seo_optimization.md §19 — /agents.md is an
+    // Agent-discovery resource, not a search landing page.
+    noindex: true,
   });
 }

@@ -69,5 +69,8 @@ export async function onRequestGet(context: {
   return textResponse(BODY.trim() + "\n", "text/plain", {
     etag: makeEtag(BODY),
     ifNoneMatch: context.request.headers.get("If-None-Match"),
+    // Per docs/tfi_seo_optimization.md §19 — /llms.txt is an
+    // Agent-discovery resource, not a search landing page.
+    noindex: true,
   });
 }

@@ -7,6 +7,7 @@ import { useSelection } from "../components/SelectionContext";
 import { fetchManifest, fetchModels, FIXTURES, shouldUseLocalFixtures } from "../kv";
 import { matchesRequirement, type Manifest, type ModelEndpoint, type ModelRequirement } from "../types";
 import { useI18n } from "../I18nProvider";
+import { useSeo } from "../seo/useSeo";
 import { formatProviderTimestamps, resolveTimeZone } from "../utils/datetime";
 
 /**
@@ -98,6 +99,9 @@ export function BrowsePage() {
   const navigate = useNavigate();
   const selection = useSelection();
   const { ts, dict, locale } = useI18n();
+  // See docs/tfi_seo_optimization.md §5 — /browse has its own
+  // discoverable metadata so it doesn't inherit the homepage copy.
+  useSeo("/browse");
 
   const requirement: ModelRequirement | null =
     (location.state as { requirement?: ModelRequirement } | null)?.requirement ?? null;

@@ -3,14 +3,69 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!--
+      SEO baseline (docs/tfi_seo_optimization.md §4 + §6).
+
+      Per-route metadata is also set client-side via web/src/seo/useSeo.ts
+      so deep-linked pages (/browse, /generate) carry correct values
+      to social scrapers + crawlers that render the SPA. The static
+      baseline below covers crawlers that don't run JavaScript at all.
+
+      Single source of truth for canonical URL is web/src/seo/metadata.ts
+      (SITE constant). If you change either, change both.
+    -->
+    <title>Token Factory Initializr — AI Model Configuration Generator</title>
     <meta
       name="description"
-      content="Token Factory Initializr — browse free AI model endpoints from NVIDIA, AMD, and Hugging Face, generate LiteLLM configs."
+      content="Discover free AI model endpoints from NVIDIA, AMD, and Hugging Face. Select the ones that fit your project and generate ready-to-use configurations for LiteLLM, NewAPI, and Bifrost."
     />
-    <meta property="og:title" content="Token Factory Initializr — MAGI" />
-    <meta property="og:description" content="Free AI model endpoints from NVIDIA, AMD, and Hugging Face. Generate LiteLLM configs in seconds." />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <link rel="canonical" href="https://start.magi.website/" />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <title>Token Factory Initializr · MAGI</title>
+    <meta property="og:site_name" content="Token Factory Initializr" />
+    <meta property="og:title" content="Token Factory Initializr — AI Model Configuration Generator" />
+    <meta property="og:description" content="Discover free AI model endpoints from NVIDIA, AMD, and Hugging Face. Generate LiteLLM, NewAPI, and Bifrost configurations." />
+    <meta property="og:url" content="https://start.magi.website/" />
+    <meta property="og:image" content="https://start.magi.website/og-image.png" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Token Factory Initializr — AI Model Configuration Generator" />
+    <meta name="twitter:description" content="Discover free AI model endpoints from NVIDIA, AMD, and Hugging Face. Generate LiteLLM, NewAPI, and Bifrost configurations." />
+    <meta name="twitter:image" content="https://start.magi.website/og-image.png" />
+
+    <!--
+      Structured data (JSON-LD) — concentrated in
+      web/src/seo/structured-data.ts so the homepage injects exactly
+      one well-formed <script type="application/ld+json">. The values
+      here MUST stay in sync with that module's builders — they
+      aren't generated at runtime (this is the static baseline for
+      HTML-only crawlers).
+
+      No fabricated ratings, reviews, pricing, or download counts.
+      See docs/tfi_seo_optimization.md §12.
+    -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Token Factory Initializr",
+      "description": "Discover free AI model endpoints from NVIDIA, AMD, and Hugging Face. Select the ones that fit your project and generate ready-to-use configurations for LiteLLM, NewAPI, and Bifrost.",
+      "url": "https://start.magi.website/",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Any",
+      "publisher": {
+        "@type": "Organization",
+        "name": "MAGI",
+        "url": "https://magi.website"
+      }
+    }
+    </script>
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

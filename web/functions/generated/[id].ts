@@ -11,9 +11,22 @@
 //
 // Honors the embedded expires_at — KV's expirationTtl is
 // best-effort, so we re-check on read.
+//
+// Per docs/tfi_seo_optimization.md §17 — these artifacts are
+// shareable but must NOT become search-indexable pages. We set
+// ``X-Robots-Tag: noindex, nofollow`` on every response so even
+// if a future edit accidentally changes the Content-Type to
+// text/html, crawlers will skip it. The YAML/JSON body itself is
+// machine-readable, not human-readable, so it would not rank
+// well even if indexed — but the explicit header is a stronger
+// guarantee.
 
 import { loadGenerated, type Env } from "../lib/kv";
 import { generateAgentPrompt } from "../lib/litellm";
+
+/** Per spec: short-lived generated artifacts are not search landing
+ *  pages. Set on every response. */
+const NOINDEX = "noindex, nofollow";
 
 export async function onRequestGet(context: {
   request: Request;
@@ -34,7 +47,10 @@ export async function onRequestGet(context: {
   if (wantsPrompt) {
     const generatedUrl = `${url.origin}/generated/${art.id}`;
     return new Response(generateAgentPrompt(generatedUrl), {
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "X-Robots-Tag": NOINDEX,
+      },
     });
   }
 
@@ -42,6 +58,7 @@ export async function onRequestGet(context: {
     headers: {
       "Content-Type": "text/yaml; charset=utf-8",
       "Content-Disposition": `inline; filename="${art.id}.yaml"`,
+      "X-Robots-Tag": NOINDEX,
     },
   });
 }
@@ -49,6 +66,9 @@ export async function onRequestGet(context: {
 function text(body: string, status: number): Response {
   return new Response(body, {
     status,
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "X-Robots-Tag": NOINDEX,
+    },
   });
 }

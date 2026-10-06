@@ -15,6 +15,7 @@ import {
 import { useInitializr } from "../initializr/InitializrContext";
 import { postGenerate, type GenerateResponse } from "../kv";
 import { useI18n } from "../I18nProvider";
+import { useSeo } from "../seo/useSeo";
 import { SUPPORTED_TOKEN_FACTORIES } from "../../functions/lib/generators";
 
 /**
@@ -46,6 +47,7 @@ export function GeneratePage() {
   const navigate = useNavigate();
   const initializr = useInitializr();
   const { ts, dict } = useI18n();
+  useSeo("/generate");
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);

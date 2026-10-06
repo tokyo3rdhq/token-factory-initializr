@@ -1,0 +1,33 @@
+# robots.txt for Token Factory Initializr.
+#
+# Per docs/tfi_seo_optimization.md §8:
+#   - allow legitimate search-engine crawling of public pages
+#   - reference the sitemap
+#   - do NOT block CSS/JS (Google needs to execute them for SPA rendering)
+#   - keep API / machine endpoints out of the index
+#
+# Cloudflare Pages serves this file as a static asset at
+# https://start.magi.website/robots.txt without any Pages Function
+# involvement, so SEO crawling works even when KV is unreachable.
+
+User-agent: *
+# Allow all crawler-visible HTML routes. The SPA ships its own
+# CSS/JS (required for Google to render the page); we don't block
+# them — modern crawlers (Google, Bing) need to fetch them.
+Allow: /
+Allow: /browse
+Allow: /generate
+Allow: /llms.txt
+Allow: /agents.md
+
+# Machine-readable API — keep crawlers out so we don't accidentally
+# render thousands of /api/v1/models/{id} entries in the index.
+# (These routes are still served; we just don't want them indexed.)
+Disallow: /api/
+
+# Short-lived generated artifacts — 5-minute TTL, shareable but not
+# search-indexable. Each id is opaque + ephemeral; indexing them
+# would let stale pages accumulate over time.
+Disallow: /generated/
+
+Sitemap: https://start.magi.website/sitemap.xml

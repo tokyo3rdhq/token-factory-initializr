@@ -91,15 +91,27 @@ export function jsonResponse(
 export function textResponse(
   body: string,
   contentType: string,
-  init: { status?: number; etag?: string; ifNoneMatch?: string | null } = {}
+  init: {
+    status?: number;
+    etag?: string;
+    ifNoneMatch?: string | null;
+    /** When true, sets ``X-Robots-Tag: noindex, nofollow`` on the
+     *  response (per docs/tfi_seo_optimization.md §19 — machine-
+     *  discovery resources stay out of the search index). */
+    noindex?: boolean;
+  } = {}
 ): Response {
   const status = init.status ?? 200;
   const etag = init.etag;
+  const noindex = init.noindex === true;
 
   if (etag && init.ifNoneMatch && etagMatches(init.ifNoneMatch, etag)) {
     return new Response(null, {
       status: 304,
-      headers: cacheHeaders(etag, /* longCache */ true),
+      headers: {
+        ...cacheHeaders(etag, /* longCache */ true),
+        ...(noindex ? { "X-Robots-Tag": "noindex, nofollow" } : {}),
+      },
     });
   }
 
@@ -110,6 +122,7 @@ export function textResponse(
       "Access-Control-Allow-Origin": "*",
       ...(etag ? { ETag: etag } : {}),
       ...cacheHeaders(etag, /* longCache */ true),
+      ...(noindex ? { "X-Robots-Tag": "noindex, nofollow" } : {}),
     },
   });
 }

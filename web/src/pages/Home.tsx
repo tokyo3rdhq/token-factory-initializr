@@ -15,6 +15,7 @@ import {
 
 import type { ModelRequirement } from "../types";
 import { useI18n } from "../I18nProvider";
+import { useSeo } from "../seo/useSeo";
 
 /**
  * Home — the entry point.
@@ -42,6 +43,12 @@ import { useI18n } from "../I18nProvider";
 export function HomePage() {
   const navigate = useNavigate();
   const { ts, dict } = useI18n();
+  // Per docs/tfi_seo_optimization.md §6 — bind the route's metadata
+  // (title, description, canonical, og:*, twitter:*) to document.head
+  // on mount + on every route change. Static <head> in index.html
+  // still carries the homepage baseline for crawlers that don't run
+  // JavaScript at all.
+  useSeo("/");
 
   const [useCase, setUseCase] = useState("");
   const [contextMin, setContextMin] = useState<'128k' | '32k' | '8k' | 'any'>(
