@@ -68,7 +68,8 @@ skip-magic-trailing-comma = true
 
 [tool.setuptools.packages.find]
 where = [".."]
-include = ["data", "data.*", "data.tests.fixtures"]
-
-[tool.setuptools.package-data]
-"data.tests.fixtures" = ["*.json", "*.html"]
+include = ["data", "data.*"]
+# data.tests* is excluded: it is not part of the installed package,
+# only checked out for the test runner to walk. The fixtures inside it
+# are read by pytest via repo-relative paths (e.g. open('data/tests/fixtures/x.json')),
+# not via importlib, so they do not need to ship inside the wheel.

@@ -1,0 +1,193 @@
+{
+  "model": {
+    "id": "model_gateway:Qwen3.8-Flash-Next",
+    "source": "model_gateway",
+    "label": "Qwen3.8-Flash-Next",
+    "model": "Qwen3.8-Flash-Next",
+    "description": "Dynamic sglang-router service managed by Model Ops",
+    "family": "custom",
+    "providers": [
+      "Radeon Cloud"
+    ],
+    "sort_order": 4,
+    "pricing": {
+      "prompt": "1.5e-7",
+      "completion": "4.6999999999999995e-7",
+      "input_cache_read": "1.6e-8"
+    },
+    "quickstart_template": "",
+    "display_config": {
+      "name": "Qwen3.8-Flash-Next",
+      "description": "Qwen3.8-Flash-Next served by the AMD GPU Cloud",
+      "publisher": "Qwen",
+      "publisher_mark": "Q",
+      "capability_key": "vision",
+      "capability_label": "VLM (Vision)",
+      "badge_label": "Free",
+      "badge_tone": "free",
+      "tags": [
+        "API",
+        "OpenAI compatible"
+      ],
+      "detail_meta": [
+        "Qwen",
+        "VLM (Vision)",
+        "Radeon Cloud",
+        "Free"
+      ],
+      "base_url_label": "Base URL",
+      "model_label": "Model",
+      "api_key_label": "API Key",
+      "quickstart_label": "Quickstart (curl)",
+      "access_note": "",
+      "actions": []
+    },
+    "provider_pricing": [
+      {
+        "providerId": "self-dploy",
+        "externalId": "Qwen3.8-Flash-Next",
+        "pricing": {
+          "prompt": "1.5e-7",
+          "completion": "4.6999999999999995e-7",
+          "input_cache_read": "1.6e-8"
+        },
+        "streaming": true,
+        "vision": true,
+        "cancellation": false,
+        "tools": true,
+        "parallelToolCalls": false,
+        "reasoning": true,
+        "stability": "experimental",
+        "ocr": false
+      }
+    ],
+    "output": [
+      "text"
+    ],
+    "context_length": 262144,
+    "supported_parameters": [
+      "temperature",
+      "max_tokens",
+      "top_p",
+      "stream",
+      "response_format",
+      "tools",
+      "tool_choice"
+    ],
+    "free": false,
+    "stability": "experimental",
+    "enabled": true,
+    "display_status": "free_endpoint",
+    "status": "online",
+    "token_factory": {
+      "section": "public_free",
+      "source": "model_gateway",
+      "name": "Qwen3.8-Flash-Next",
+      "model": "Qwen3.8-Flash-Next",
+      "description": "Qwen3.8-Flash-Next served by the AMD GPU Cloud",
+      "publisher": {
+        "name": "Qwen",
+        "mark": "Q"
+      },
+      "badge": {
+        "label": "Free",
+        "tone": "free"
+      },
+      "providers": [
+        {
+          "name": "Radeon Cloud"
+        }
+      ],
+      "capability": {
+        "key": "vision",
+        "label": "VLM (Vision)"
+      },
+      "status": {
+        "key": "free_endpoint",
+        "label": "Free"
+      },
+      "appearance": {
+        "muted": false
+      },
+      "tags": [
+        "API",
+        "OpenAI compatible"
+      ],
+      "detail_meta": [
+        "Qwen",
+        "VLM (Vision)",
+        "Radeon Cloud",
+        "Free"
+      ],
+      "pricing": {
+        "title": "Usage reference",
+        "note": "Free to use. Points show relative usage—not a charge.",
+        "unit": "pts / 1M tokens",
+        "source_unit": "USD / 1M tokens",
+        "items": [
+          {
+            "key": "input",
+            "label": "Input",
+            "amount": "0.15",
+            "unit": "pts / 1M tokens",
+            "value": "0.15 pts / 1M tokens"
+          },
+          {
+            "key": "output",
+            "label": "Output",
+            "amount": "0.46999999999999995",
+            "unit": "pts / 1M tokens",
+            "value": "0.46999999999999995 pts / 1M tokens"
+          },
+          {
+            "key": "cache_read",
+            "label": "Cache read",
+            "amount": "0.016",
+            "unit": "pts / 1M tokens",
+            "value": "0.016 pts / 1M tokens"
+          }
+        ]
+      },
+      "access": {
+        "kind": "shared_api",
+        "base_url": {
+          "label": "Base URL",
+          "value": "https://developer.amd.com.cn/radeon/api/v1",
+          "copyable": true
+        },
+        "model": {
+          "label": "Model",
+          "value": "Qwen3.8-Flash-Next",
+          "copyable": true
+        },
+        "api_key": {
+          "label": "API Key",
+          "value": "",
+          "copyable": false,
+          "masked": true,
+          "empty_label": "Sign in to get key",
+          "empty_url": "/radeon/profile"
+        },
+        "quickstart": {
+          "label": "Quickstart (curl)",
+          "value": "curl https://developer.amd.com.cn/radeon/api/v1/chat/completions \\\n  -H \"Authorization: Bearer <API_KEY>\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\":\"Qwen3.8-Flash-Next\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'",
+          "copyable": true
+        },
+        "quickstarts": [
+          {
+            "label": "OpenAI (curl)",
+            "value": "curl https://developer.amd.com.cn/radeon/api/v1/chat/completions \\\n  -H \"Authorization: Bearer <API_KEY>\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\":\"Qwen3.8-Flash-Next\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'",
+            "copyable": true
+          },
+          {
+            "label": "Anthropic (curl)",
+            "value": "curl https://developer.amd.com.cn/radeon/api/v1/messages \\\n  -H \"x-api-key: <API_KEY>\" \\\n  -H \"anthropic-version: 2023-06-01\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\":\"Qwen3.8-Flash-Next\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'",
+            "copyable": true
+          }
+        ],
+        "note": "",
+        "actions": []
+      }
+    }
+  }
+}

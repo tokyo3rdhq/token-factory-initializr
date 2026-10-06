@@ -1,0 +1,153 @@
+{
+  "model": {
+    "id": "model_gateway:MinerU2.5-Pro",
+    "source": "model_gateway",
+    "label": "MinerU2.5-Pro",
+    "model": "MinerU2.5-Pro",
+    "description": "Dynamic vllm-router service managed by Model Ops",
+    "family": "custom",
+    "providers": [
+      "Radeon Cloud"
+    ],
+    "sort_order": 7,
+    "pricing": {
+      "prompt": "0",
+      "completion": "0"
+    },
+    "quickstart_template": "",
+    "display_config": {
+      "name": "MinerU2.5-Pro",
+      "description": "MinerU2.5-Pro served by the AMD GPU Cloud",
+      "publisher": "Radeon Cloud",
+      "publisher_mark": "R",
+      "capability_key": "text",
+      "capability_label": "LLM (Text)",
+      "badge_label": "Limited Free",
+      "badge_tone": "limited",
+      "tags": [
+        "API",
+        "OpenAI compatible"
+      ],
+      "detail_meta": [
+        "Radeon Cloud",
+        "OCR"
+      ],
+      "base_url_label": "Base URL",
+      "model_label": "Model",
+      "api_key_label": "API Key",
+      "quickstart_label": "Quickstart (curl)",
+      "access_note": "",
+      "actions": []
+    },
+    "provider_pricing": [
+      {
+        "providerId": "amd",
+        "externalId": "MinerU2.5-Pro",
+        "pricing": {
+          "prompt": "0",
+          "completion": "0"
+        },
+        "streaming": false,
+        "vision": false,
+        "cancellation": false,
+        "tools": false,
+        "parallelToolCalls": false,
+        "reasoning": false,
+        "stability": "experimental",
+        "ocr": true,
+        "ocrPagePrice": "0.001"
+      }
+    ],
+    "output": [
+      "ocr"
+    ],
+    "context_length": 0,
+    "supported_parameters": [],
+    "free": false,
+    "stability": "experimental",
+    "enabled": true,
+    "display_status": "limited_free",
+    "status": "online",
+    "token_factory": {
+      "section": "public_free",
+      "source": "model_gateway",
+      "name": "MinerU2.5-Pro",
+      "model": "MinerU2.5-Pro",
+      "description": "MinerU2.5-Pro served by the AMD GPU Cloud",
+      "publisher": {
+        "name": "Radeon Cloud",
+        "mark": "R"
+      },
+      "badge": {
+        "label": "Limited Free",
+        "tone": "limited"
+      },
+      "providers": [
+        {
+          "name": "Radeon Cloud"
+        }
+      ],
+      "capability": {
+        "key": "text",
+        "label": "LLM (Text)"
+      },
+      "status": {
+        "key": "limited_free",
+        "label": "Limited Free"
+      },
+      "appearance": {
+        "muted": false
+      },
+      "tags": [
+        "API",
+        "OpenAI compatible"
+      ],
+      "detail_meta": [
+        "Radeon Cloud",
+        "OCR"
+      ],
+      "pricing": {
+        "title": "",
+        "note": "",
+        "unit": "pts / 1M tokens",
+        "source_unit": "USD / 1M tokens",
+        "items": []
+      },
+      "access": {
+        "kind": "shared_api",
+        "base_url": {
+          "label": "Base URL",
+          "value": "https://developer.amd.com.cn/radeon/api/v1",
+          "copyable": true
+        },
+        "model": {
+          "label": "Model",
+          "value": "MinerU2.5-Pro",
+          "copyable": true
+        },
+        "api_key": {
+          "label": "API Key",
+          "value": "",
+          "copyable": false,
+          "masked": true,
+          "empty_label": "Sign in to get key",
+          "empty_url": "/radeon/profile"
+        },
+        "quickstart": {
+          "label": "Quickstart (curl)",
+          "value": "curl https://developer.amd.com.cn/radeon/api/v1/chat/completions \\\n  -H \"Authorization: Bearer <API_KEY>\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\":\"MinerU2.5-Pro\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'",
+          "copyable": true
+        },
+        "quickstarts": [
+          {
+            "label": "curl",
+            "value": "curl https://developer.amd.com.cn/radeon/api/v1/chat/completions \\\n  -H \"Authorization: Bearer <API_KEY>\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\":\"MinerU2.5-Pro\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'",
+            "copyable": true
+          }
+        ],
+        "note": "",
+        "actions": []
+      }
+    }
+  }
+}

@@ -27,12 +27,15 @@ jobs:
           python-version: "3.11"
 
       # Install dev extras so pytest and ruff are available.
-      # These are runtime-only for fetch-models.yml (which uses pip install ./data),
-      # but CI needs them for the lint + test steps.
+      # CI does NOT have the CLOUDFLARE_* secrets that fetch-models.yml
+      # has, so we cannot run integration tests here. The `-m "not
+      # integration"` selector below skips anything marked
+      # @pytest.mark.integration via the autouse skip_integration
+      # fixture in tests/conftest.py.
       - name: Install production + dev dependencies
         working-directory: data
         run: pip install -e ".[dev]"
 
-      - name: Run tests
+      - name: Run tests (unit only)
         working-directory: data
-        run: pytest
+        run: pytest -m "not integration"

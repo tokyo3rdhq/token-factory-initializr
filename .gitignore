@@ -29,9 +29,8 @@ dist/
 build/
 .eggs/
 
-# Test fixtures — provider payloads (JSON / HTML) are downloaded live by
-# `python -m tests.download_fixtures`. They are not source files; committing
-# them just bloats the repo and creates stale snapshots. The ``__init__.py``
-# is exempt (not a payload) so the fixtures package still imports.
-data/tests/fixtures/*.json
-data/tests/fixtures/*.html
+# Test fixtures — provider payloads (JSON / HTML) are curated offline
+# snapshots used by the unit tests. They live in the repo on purpose so
+# the data-ci workflow can run pytest without network access. The
+# download_fixtures script is a developer tool for refreshing them on
+# demand, NOT a CI step.

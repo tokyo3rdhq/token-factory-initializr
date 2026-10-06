@@ -1,0 +1,193 @@
+{
+  "model": {
+    "id": "model_gateway:DeepSeek-V4-Flash-Vision-Exp",
+    "source": "model_gateway",
+    "label": "DeepSeek-V4-Flash-Vision-Exp",
+    "model": "DeepSeek-V4-Flash-Vision-Exp",
+    "description": "Dynamic sglang-router service managed by Model Ops",
+    "family": "custom",
+    "providers": [
+      "Radeon Cloud"
+    ],
+    "sort_order": 2,
+    "pricing": {
+      "prompt": "1.4e-7",
+      "completion": "2.8e-7",
+      "input_cache_read": "2.8e-9"
+    },
+    "quickstart_template": "",
+    "display_config": {
+      "name": "DeepSeek-V4-Flash-Vision-Exp",
+      "description": "DeepSeek-V4-Flash-Vision-Exp served by the AMD GPU Cloud",
+      "publisher": "DeepSeek",
+      "publisher_mark": "D",
+      "capability_key": "vision",
+      "capability_label": "VLM (Vision)",
+      "badge_label": "Free",
+      "badge_tone": "free",
+      "tags": [
+        "API",
+        "OpenAI compatible"
+      ],
+      "detail_meta": [
+        "DeepSeek",
+        "VLM (Vision)",
+        "Radeon Cloud",
+        "Free"
+      ],
+      "base_url_label": "Base URL",
+      "model_label": "Model",
+      "api_key_label": "API Key",
+      "quickstart_label": "Quickstart (curl)",
+      "access_note": "",
+      "actions": []
+    },
+    "provider_pricing": [
+      {
+        "providerId": "self-dploy",
+        "externalId": "DeepSeek-V4-Flash-Vision-Exp",
+        "pricing": {
+          "prompt": "1.4e-7",
+          "completion": "2.8e-7",
+          "input_cache_read": "2.8e-9"
+        },
+        "streaming": true,
+        "vision": true,
+        "cancellation": false,
+        "tools": true,
+        "parallelToolCalls": false,
+        "reasoning": true,
+        "stability": "experimental",
+        "ocr": false
+      }
+    ],
+    "output": [
+      "text"
+    ],
+    "context_length": 1048576,
+    "supported_parameters": [
+      "temperature",
+      "max_tokens",
+      "top_p",
+      "stream",
+      "response_format",
+      "tools",
+      "tool_choice"
+    ],
+    "free": false,
+    "stability": "experimental",
+    "enabled": true,
+    "display_status": "free_endpoint",
+    "status": "online",
+    "token_factory": {
+      "section": "public_free",
+      "source": "model_gateway",
+      "name": "DeepSeek-V4-Flash-Vision-Exp",
+      "model": "DeepSeek-V4-Flash-Vision-Exp",
+      "description": "DeepSeek-V4-Flash-Vision-Exp served by the AMD GPU Cloud",
+      "publisher": {
+        "name": "DeepSeek",
+        "mark": "D"
+      },
+      "badge": {
+        "label": "Free",
+        "tone": "free"
+      },
+      "providers": [
+        {
+          "name": "Radeon Cloud"
+        }
+      ],
+      "capability": {
+        "key": "vision",
+        "label": "VLM (Vision)"
+      },
+      "status": {
+        "key": "free_endpoint",
+        "label": "Free"
+      },
+      "appearance": {
+        "muted": false
+      },
+      "tags": [
+        "API",
+        "OpenAI compatible"
+      ],
+      "detail_meta": [
+        "DeepSeek",
+        "VLM (Vision)",
+        "Radeon Cloud",
+        "Free"
+      ],
+      "pricing": {
+        "title": "Usage reference",
+        "note": "Free to use. Points show relative usage—not a charge.",
+        "unit": "pts / 1M tokens",
+        "source_unit": "USD / 1M tokens",
+        "items": [
+          {
+            "key": "input",
+            "label": "Input",
+            "amount": "0.14",
+            "unit": "pts / 1M tokens",
+            "value": "0.14 pts / 1M tokens"
+          },
+          {
+            "key": "output",
+            "label": "Output",
+            "amount": "0.28",
+            "unit": "pts / 1M tokens",
+            "value": "0.28 pts / 1M tokens"
+          },
+          {
+            "key": "cache_read",
+            "label": "Cache read",
+            "amount": "0.0028",
+            "unit": "pts / 1M tokens",
+            "value": "0.0028 pts / 1M tokens"
+          }
+        ]
+      },
+      "access": {
+        "kind": "shared_api",
+        "base_url": {
+          "label": "Base URL",
+          "value": "https://developer.amd.com.cn/radeon/api/v1",
+          "copyable": true
+        },
+        "model": {
+          "label": "Model",
+          "value": "DeepSeek-V4-Flash-Vision-Exp",
+          "copyable": true
+        },
+        "api_key": {
+          "label": "API Key",
+          "value": "",
+          "copyable": false,
+          "masked": true,
+          "empty_label": "Sign in to get key",
+          "empty_url": "/radeon/profile"
+        },
+        "quickstart": {
+          "label": "Quickstart (curl)",
+          "value": "curl https://developer.amd.com.cn/radeon/api/v1/chat/completions \\\n  -H \"Authorization: Bearer <API_KEY>\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\":\"DeepSeek-V4-Flash-Vision-Exp\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'",
+          "copyable": true
+        },
+        "quickstarts": [
+          {
+            "label": "OpenAI (curl)",
+            "value": "curl https://developer.amd.com.cn/radeon/api/v1/chat/completions \\\n  -H \"Authorization: Bearer <API_KEY>\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\":\"DeepSeek-V4-Flash-Vision-Exp\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'",
+            "copyable": true
+          },
+          {
+            "label": "Anthropic (curl)",
+            "value": "curl https://developer.amd.com.cn/radeon/api/v1/messages \\\n  -H \"x-api-key: <API_KEY>\" \\\n  -H \"anthropic-version: 2023-06-01\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\":\"DeepSeek-V4-Flash-Vision-Exp\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'",
+            "copyable": true
+          }
+        ],
+        "note": "",
+        "actions": []
+      }
+    }
+  }
+}

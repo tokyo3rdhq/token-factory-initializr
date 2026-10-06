@@ -1,0 +1,193 @@
+{
+  "model": {
+    "id": "model_gateway:Qwen3.8-27B",
+    "source": "model_gateway",
+    "label": "Qwen3.8-27B",
+    "model": "Qwen3.8-27B",
+    "description": "Dynamic sglang-router service managed by Model Ops",
+    "family": "custom",
+    "providers": [
+      "Radeon Cloud"
+    ],
+    "sort_order": 5,
+    "pricing": {
+      "prompt": "5e-7",
+      "completion": "0.000003",
+      "input_cache_read": "5.0000000000000004e-8"
+    },
+    "quickstart_template": "",
+    "display_config": {
+      "name": "Qwen3.8-27B",
+      "description": "Qwen3.8-27B served by the AMD GPU Cloud",
+      "publisher": "Qwen",
+      "publisher_mark": "Q",
+      "capability_key": "vision",
+      "capability_label": "VLM (Vision)",
+      "badge_label": "Free",
+      "badge_tone": "free",
+      "tags": [
+        "API",
+        "OpenAI compatible"
+      ],
+      "detail_meta": [
+        "Qwen",
+        "VLM (Vision)",
+        "Radeon Cloud",
+        "Free"
+      ],
+      "base_url_label": "Base URL",
+      "model_label": "Model",
+      "api_key_label": "API Key",
+      "quickstart_label": "Quickstart (curl)",
+      "access_note": "",
+      "actions": []
+    },
+    "provider_pricing": [
+      {
+        "providerId": "self-dploy",
+        "externalId": "Qwen3.8-27B",
+        "pricing": {
+          "prompt": "5e-7",
+          "completion": "0.000003",
+          "input_cache_read": "5.0000000000000004e-8"
+        },
+        "streaming": true,
+        "vision": true,
+        "cancellation": false,
+        "tools": true,
+        "parallelToolCalls": false,
+        "reasoning": true,
+        "stability": "experimental",
+        "ocr": false
+      }
+    ],
+    "output": [
+      "text"
+    ],
+    "context_length": 262144,
+    "supported_parameters": [
+      "temperature",
+      "max_tokens",
+      "top_p",
+      "stream",
+      "response_format",
+      "tools",
+      "tool_choice"
+    ],
+    "free": false,
+    "stability": "experimental",
+    "enabled": true,
+    "display_status": "free_endpoint",
+    "status": "online",
+    "token_factory": {
+      "section": "public_free",
+      "source": "model_gateway",
+      "name": "Qwen3.8-27B",
+      "model": "Qwen3.8-27B",
+      "description": "Qwen3.8-27B served by the AMD GPU Cloud",
+      "publisher": {
+        "name": "Qwen",
+        "mark": "Q"
+      },
+      "badge": {
+        "label": "Free",
+        "tone": "free"
+      },
+      "providers": [
+        {
+          "name": "Radeon Cloud"
+        }
+      ],
+      "capability": {
+        "key": "vision",
+        "label": "VLM (Vision)"
+      },
+      "status": {
+        "key": "free_endpoint",
+        "label": "Free"
+      },
+      "appearance": {
+        "muted": false
+      },
+      "tags": [
+        "API",
+        "OpenAI compatible"
+      ],
+      "detail_meta": [
+        "Qwen",
+        "VLM (Vision)",
+        "Radeon Cloud",
+        "Free"
+      ],
+      "pricing": {
+        "title": "Usage reference",
+        "note": "Free to use. Points show relative usage—not a charge.",
+        "unit": "pts / 1M tokens",
+        "source_unit": "USD / 1M tokens",
+        "items": [
+          {
+            "key": "input",
+            "label": "Input",
+            "amount": "0.5",
+            "unit": "pts / 1M tokens",
+            "value": "0.5 pts / 1M tokens"
+          },
+          {
+            "key": "output",
+            "label": "Output",
+            "amount": "3",
+            "unit": "pts / 1M tokens",
+            "value": "3 pts / 1M tokens"
+          },
+          {
+            "key": "cache_read",
+            "label": "Cache read",
+            "amount": "0.050000000000000004",
+            "unit": "pts / 1M tokens",
+            "value": "0.050000000000000004 pts / 1M tokens"
+          }
+        ]
+      },
+      "access": {
+        "kind": "shared_api",
+        "base_url": {
+          "label": "Base URL",
+          "value": "https://developer.amd.com.cn/radeon/api/v1",
+          "copyable": true
+        },
+        "model": {
+          "label": "Model",
+          "value": "Qwen3.8-27B",
+          "copyable": true
+        },
+        "api_key": {
+          "label": "API Key",
+          "value": "",
+          "copyable": false,
+          "masked": true,
+          "empty_label": "Sign in to get key",
+          "empty_url": "/radeon/profile"
+        },
+        "quickstart": {
+          "label": "Quickstart (curl)",
+          "value": "curl https://developer.amd.com.cn/radeon/api/v1/chat/completions \\\n  -H \"Authorization: Bearer <API_KEY>\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\":\"Qwen3.8-27B\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'",
+          "copyable": true
+        },
+        "quickstarts": [
+          {
+            "label": "OpenAI (curl)",
+            "value": "curl https://developer.amd.com.cn/radeon/api/v1/chat/completions \\\n  -H \"Authorization: Bearer <API_KEY>\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\":\"Qwen3.8-27B\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'",
+            "copyable": true
+          },
+          {
+            "label": "Anthropic (curl)",
+            "value": "curl https://developer.amd.com.cn/radeon/api/v1/messages \\\n  -H \"x-api-key: <API_KEY>\" \\\n  -H \"anthropic-version: 2023-06-01\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"model\":\"Qwen3.8-27B\",\"max_tokens\":1024,\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'",
+            "copyable": true
+          }
+        ],
+        "note": "",
+        "actions": []
+      }
+    }
+  }
+}
