@@ -57,8 +57,8 @@ export function HomePage() {
   const [toolCalling, setToolCalling] = useState<'yes' | 'no'>('yes');
   const [vision, setVision] = useState<'yes' | 'no'>('no');
   const [cost, setCost] = useState<'free' | 'any'>('free');
-  const [providers, setProviders] = useState<string[]>(["nvidia", "huggingface"]);
-  const [endpointCount, setEndpointCount] = useState<number>(3);
+  const [providers, setProviders] = useState<string[]>(["nvidia", "amd", "huggingface"]);
+  const [endpointCount, setEndpointCount] = useState<number>(5);
 
   // Agent Access dialog state. Local to HomePage (not a global modal
   // system per doc §4) — when the spec asks for a dialog primitive
@@ -93,8 +93,8 @@ export function HomePage() {
     setToolCalling('yes');
     setVision('no');
     setCost('free');
-    setProviders(["nvidia", "huggingface"]);
-    setEndpointCount(3);
+    setProviders(["nvidia", "amd", "huggingface"]);
+    setEndpointCount(5);
   };
 
   return (
