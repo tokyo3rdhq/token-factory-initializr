@@ -7,6 +7,23 @@
 
 [Token Factory Initializr · MAGI](https://start.magi.website/) · [GitHub](https://github.com/tokyo3rdhq/token-factory-initializr) · [Agents](https://start.magi.website/agents.md) · [llms.txt](https://start.magi.website/llms.txt)
 
+<p align="left">
+  <!-- Project metadata -->
+  <a href="./LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/github/license/tokyo3rdhq/token-factory-initializr?label=License&color=blue" /></a>
+  <a href="https://github.com/tokyo3rdhq/token-factory-initializr/releases"><img alt="Release" src="https://img.shields.io/github/v/release/tokyo3rdhq/token-factory-initializr?label=Release&color=blue" /></a>
+  <img alt="Python ≥ 3.10" src="https://img.shields.io/badge/python-≥3.10-3776AB?logo=python&logoColor=white" />
+  <img alt="Node 22" src="https://img.shields.io/badge/node-22-339933?logo=node.js&logoColor=white" />
+  <img alt="Cloudflare Pages" src="https://img.shields.io/badge/Cloudflare_Pages-F38020?logo=cloudflare&logoColor=white" />
+  <br />
+  <!-- CI / workflow status -->
+  <a href="https://github.com/tokyo3rdhq/token-factory-initializr/actions/workflows/pages-deploy.yml"><img alt="web CI" src="https://img.shields.io/github/actions/workflow/status/tokyo3rdhq/token-factory-initializr/pages-deploy.yml?branch=main&label=web+CI" /></a>
+  <a href="https://github.com/tokyo3rdhq/token-factory-initializr/actions/workflows/fetch-models.yml"><img alt="Fetch Free Models" src="https://img.shields.io/github/actions/workflow/status/tokyo3rdhq/token-factory-initializr/fetch-models.yml?branch=main&label=Data+Pipeline" /></a>
+  <a href="https://github.com/tokyo3rdhq/token-factory-initializr/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/tokyo3rdhq/token-factory-initializr?label=last+commit" /></a>
+  <!-- Community health -->
+  <a href="https://github.com/tokyo3rdhq/token-factory-initializr/issues"><img alt="Open issues" src="https://img.shields.io/github/issues/tokyo3rdhq/token-factory-initializr?label=issues" /></a>
+  <a href="https://github.com/tokyo3rdhq/token-factory-initializr/pulls"><img alt="Open PRs" src="https://img.shields.io/github/issues-pr/tokyo3rdhq/token-factory-initializr?label=PRs" /></a>
+</p>
+
 ---
 
 ## What it does
