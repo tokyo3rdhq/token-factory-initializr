@@ -37,12 +37,12 @@ jobs:
 
       - name: Install npm dependencies
         working-directory: web
-        # ``--include=dev`` because the test + build steps need
-        # devDependencies (tsx, vite, typescript, wrangler). The
-        # default ``npm ci`` honors the ``production`` lockfile
-        # setting (which some package-lock.json files set to true),
-        # which would skip devDependencies and break the build.
-        run: npm ci --include=dev
+        # ``--ignore-scripts`` because workerd + esbuild have
+        # postinstall hooks that download native binaries — fine
+        # locally, but they're already preinstalled in the GitHub
+        # Actions runner image so we skip them to keep CI fast
+        # and avoid occasional sandbox network failures.
+        run: npm ci --ignore-scripts
 
       - name: TypeScript type-check (tsc --noEmit)
         working-directory: web
