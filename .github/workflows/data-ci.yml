@@ -1,0 +1,37 @@
+name: Data CI (lint + test)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "data/**"
+      - ".github/workflows/data-ci.yml"
+  workflow_dispatch:
+
+# Cancel in-progress runs on the same ref so a fast follow-up
+# commit doesn't queue behind a slow previous one.
+concurrency:
+  group: data-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  data-ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Production dependencies only (not the dev extras bundled with
+      # fetch-models.yml which pulls in pytest, hypothesis, ruff, etc. per
+      # the PR-time pattern). Faster install on CI.
+      - name: Install production dependencies
+        run: pip install -e .
+
+      - name: Run tests
+        working-directory: data
+        run: pytest
