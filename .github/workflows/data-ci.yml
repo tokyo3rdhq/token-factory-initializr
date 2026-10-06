@@ -26,12 +26,12 @@ jobs:
         with:
           python-version: "3.11"
 
-      # Production dependencies only (not the dev extras bundled with
-      # fetch-models.yml which pulls in pytest, hypothesis, ruff, etc. per
-      # the PR-time pattern). Faster install on CI.
-      - name: Install production dependencies
+      # Install dev extras so pytest and ruff are available.
+      # These are runtime-only for fetch-models.yml (which uses pip install ./data),
+      # but CI needs them for the lint + test steps.
+      - name: Install production + dev dependencies
         working-directory: data
-        run: pip install -e .
+        run: pip install -e ".[dev]"
 
       - name: Run tests
         working-directory: data
