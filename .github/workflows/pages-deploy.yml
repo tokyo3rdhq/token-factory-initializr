@@ -1,4 +1,12 @@
-name: Deploy web to Cloudflare Pages
+name: web CI (lint + test + build)
+
+# Web-only CI: runs lint + tests + a production build to catch
+# regressions on every push to main. Does NOT deploy — production
+# releases go through wrangler pages deploy from a developer
+# machine that holds the Cloudflare Pages deploy token in its
+# local .env (see web/.env.example). Keeping deploy out of CI
+# avoids leaking the token into the GitHub Actions secret store
+# (the upstream private mirror doesn't need its own deploy key).
 
 on:
   push:
@@ -8,10 +16,16 @@ on:
       - ".github/workflows/pages-deploy.yml"
   workflow_dispatch:
 
+# Cancel in-progress runs on the same ref so a fast follow-up
+# commit doesn't queue behind a slow previous one.
+concurrency:
+  group: web-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-deploy:
+  web-ci:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -25,28 +39,23 @@ jobs:
         working-directory: web
         run: npm ci
 
-      - name: Build the React + Pages Functions bundle
+      - name: TypeScript type-check (tsc --noEmit)
         working-directory: web
-        # Vite outputs to ./dist; ``pages_build_output_dir`` in
-        # wrangler.toml points there so wrangler pages deploy picks
-        # up both the static assets and the Functions directory.
-        run: npm run build
+        # Vite's build already runs tsc, but an isolated run surfaces
+        # type errors in the PR before we burn npm time on a build we
+        # will then throw away.
+        run: npx tsc --noEmit
 
-      - name: Deploy to Cloudflare Pages
+      - name: Run unit tests
         working-directory: web
-        env:
-          # Strip whitespace from secrets. Cloudflare IDs / tokens are
-          # hex/alphanumeric with no legitimate whitespace. A trailing
-          # newline occasionally sneaks in when secrets are pasted into
-          # GitHub's secret UI textarea, which then breaks wrangler's
-          # strict alphanumeric validation.
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          CLOUDFLARE_ACCOUNT_ID=$(echo -n "$CLOUDFLARE_ACCOUNT_ID" | tr -d '[:space:]')
-          CLOUDFLARE_API_TOKEN=$(echo -n "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
-          export CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN
-          npx wrangler pages deploy ./dist \
-            --project-name token-factory-initializr \
-            --branch main \
-            --commit-message "ci: deploy web via github actions"
+        # tsx --test runner; 250+ across 8 test files. Catches
+        # generator / projection / filter regressions before they
+        # reach Cloudflare.
+        run: npm test
+
+      - name: Build the production bundle
+        working-directory: web
+        # Mirrors the local build path: tsc --noEmit && vite build.
+        # Verifies the bundle actually compiles end-to-end (not just
+        # the type-checker + the test runner separately).
+        run: npm run build
