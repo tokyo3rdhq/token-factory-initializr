@@ -117,6 +117,36 @@ check("id = 'litellm'", litellmGenerator.id, "litellm");
 check("meta.name = 'LiteLLM'", litellmGenerator.meta.name, "LiteLLM");
 check("filename ends with .yaml", a.filename.endsWith(".yaml"), true);
 
+// Control-char rejection (security audit F4).
+console.log("\nlitellm: refuses ASCII control characters in model_id");
+{
+  const unsafeModel: ModelEndpoint = {
+    data_source: "huggingface",
+    provider: "huggingface",
+    model_id: "evil/with\u000Anewline",
+    name: null,
+    description: null,
+    free: true,
+    capabilities: {},
+    architecture: null,
+    lab: null,
+    metadata: {},
+    fetched_at: "2026-01-01T00:00:00Z",
+  };
+  let threw = false;
+  try {
+    litellmGenerator.generate([unsafeModel], { generatedUrl: "x" });
+  } catch (e) {
+    threw = true;
+    check(
+      "control-char rejection throws a plain Error",
+      e instanceof Error && e.message.includes("control character"),
+      true,
+    );
+  }
+  check("control-char rejection threw", threw, true);
+}
+
 // ---------------------------------------------------------------------------
 // NewAPI generator
 // ---------------------------------------------------------------------------

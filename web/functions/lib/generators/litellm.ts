@@ -43,7 +43,23 @@ function slugFromModelId(modelId: string): string {
 }
 
 function yamlEscape(value: string): string {
-  // Single-quoted YAML; double single-quotes to escape.
+  // Defence-in-depth hardening per security audit finding F4.
+  //
+  // 1. Reject ASCII control characters outright. A model_id with a
+  //    literal newline would otherwise break the YAML line and let
+  //    an attacker inject adjacent `model_list:` entries. Provider
+  //    fetchers already strip / reject such inputs upstream, but
+  //    we re-check here so a future provider that bypasses
+  //    validation cannot reach this function with unsafe input.
+  //
+  // 2. Keep single-quoted YAML (vulnerable to a lone trailing `'`
+  //    if the doubling logic ever regresses; the doubling is
+  //    preserved below).
+  if (/[\x00-\x1f\x7f]/.test(value)) {
+    throw new Error(
+      "yamlEscape: refusing to render value containing ASCII control character",
+    );
+  }
   return `'${value.replace(/'/g, "''")}'`;
 }
 

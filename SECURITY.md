@@ -17,8 +17,7 @@ local `wrangler pages deploy` invocation. Subscribe to repository
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Email **security@tokyo3rdhq.com** (placeholder — replace before
-publishing). Include:
+Email **security@magi.website** (maintainer inbox; replace before announcing the repo if it changes). Include:
 
 1. A clear description of the vulnerability and its impact.
 2. Reproduction steps (curl transcript, screenshot, etc.).
