@@ -30,6 +30,7 @@ jobs:
       # fetch-models.yml which pulls in pytest, hypothesis, ruff, etc. per
       # the PR-time pattern). Faster install on CI.
       - name: Install production dependencies
+        working-directory: data
         run: pip install -e .
 
       - name: Run tests
