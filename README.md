@@ -16,8 +16,9 @@
   <img alt="Cloudflare Pages" src="https://img.shields.io/badge/Cloudflare_Pages-F38020?logo=cloudflare&logoColor=white" />
   <br />
   <!-- CI / workflow status -->
-  <a href="https://github.com/tokyo3rdhq/token-factory-initializr/actions/workflows/pages-deploy.yml"><img alt="web CI" src="https://img.shields.io/github/actions/workflow/status/tokyo3rdhq/token-factory-initializr/pages-deploy.yml?branch=main&label=web+CI" /></a>
-  <a href="https://github.com/tokyo3rdhq/token-factory-initializr/actions/workflows/fetch-models.yml"><img alt="Fetch Free Models" src="https://img.shields.io/github/actions/workflow/status/tokyo3rdhq/token-factory-initializr/fetch-models.yml?branch=main&label=Data+Pipeline" /></a>
+  <a href="https://github.com/tokyo3rdhq/token-factory-initializr/actions/workflows/web-ci.yml"><img alt="web CI" src="https://img.shields.io/github/actions/workflow/status/tokyo3rdhq/token-factory-initializr/web-ci.yml?branch=main&label=web+CI" /></a>
+  <a href="https://github.com/tokyo3rdhq/token-factory-initializr/actions/workflows/data-ci.yml"><img alt="Data CI" src="https://img.shields.io/github/actions/workflow/status/tokyo3rdhq/token-factory-initializr/data-ci.yml?branch=main&label=Data+CI" /></a>
+  <a href="https://github.com/tokyo3rdhq/token-factory-initializr/actions/workflows/fetch-models.yml"><img alt="Data Pipeline" src="https://img.shields.io/github/actions/workflow/status/tokyo3rdhq/token-factory-initializr/fetch-models.yml?branch=main&label=Data+Pipeline" /></a>
   <a href="https://github.com/tokyo3rdhq/token-factory-initializr/commits/main"><img alt="Last commit" src="https://img.shields.io/github/last-commit/tokyo3rdhq/token-factory-initializr?label=last+commit" /></a>
   <!-- Community health -->
   <a href="https://github.com/tokyo3rdhq/token-factory-initializr/issues"><img alt="Open issues" src="https://img.shields.io/github/issues/tokyo3rdhq/token-factory-initializr?label=issues" /></a>
