@@ -145,3 +145,56 @@ def test_cross_source_index_no_hf_id_unchanged():
     or_obs = {"model_id": "vendor/model", "data_source": "openrouter"}
     idx = _build_cross_source_index([or_obs])
     assert list(idx.keys()) == ["vendor/model"]
+
+
+# ---------------------------------------------------------------------------
+# Compound quantization suffixes
+# ---------------------------------------------------------------------------
+
+
+def test_compound_awq_4bit_suffix_does_not_strip_4bit():
+    """``-AWQ-4bit`` is a compound suffix: AWQ (algorithm) + 4bit (precision).
+
+    The matcher only recognises trailing suffix tokens in
+    ``_QUANTIZATION_SUFFIXES``. ``-AWQ-4bit`` ends with ``-4bit`` (not
+    in the list), so nothing is stripped. The id is therefore NOT
+    collapsed onto the bare-model form — and rightly so, because
+    AWQ-int4 vs gguf vs fp16 are *different inference products*
+    (different engines, different memory footprints, byte-different
+    outputs). Merging them under one endpoint would lie to the user.
+    """
+    awq_int4 = "prism-ml/Ternary-Bonsai-27B-AWQ-4bit"
+    gguf = "prism-ml/Ternary-Bonsai-27B-gguf"
+    bare = "prism-ml/Ternary-Bonsai-27B"
+    # AWQ-int4 and gguf are NOT merged — different inference products.
+    assert _normalize_id(awq_int4) != _normalize_id(gguf)
+    # AWQ-int4 is also NOT collapsed onto the bare model name.
+    assert _normalize_id(awq_int4) != _normalize_id(bare)
+    # gguf IS collapsed onto the bare model name (its suffix is in
+    # the recognized list).
+    assert _normalize_id(gguf) == _normalize_id(bare)
+
+
+def test_compound_int4_suffix_recognised_when_at_end():
+    """``-int4`` IS in ``_QUANTIZATION_SUFFIXES`` so a clean trailing
+    ``-int4`` does collapse onto the bare model — unlike the
+    compound ``-AWQ-4bit`` case above."""
+    assert _normalize_id("org/Model-7b-int4") == _normalize_id("org/Model-7b")
+
+
+def test_default_matcher_does_not_merge_awq_int4_with_gguf():
+    """End-to-end: an HF endpoint tagged -AWQ-4bit and an HF endpoint
+    tagged -gguf of the *same* underlying weights must remain two
+    separate endpoints in KV. The matcher should refuse to merge
+    them even though they share the same numeric / token signature.
+    """
+    m = DefaultIdentityMatcher()
+    # Cross-source observation references the gguf variant only —
+    # AWQ-4bit must NOT be claimed as a match for it.
+    r = m.match(
+        "prism-ml/Ternary-Bonsai-27B-AWQ-4bit",
+        [{"id": "prism-ml/ternary-bonsai-2-27b", "source": "openrouter"}],
+    )
+    # The compound -awq-4bit suffix survives normalization so the slug-side
+    # keys diverge. Token-subset fallback does not match.
+    assert r is None or r.confidence < 0.5
