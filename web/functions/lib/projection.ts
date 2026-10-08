@@ -329,10 +329,27 @@ interface ProviderMetadata {
   /** Protocols this provider speaks. Most providers expose exactly
    *  one; some are multi-protocol. */
   protocols: string[];
-  /** Public base URL when the provider's API is open and well-known. */
-  baseUrl?: string;
+  /** The upstream vendor's own OpenAI-compatible base URL. Used as
+   *  a fallback when the data source has no canonical entry-point
+   *  URL (e.g. unknown data source), or by the Bifrost generator
+   *  when emitting a native (non-router) provider config. */
+  nativeBaseUrl?: string;
   documentationUrl?: string;
 }
+
+/** Per-data-source entry-point URL. The data_source is the
+ *  upstream catalog TFI used to discover the model (nvidia, amd,
+ *  huggingface, openrouter, models_dev). When a model is exposed
+ *  via the HF router, the entry point is the HF router itself —
+ *  not the upstream vendor's own endpoint. This is the
+ *  consumer-facing base_url for /api/v1/endpoints. */
+const DATA_SOURCE_BASE_URLS: Readonly<Record<string, string>> = {
+  nvidia: "https://integrate.api.nvidia.com/v1",
+  amd: "https://developer.amd.com.cn/radeon/api/v1",
+  huggingface: "https://router.huggingface.co/v1",
+  openrouter: "https://openrouter.ai/api/v1",
+  groq: "https://api.groq.com/openai/v1",
+};
 
 /** Single source of truth for the per-provider display name +
  *  public base URL + protocol. Sourced from the Bifrost generator's
@@ -342,13 +359,13 @@ const PROVIDER_METADATA: Readonly<Record<string, ProviderMetadata>> = {
   nvidia: {
     displayName: "NVIDIA NIM",
     protocols: ["openai-compatible"],
-    baseUrl: "https://integrate.api.nvidia.com/v1",
+    nativeBaseUrl: "https://integrate.api.nvidia.com/v1",
     documentationUrl: "https://docs.nvidia.com/nim/",
   },
   amd: {
     displayName: "AMD Radeon Cloud",
     protocols: ["openai-compatible"],
-    baseUrl: "https://developer.amd.com.cn/radeon/api/v1",
+    nativeBaseUrl: "https://developer.amd.com.cn/radeon/api/v1",
     documentationUrl: "https://amd-aim.github.io/radeon-cloud-docs/",
   },
   huggingface: {
@@ -359,85 +376,85 @@ const PROVIDER_METADATA: Readonly<Record<string, ProviderMetadata>> = {
   groq: {
     displayName: "Groq",
     protocols: ["openai-compatible"],
-    baseUrl: "https://api.groq.com/openai/v1",
+    nativeBaseUrl: "https://api.groq.com/openai/v1",
     documentationUrl: "https://console.groq.com/docs/openai",
   },
   openrouter: {
     displayName: "OpenRouter",
     protocols: ["openai-compatible"],
-    baseUrl: "https://openrouter.ai/api/v1",
+    nativeBaseUrl: "https://openrouter.ai/api/v1",
     documentationUrl: "https://openrouter.ai/docs",
   },
   together: {
     displayName: "Together AI",
     protocols: ["openai-compatible"],
-    baseUrl: "https://api.together.xyz/v1",
+    nativeBaseUrl: "https://api.together.xyz/v1",
     documentationUrl: "https://docs.together.ai/docs/openai-api",
   },
   deepinfra: {
     displayName: "DeepInfra",
     protocols: ["openai-compatible"],
-    baseUrl: "https://api.deepinfra.com/v1/openai",
+    nativeBaseUrl: "https://api.deepinfra.com/v1/openai",
     documentationUrl: "https://deepinfra.com/docs/openai_api",
   },
   cerebras: {
     displayName: "Cerebras",
     protocols: ["openai-compatible"],
-    baseUrl: "https://api.cerebras.ai/v1",
+    nativeBaseUrl: "https://api.cerebras.ai/v1",
     documentationUrl: "https://inference.cerebras.ai",
   },
   novita: {
     displayName: "Novita AI",
     protocols: ["openai-compatible"],
-    baseUrl: "https://api.novita.ai/v3/openai",
+    nativeBaseUrl: "https://api.novita.ai/v3/openai",
     documentationUrl: "https://novita.ai/docs",
   },
   cohere: {
     displayName: "Cohere",
     protocols: ["openai-compatible"],
-    baseUrl: "https://api.cohere.ai/v1",
+    nativeBaseUrl: "https://api.cohere.ai/v1",
     documentationUrl: "https://docs.cohere.com",
   },
   fireworks: {
     displayName: "Fireworks AI",
     protocols: ["openai-compatible"],
-    baseUrl: "https://api.fireworks.ai/inference/v1",
+    nativeBaseUrl: "https://api.fireworks.ai/inference/v1",
     documentationUrl: "https://docs.fireworks.ai",
   },
   baseten: {
     displayName: "Baseten",
     protocols: ["openai-compatible"],
-    baseUrl: "https://api.baseten.co/v1",
+    nativeBaseUrl: "https://api.baseten.co/v1",
     documentationUrl: "https://docs.baseten.co",
   },
   scaleway: {
     displayName: "Scaleway",
     protocols: ["openai-compatible"],
-    baseUrl: "https://api.scaleway.ai/v1",
+    nativeBaseUrl: "https://api.scaleway.ai/v1",
     documentationUrl: "https://www.scaleway.com/en/docs",
   },
   nscale: {
     displayName: "Nscale",
     protocols: ["openai-compatible"],
-    baseUrl: "https://api.nscale.com/v1",
+    nativeBaseUrl: "https://api.nscale.com/v1",
     documentationUrl: "https://docs.nscale.com",
   },
   ovhcloud: {
     displayName: "OVHcloud AI Endpoints",
     protocols: ["openai-compatible"],
-    baseUrl: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1",
+    nativeBaseUrl: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1",
     documentationUrl: "https://endpoints.ovhcloud.com",
   },
   publicai: {
     displayName: "PublicAI",
     protocols: ["openai-compatible"],
-    baseUrl: "https://api.publicai.co/v1",
+    nativeBaseUrl: "https://api.publicai.co/v1",
     documentationUrl: "https://publicai.co",
   },
   featherless: {
     displayName: "Featherless",
     protocols: ["openai-compatible"],
-    baseUrl: "https://api.featherless.ai/v1",
+    nativeBaseUrl: "https://api.featherless.ai/v1",
     documentationUrl: "https://featherless.ai",
   },
 };
@@ -461,6 +478,36 @@ function stableProtocols(protocols: readonly string[]): string[] {
   };
   return [...protocols].sort(
     (a, b) => (order[a] ?? 99) - (order[b] ?? 99),
+  );
+}
+
+/** Resolve the consumer-facing base_url for a (data_source, provider)
+ *  pair. Strategy:
+ *  1. The data_source entry point is the URL the user actually
+ *     targets (e.g. the HF router for huggingface-fanout models,
+ *     the NVIDIA NIM gateway for nvidia models).
+ *  2. When the data_source is unknown (e.g. models_dev, or a
+ *     data_source that joins the catalog after this code is
+ *     deployed), fall back to the provider's own native base URL.
+ *  3. When neither is known, return undefined — the public
+ *     projection omits the field.
+ *
+ *  This split is the fix for the case where
+ *  data_source="huggingface" + provider="together" used to
+ *  expose api.together.xyz/v1 — the upstream vendor's native
+ *  URL — which is wrong: TFI discovered the model through the HF
+ *  router, so the consumer-facing entry point is the HF router
+ *  itself. The Bifrost generator still consults ``nativeBaseUrl``
+ *  directly when emitting a non-router (native) provider config,
+ *  so the existing Bifrost path is unchanged.
+ */
+export function resolveBaseUrl(
+  dataSource: string,
+  provider: string,
+): string | undefined {
+  return (
+    DATA_SOURCE_BASE_URLS[dataSource] ??
+    getProviderMetadata(provider)?.nativeBaseUrl
   );
 }
 
@@ -511,10 +558,12 @@ export function toPublicEndpoint(
     // has multiple, surface the canonical first (after stableProtocols
     // sorting).
     protocol: (stableProtocols(meta?.protocols ?? [])[0]) ?? "openai-compatible",
-    // Base URL + documentation live on the provider, but the spec
-    // wants them on the endpoint too. Mirror them so the endpoint is
-    // self-describing in single-fetch workflows.
-    base_url: meta?.baseUrl,
+    // Base URL is keyed on the data_source first (the entry point
+    // TFI actually used to discover the model — e.g. the HF router
+    // for huggingface-fanout models), with the provider's native
+    // endpoint as a fallback for data sources without a canonical
+    // entry point. See ``resolveBaseUrl`` for the full rule.
+    base_url: resolveBaseUrl(dataSource, provider),
     authentication: {
       // Every public-facing provider in the registry requires a
       // credential; unknown providers get a typed-but-credential-

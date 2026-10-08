@@ -425,3 +425,101 @@ test("toPublicModels forwards endpointsByModel to every per-model projection", (
   assert.deepEqual(out[0].endpoints, ["together:default"]);
   assert.deepEqual(out[1].endpoints, ["nvidia:default"]);
 });
+
+// ---------------------------------------------------------------------------
+// resolveBaseUrl — the data_source-first routing rule.
+//
+// The user-facing bug this addresses: TFI discovers a model
+// through the HF router, but the data carries provider="together".
+// The naive approach (return the upstream vendor's own base URL)
+// would expose api.together.xyz/v1, telling the consumer to talk
+// to Together directly with a TOGETHER_API_KEY. That's wrong: the
+// model was discovered via HF, so the consumer should configure
+// the HF router with an HF_TOKEN. resolveBaseUrl() encodes this
+// rule by keying the public base_url on the data_source first.
+// ---------------------------------------------------------------------------
+
+const { resolveBaseUrl } = await import("../../functions/lib/projection.ts");
+
+test("resolveBaseUrl: HF-fanout providers point at the HF router", () => {
+  // The exact case the user reported: data_source=huggingface,
+  // provider=together must surface the HF router URL, not Together's
+  // native endpoint.
+  assert.equal(
+    resolveBaseUrl("huggingface", "together"),
+    "https://router.huggingface.co/v1",
+  );
+  assert.equal(
+    resolveBaseUrl("huggingface", "novita"),
+    "https://router.huggingface.co/v1",
+  );
+  assert.equal(
+    resolveBaseUrl("huggingface", "deepinfra"),
+    "https://router.huggingface.co/v1",
+  );
+  // HF itself: the provider native URL happens to also be the
+  // data source entry point.
+  assert.equal(
+    resolveBaseUrl("huggingface", "huggingface"),
+    "https://router.huggingface.co/v1",
+  );
+});
+
+test("resolveBaseUrl: data_source=nvidia uses the NVIDIA NIM gateway", () => {
+  assert.equal(
+    resolveBaseUrl("nvidia", "nvidia"),
+    "https://integrate.api.nvidia.com/v1",
+  );
+});
+
+test("resolveBaseUrl: data_source=amd uses the AMD Radeon Cloud gateway", () => {
+  assert.equal(
+    resolveBaseUrl("amd", "amd"),
+    "https://developer.amd.com.cn/radeon/api/v1",
+  );
+});
+
+test("resolveBaseUrl: data_source=openrouter uses the OpenRouter gateway", () => {
+  assert.equal(
+    resolveBaseUrl("openrouter", "openrouter"),
+    "https://openrouter.ai/api/v1",
+  );
+});
+
+test("resolveBaseUrl: unknown data_source falls back to provider native URL", () => {
+  // data_source not in DATA_SOURCE_BASE_URLS but provider IS known
+  // (e.g. a new data_source joins the catalog before this code
+  // updates). Fall back to the provider's own base URL.
+  assert.equal(
+    resolveBaseUrl("some_new_datasource", "groq"),
+    "https://api.groq.com/openai/v1",
+  );
+  assert.equal(
+    resolveBaseUrl("some_new_datasource", "together"),
+    "https://api.together.xyz/v1",
+  );
+});
+
+test("resolveBaseUrl: unknown data_source AND unknown provider returns undefined", () => {
+  // No data_source entry, no provider entry — the public projection
+  // omits the field rather than fabricating a URL.
+  assert.equal(resolveBaseUrl("totally_unknown_ds", "totally_unknown_pv"), undefined);
+});
+
+test("toPublicEndpoint base_url uses the data_source entry point", () => {
+  // End-to-end: build the same endpoint shape the public API returns
+  // and assert the base_url is the HF router, not Together's native
+  // URL.
+  const ep = toPublicEndpoint("huggingface", "together", ["m1"]);
+  assert.equal(ep.base_url, "https://router.huggingface.co/v1");
+});
+
+test("toPublicProvider does NOT include a base_url (provider has no native URL field)", () => {
+  // Per the spec, PublicProvider is metadata-only — id, name,
+  // data_source, protocols, documentation_url. The base_url lives
+  // on PublicEndpoint, not PublicProvider. This test pins the rule
+  // so a future change doesn't accidentally re-introduce the field.
+  const p = toPublicProvider("huggingface", "together");
+  assert.equal((p as Record<string, unknown>).base_url, undefined);
+  assert.equal((p as Record<string, unknown>).nativeBaseUrl, undefined);
+});
