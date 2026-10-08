@@ -23,6 +23,7 @@
 // catalog re-projection.
 
 import { loadFullCatalog, findEndpoint } from "../../lib/catalog";
+import { loadIndexes } from "../../lib/endpoints";
 import {
   filterEndpoints,
   parseFilters,
@@ -68,7 +69,10 @@ export async function onRequestGet(context: {
     }
     const endpoints = await loadEndpoints(context.env);
     const filtered = filterEndpoints(endpoints, parsed);
-    const body = publicListResponse(toPublicModels(filtered));
+    const { modelsByEndpoint } = await loadIndexes(context.env);
+    const body = publicListResponse(
+      toPublicModels(filtered, { endpointsByModel: modelsByEndpoint }),
+    );
     const json = JSON.stringify(body);
     return jsonResponse(body, {
       etag: makeEtag(json),
@@ -89,7 +93,8 @@ export async function onRequestGet(context: {
     if (!endpoint) {
       return notFound(`model not found: ${id}`);
     }
-    const model = toPublicModel(endpoint);
+    const { modelsByEndpoint } = await loadIndexes(context.env);
+    const model = toPublicModel(endpoint, { endpointsByModel: modelsByEndpoint });
     const json = JSON.stringify(model);
     return jsonResponse(model, {
       etag: makeEtag(json),

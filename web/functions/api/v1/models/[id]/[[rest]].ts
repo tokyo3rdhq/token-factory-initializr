@@ -13,6 +13,7 @@
 // (one segment, no rest).
 
 import { loadFullCatalog, findEndpoint } from "../../../../lib/catalog";
+import { loadIndexes } from "../../../../lib/endpoints";
 import { jsonResponse, notFound } from "../../../../lib/errors";
 import { toPublicModel } from "../../../../lib/projection";
 import { FIXTURE_PROVIDERS } from "../../../../lib/fixtures";
@@ -43,5 +44,6 @@ export async function onRequestGet(context: {
   if (!endpoint) {
     return notFound(`model not found: ${fullId}`);
   }
-  return jsonResponse(toPublicModel(endpoint));
+  const { modelsByEndpoint } = await loadIndexes(context.env);
+  return jsonResponse(toPublicModel(endpoint, { endpointsByModel: modelsByEndpoint }));
 }

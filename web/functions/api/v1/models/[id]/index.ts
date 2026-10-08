@@ -4,6 +4,7 @@
 // for the multi-segment case (e.g. ``z-ai/glm-5.3-flash``).
 
 import { loadFullCatalog } from "../../../../lib/catalog";
+import { loadIndexes } from "../../../../lib/endpoints";
 import { jsonResponse, notFound } from "../../../../lib/errors";
 import { toPublicModel } from "../../../../lib/projection";
 import { FIXTURE_PROVIDERS } from "../../../../lib/fixtures";
@@ -43,5 +44,6 @@ export async function onRequestGet(context: {
   if (!endpoint) {
     return notFound(`model not found: ${id}`);
   }
-  return jsonResponse(toPublicModel(endpoint));
+  const { modelsByEndpoint } = await loadIndexes(context.env);
+  return jsonResponse(toPublicModel(endpoint, { endpointsByModel: modelsByEndpoint }));
 }

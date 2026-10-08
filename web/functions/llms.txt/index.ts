@@ -56,7 +56,33 @@ Retrieve a specific model:
 
 https://start.magi.website/api/v1/models/{model_id}
 
-Model IDs may contain \`/\`.
+Model IDs may contain \`/\`. The model detail response now carries
+an \`endpoints\` field listing the public endpoint ids that serve
+the model.
+
+### Provider Catalog
+
+List every known provider (NVIDIA, AMD, Groq, OpenRouter, Together,
+…) and their public metadata (display name, protocol, docs link):
+
+https://start.magi.website/api/v1/providers
+https://start.magi.website/api/v1/providers/{id}
+
+### Endpoint Catalog
+
+List every runtime access point. Each endpoint exposes the public
+base URL + protocol + authentication requirement (never the
+credential itself) + status + limits + the model ids it serves:
+
+https://start.magi.website/api/v1/endpoints
+https://start.magi.website/api/v1/endpoints/{id}
+
+Useful filter:
+
+\`\`\`
+?model_id=meta-llama/Llama-3.3-70B-Instruct
+   → every endpoint serving that model
+\`\`\`
 
 ### Human Interface
 

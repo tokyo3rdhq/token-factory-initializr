@@ -157,3 +157,114 @@ export interface PublicModelList {
 export function publicListResponse(models: PublicModel[]): PublicModelList {
   return { object: "list", data: models };
 }
+
+// ---------------------------------------------------------------------------
+// Provider / Endpoint filter dimensions.
+//
+// Per docs/tfi_provider_and_endpoint_intelligence_api.md §23 + §24.
+// Same OR-within-dimension, AND-across-dimensions semantics as the
+// model filter; same CSV parsing; same unknown-value policy
+// (unknown filter values return empty — capabilities are the only
+// fixed-vocabulary dimension and that already returns 400).
+// ---------------------------------------------------------------------------
+
+import type { PublicProvider, PublicEndpoint } from "./projection";
+
+/** Per-dimension filter shapes. Each dimension is optional; a
+ *  missing key means "do not filter on this dimension". */
+export interface ProviderFilters {
+  data_source?: string[];
+}
+
+export interface EndpointFilters {
+  provider?: string[];
+  data_source?: string[];
+  protocol?: string[];
+  status?: string[];
+  /** Per §25. Implemented as a cheap O(n) scan over the pre-built
+   *  endpoints index; do NOT introduce expensive runtime scans over
+   *  raw source data. */
+  model_id?: string[];
+}
+
+/** Apply OR-within-dimension / AND-across-dimensions provider filter. */
+export function filterPublicProviders(
+  providers: PublicProvider[],
+  filters: ProviderFilters,
+): PublicProvider[] {
+  return providers.filter((p) => {
+    if (filters.data_source && !filters.data_source.includes(p.data_source)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+/** Apply the endpoint filter set. */
+export function filterPublicEndpoints(
+  endpoints: PublicEndpoint[],
+  filters: EndpointFilters,
+): PublicEndpoint[] {
+  return endpoints.filter((e) => {
+    if (filters.provider && !filters.provider.includes(e.provider)) {
+      return false;
+    }
+    if (filters.data_source && !filters.data_source.includes(e.data_source)) {
+      return false;
+    }
+    if (filters.protocol && e.protocol && !filters.protocol.includes(e.protocol)) {
+      return false;
+    }
+    if (filters.status && e.status && !filters.status.includes(e.status)) {
+      return false;
+    }
+    if (filters.model_id && e.models) {
+      // OR-within-dimension: endpoint matches if any of its models
+      // intersects the requested model_id set.
+      const intersects = e.models.some((m) => filters.model_id!.includes(m));
+      if (!intersects) return false;
+    }
+    return true;
+  });
+}
+
+/** Parse the query string for the providers list endpoint.
+ *  Currently only ``data_source`` is supported per §23. */
+export function parseProviderFilters(
+  params: URLSearchParams,
+): { ok: true; filters: ProviderFilters } | { ok: false; param: string } {
+  const dataSourceRaw = params.get("data_source");
+  if (dataSourceRaw) {
+    const ds = splitCsv(dataSourceRaw).filter((s) => s.length > 0);
+    if (ds.length === 0) {
+      return { ok: false, param: "data_source" };
+    }
+    return { ok: true, filters: { data_source: ds } };
+  }
+  return { ok: true, filters: {} };
+}
+
+/** Parse the query string for the endpoints list endpoint. */
+export function parseEndpointFilters(
+  params: URLSearchParams,
+):
+  | { ok: true; filters: EndpointFilters }
+  | { ok: false; param: string } {
+  const out: EndpointFilters = {};
+  for (const key of [
+    "provider",
+    "data_source",
+    "protocol",
+    "status",
+    "model_id",
+  ] as const) {
+    const raw = params.get(key);
+    if (raw === null) continue;
+    const values = splitCsv(raw).filter((s) => s.length > 0);
+    if (values.length === 0) {
+      return { ok: false, param: key };
+    }
+    (out as Record<string, string[]>)[key] = values;
+  }
+  return { ok: true, filters: out };
+}

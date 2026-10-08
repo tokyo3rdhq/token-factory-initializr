@@ -19,6 +19,10 @@ agent interfaces:
 - **Agent interface:**  https://start.magi.website/agents.md (this document)
                         https://start.magi.website/api/v1/models
                         https://start.magi.website/api/v1/models/{id}
+                        https://start.magi.website/api/v1/providers
+                        https://start.magi.website/api/v1/providers/{id}
+                        https://start.magi.website/api/v1/endpoints
+                        https://start.magi.website/api/v1/endpoints/{id}
 - **Generated configuration artifact:**
                         https://start.magi.website/generated/{id}
 
@@ -149,17 +153,119 @@ The Agent can then:
 Per docs/tfi_homepage_agent_access.md §14: the artifact is public
 configuration data and must not be treated as a secret.
 
+## Provider Discovery
+
+\`\`\`
+GET /api/v1/providers
+GET /api/v1/providers/{id}
+\`\`\`
+
+Lists every known provider (NVIDIA, AMD, Groq, OpenRouter, Together,
+etc.). Each entry exposes:
+
+- \`id\` — stable identifier (e.g. \`groq\`, \`nvidia\`, \`together\`).
+- \`name\` — display name (e.g. \`Groq\`, \`NVIDIA NIM\`).
+- \`data_source\` — the data source TFI observed this provider through
+  (one provider can fan out via multiple data sources).
+- \`protocols\` — protocol(s) the provider speaks
+  (\`openai-compatible\`, \`anthropic\`, \`native\`, \`huggingface\`, \`nim\`).
+- \`documentation_url\` — official docs link (omitted when unknown).
+
+Provider-level data does NOT include per-model limits, status, or
+base URL — those are endpoint-level (next section).
+
+Filter:
+
+\`\`\`
+GET /api/v1/providers?data_source=huggingface
+\`\`\`
+
+## Endpoint Discovery
+
+\`\`\`
+GET /api/v1/endpoints
+GET /api/v1/endpoints/{id}
+\`\`\`
+
+Lists every runtime access point. Endpoint ids are deterministic
+strings of the form \`{provider}:{endpoint_name}\` — e.g.
+\`groq:default\`, \`nvidia:default\`, \`huggingface:together\`,
+\`huggingface:novita\`. Each entry exposes:
+
+- \`id\` — \`{provider}:{endpoint_name}\`.
+- \`provider\` — who operates it.
+- \`data_source\` — where TFI observed it.
+- \`protocol\` — single protocol value.
+- \`base_url\` — public base URL the Agent can configure against
+  (omitted when TFI does not have a known public base URL).
+- \`authentication\` — \`{ type, credential_required }\`. \`type\` is
+  one of \`none\`, \`bearer\`, \`api_key\`, \`oauth2\`, \`custom\`,
+  \`unknown\`. **Never the credential itself.**
+- \`status\` — \`active\` | \`degraded\` | \`temporarily_unavailable\` |
+  \`deprecated\` | \`unknown\`. Never assumed from mere existence.
+- \`limits\` — \`{ scope, subject, rpm, rpd, tpm }\` — all optional,
+  omitted when unknown.
+- \`models\` — list of canonical model ids served by this endpoint.
+
+Filters: \`provider\`, \`data_source\`, \`protocol\`, \`status\`, \`model_id\`.
+Same OR-within-dimension / AND-across-dimensions semantics as the
+models endpoint.
+
+\`\`\`
+GET /api/v1/endpoints?provider=groq,nvidia
+GET /api/v1/endpoints?protocol=openai-compatible
+GET /api/v1/endpoints?model_id=meta-llama/Llama-3.3-70B-Instruct
+\`\`\`
+
+\`model_id\` is a particularly useful filter for Agent orchestration:
+it returns every endpoint that serves a given model, so an Agent
+can pick an endpoint by availability / protocol / limit rather
+than scanning the model list.
+
+## Model ↔ Endpoint Relationship
+
+The model detail response now includes an \`endpoints\` field
+listing the public endpoint ids that serve the model. Endpoint
+objects themselves are NOT embedded in the model — they have a
+single canonical representation at \`/api/v1/endpoints/{id}\`.
+
+\`\`\`
+GET /api/v1/models/{id}
+\`\`\`
+
+\`\`\`json
+{
+  "id": "deepseek/deepseek-v4.1-flash",
+  "data_source": "nvidia",
+  "provider": "nvidia",
+  "capabilities": ["chat"],
+  "endpoints": ["nvidia:default"]
+}
+\`\`\`
+
+A model exposed by multiple data sources / providers therefore has
+multiple entries in \`endpoints\`, e.g. \`["nvidia:default",
+"huggingface:together"]\`.
+
 ## Recommended Agent Workflow
 
-1. Fetch \`/api/v1/models\`.
-2. Filter by capability, provider, or data source.
-3. Select candidate models.
-4. Fetch \`/api/v1/models/{id}\` for detailed metadata.
-5. **For Token Factory configuration, hand off to the human** via
-   \`/browse\` OR receive a generated URL from the human and fetch
-   \`/generated/{id}\` to apply it. The catalog and configuration
-   APIs are independent — a model being in the catalog does NOT
-   mean it's already wired into a downstream Token Factory.
+1. \`GET /api/v1/models\` — discover the model catalog.
+2. Filter by \`?capabilities=chat,vision\` etc. — narrow to what the
+   user needs.
+3. \`GET /api/v1/models/{id}\` — inspect detail including \`endpoints\`.
+4. \`GET /api/v1/endpoints?model_id={model_id}\` — enumerate runtime
+   access points for that model.
+5. Compare \`protocol\`, \`status\`, and \`limits\` across endpoints.
+6. Pick the most appropriate endpoint for the user's Token Factory.
+7. Hand off the model + endpoint selection to the human via
+   \`/browse\` OR fetch a generated URL the human produced via
+   \`/generated/{id}\` to apply it.
+
+This is the core Agent use case: discover what exists, decide
+where it can run, then surface the configuration to the human.
+TFI does NOT execute requests through any endpoint on the Agent's
+behalf — that is a future direction explicitly out of scope for
+this phase.
 
 ## Human Interface
 
