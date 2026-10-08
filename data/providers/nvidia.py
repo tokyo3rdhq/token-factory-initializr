@@ -292,15 +292,17 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
     name = obj.get("displayName", obj.get("name", ""))
     publisher = _extract_publisher(obj)
     if "/" in resource_id and publisher:
-        # Live RSC: resourceId is the NIM namespace prefix
-        # (e.g. "qc69jvmznzxy/deepseek-v4.1-flash"); the real org/name
-        # pair comes from publisher + displayName. Use the publisher
-        # as the org so model_ids stay consistent with HF/AMD
-        # (``org/name`` shape). Slugify the displayName so values
-        # containing spaces ("Kumo Relational" → "kumo-relational")
-        # match the URL the public catalog exposes and survive the
-        # model's validator regex (^\S+$).
-        model_id = f"{publisher}/{_slugify_name(name)}" if name else resource_id
+        # Live RSC: resourceId is ``<NIM-namespace>/<slug>`` (e.g.
+        # ``qc69jvmznzxy/glm-5-3``). The slug is NVIDIA's canonical
+        # public URL slug, which may differ from a slugified
+        # ``displayName`` (e.g. ``GLM 5.3`` → ``glm-5.3`` vs NVIDIA's
+        # ``glm-5-3``). We use the resourceId's last segment so the
+        # catalog slug matches the URL NVIDIA exposes on
+        # build.nvidia.com.
+        resource_slug = resource_id.rsplit("/", 1)[-1]
+        model_id = f"{publisher}/{resource_slug}" if resource_slug else (
+            f"{publisher}/{_slugify_name(name)}" if name else resource_id
+        )
     elif "/" in resource_id:
         # Legacy / fallback: resourceId is already ``org/name``.
         model_id = resource_id
