@@ -170,9 +170,10 @@ export interface ModelRequirement {
     toolCalling?: boolean;
     /** Endpoint must support structured output. */
     structuredOutput?: boolean;
-    /** Endpoint advertises a reasoning/CoT capability.
-     *  Reserved — no provider exposes this today. */
+    /** Endpoint advertises a reasoning/CoT capability. */
     reasoning?: boolean;
+    /** Endpoint must produce audio / speech output. */
+    speech?: boolean;
   };
 
   /** Minimum acceptable context window (tokens). Endpoints with
@@ -245,6 +246,7 @@ export function matchesRequirement(
       return false;
     }
     if (caps.reasoning === true && !hasReasoning(endpoint)) return false;
+    if (caps.speech === true && !hasSpeech(endpoint)) return false;
   }
 
   // contextWindow.min — endpoint must have a known context length
@@ -317,6 +319,19 @@ function hasStructuredOutput(ep: ModelEndpoint): boolean {
 
 function hasReasoning(ep: ModelEndpoint): boolean {
   return ep.capabilities?.reasoning === true;
+}
+
+function hasSpeech(ep: ModelEndpoint): boolean {
+  // The canonical capability surface flags ``speech`` directly.
+  // Fall back to architecture.output containing 'audio' for any
+  // provider whose adapter omits the capability flag (currently
+  // none do, but keeps the predicate forward-compatible with
+  // OpenAI audio / Google TTS-style endpoints).
+  if (ep.capabilities?.speech === true) return true;
+  if (Array.isArray(ep.architecture?.output)) {
+    return ep.architecture!.output.includes("audio");
+  }
+  return false;
 }
 
 /** Read a numeric price field, tolerating string-encoded values. */

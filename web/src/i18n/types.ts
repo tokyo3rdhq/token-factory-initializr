@@ -84,6 +84,15 @@ export interface TranslationTree {
       vision: string;
       visionYes: string;
       visionNo: string;
+      reasoning: string;
+      reasoningYes: string;
+      reasoningNo: string;
+      speech: string;
+      speechYes: string;
+      speechNo: string;
+      structuredOutput: string;
+      structuredOutputYes: string;
+      structuredOutputNo: string;
       cost: string;
       costFree: string;
       costAny: string;
@@ -183,6 +192,9 @@ export interface TranslationTree {
       chat: { label: string; description: string };
       vision: { label: string; description: string };
       tools: { label: string; description: string };
+      reasoning: { label: string; description: string };
+      speech: { label: string; description: string };
+      structured_output: { label: string; description: string };
       free: { label: string; description: string };
       longCtx: { label: string; description: string };
     };
