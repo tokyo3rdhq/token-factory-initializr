@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { ExternalLink } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Badge, Banner, Button, Checkbox, Container, EmptyState, Input, Section, Stack } from "@tokyo3rdhq/magi-design-system";
 
@@ -446,6 +447,7 @@ function ModelRow({
   selected: boolean;
   onToggle: (ep: ModelEndpoint) => void;
 }) {
+  const { dict } = useI18n();
   const ctx = fmtContext(endpoint.context_length);
   const hasTools = !!endpoint.capabilities?.tool_calling;
   const hasVisionCap = hasVision(endpoint);
@@ -466,7 +468,30 @@ function ModelRow({
       />
       <Badge variant="neutral">{endpoint.provider}</Badge>
       <span>
-        <span className="tfi-model-name">{endpoint.model_id}</span>
+        <span className="tfi-model-name-row">
+          <span className="tfi-model-name">{endpoint.model_id}</span>
+          {endpoint.source_url && (
+            <a
+              className="tfi-model-source-link"
+              href={endpoint.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              // Stop the <label> wrapper from intercepting the click
+              // as a model-selection toggle. The link's own click
+              // handler is the browser's default (open in new tab).
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              // Accessible name per docs/tfi_model_source_url.md §7.
+              // Magnifying the model_id makes the screen reader
+              // announce "View source for <model_id>" instead of
+              // reading the URL aloud.
+              aria-label={dict.browse.viewSourceLabel(endpoint.model_id)}
+              title={dict.browse.viewSourceLabel(endpoint.model_id)}
+            >
+              <ExternalLink size={12} aria-hidden="true" />
+            </a>
+          )}
+        </span>
         {endpoint.description && (
           <div className="tfi-model-desc">{endpoint.description}</div>
         )}

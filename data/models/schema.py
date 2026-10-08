@@ -135,6 +135,12 @@ class ModelEndpoint:
     pricing: Optional[dict] = None
     endpoint_url: Optional[str] = None
     region: Optional[str] = None
+    # Optional human-readable source page associated with this model,
+    # e.g. ``https://build.nvidia.com/<owner>/<model>`` or the AMD
+    # catalog page. See ``data.models.source_url.normalize_source_url``
+    # for the safety contract. Optional field; older records may not
+    # carry it — deserializers must tolerate absence.
+    source_url: Optional[str] = None
     status: Optional[str] = None
     limits: Optional[dict] = None
     score: Optional[float] = None

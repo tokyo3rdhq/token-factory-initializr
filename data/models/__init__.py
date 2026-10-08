@@ -10,11 +10,17 @@ Python and TypeScript runtimes; this package provides both a Python type
 """
 
 from data.models.schema import ModelEndpoint
+from data.models.source_url import (
+    is_safe_source_url,
+    normalize_source_url,
+)
 from data.models.validate import validate_endpoint_dict, validate_schema_path
 
 
 __all__ = [
     "ModelEndpoint",
+    "is_safe_source_url",
+    "normalize_source_url",
     "validate_endpoint_dict",
     "validate_schema_path",
 ]

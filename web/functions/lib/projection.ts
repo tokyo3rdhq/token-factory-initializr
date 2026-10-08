@@ -43,6 +43,13 @@ export interface PublicModel {
   context_length?: number;
   free?: boolean;
   lab?: string;
+  /**
+   * TFI extension: human-readable source page for the model
+   * (e.g. https://build.nvidia.com/<owner>/<model>). Omitted
+   * when the canonical record has no source URL. Backward
+   * compatible — older KV records do not carry the field.
+   */
+  source_url?: string;
   /** TFI extension: endpoint ids serving this model (per
    *  docs/tfi_provider_and_endpoint_intelligence_api.md §9 + §26).
    *  Stable string references into /api/v1/endpoints — never
@@ -163,6 +170,13 @@ export function toPublicModel(
   }
   if (typeof model.lab === "string" && model.lab.length > 0) {
     publicModel.lab = model.lab;
+  }
+  // TFI source URL (per docs/tfi_model_source_url.md §6) — emitted
+  // when the canonical record carries one. We do not construct the
+  // URL here; the canonical model field is the single source of
+  // truth, and the projection is a pure pass-through.
+  if (typeof model.source_url === "string" && model.source_url.length > 0) {
+    publicModel.source_url = model.source_url;
   }
 
   // Endpoint backref (per §9 / §26). Caller passes the pre-built

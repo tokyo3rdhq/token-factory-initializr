@@ -49,6 +49,13 @@ export interface ModelEndpoint {
   /** Per-provider metadata — fields differ by provider; not canonicalized. */
   metadata: Record<string, unknown>;
 
+  /** TFI extension: human-readable source page URL for the model
+   *  (e.g. https://build.nvidia.com/<owner>/<model>). Optional;
+   *  older records may not carry the field. Surfaced through the
+   *  Browse UI as a subtle external-link affordance next to the
+   *  model name. */
+  source_url?: string | null;
+
   /** ISO 8601 timestamp when this endpoint was fetched. */
   fetched_at: string;
 

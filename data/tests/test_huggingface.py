@@ -631,3 +631,35 @@ def test_filter_free_drops_pricing_null_endpoints():
     by_provider = {ep["provider"]: ep for ep in endpoints}
     assert by_provider["cohere"]["free"] is False
     assert by_provider["together"]["free"] is True
+
+
+# ---------------------------------------------------------------------------
+# source_url derivation (docs/tfi_model_source_url.md §4 Hugging Face)
+# ---------------------------------------------------------------------------
+
+
+def test_to_endpoint_dicts_emits_hf_source_url():
+    """HF model page URL pattern: ``https://huggingface.co/<model_id>``.
+    Namespaced ids (``owner/name``) become a single path segment
+    because the HF model-page URL uses the same shape."""
+    from data.providers.huggingface import to_endpoint_dicts
+
+    group = {
+        "model_id": "prism-ml/Ternary-Bonsai-27B-gguf",
+        "owned_by": "prism-ml",
+        "input_modalities": ["text"],
+        "output_modalities": ["text"],
+        "model_level_context_length": 8192,
+        "providers": [
+            {
+                "provider": "together",
+                "context_length": 8192,
+                "pricing": {"input": 0, "output": 0},
+                "supports_tools": False,
+                "supports_structured_output": False,
+            },
+        ],
+    }
+    eps = to_endpoint_dicts(group)
+    assert len(eps) == 1
+    assert eps[0]["source_url"] == "https://huggingface.co/prism-ml/Ternary-Bonsai-27B-gguf"

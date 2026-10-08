@@ -731,3 +731,32 @@ def test_build_endpoint_dict_stamps_data_source_amd():
     out = build_endpoint_dict(detail)
     assert out["data_source"] == "amd"
     assert out["provider"] == "amd"
+
+
+# ---------------------------------------------------------------------------
+# source_url derivation (docs/tfi_model_source_url.md §4 AMD)
+# ---------------------------------------------------------------------------
+
+
+def test_build_endpoint_dict_uses_amd_catalog_level_source_url():
+    """AMD does not expose a per-model detail URL on the public Radeon
+    site — the public catalog page lists every free model in a single
+    document. Per spec §4 the adapter must surface the catalog-level
+    URL verbatim, not fabricate a per-model path."""
+    detail = {
+        "model": {
+            "id": "Qwen3.8-27B",
+            "label": "Qwen3.8-27B",
+            "description": "Qwen 3.8 27B",
+            "token_factory": {
+                "status": {"key": "free_endpoint"},
+                "publisher": {"name": "Alibaba"},
+            },
+            "output": ["text"],
+            "provider_pricing": [
+                {"pricing": {"prompt": "0", "completion": "0"}},
+            ],
+        }
+    }
+    out = build_endpoint_dict(detail)
+    assert out["source_url"] == "https://developer.amd.com.cn/radeon/tokenfactory"

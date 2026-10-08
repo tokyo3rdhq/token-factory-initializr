@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from data.models.schema import ModelEndpoint
+from data.models.source_url import normalize_source_url
 
 logger = logging.getLogger(__name__)
 
@@ -229,6 +230,16 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
         # truth — see _is_free_provider docstring).
         free = _is_free_provider(p)
 
+        # Hugging Face model page URL. Namespaced model ids
+        # (``owner/name``) become a single path segment because HF
+        # model pages use the same owner/name scheme. ``model_id`` is
+        # already URL-safe (alphanumeric + ``.`` + ``-`` + ``/``), so
+        # no quote() is needed. Validation is belt-and-braces: the
+        # result is always safe, and ``normalize_source_url`` returns
+        # ``None`` only if the regex itself is broken.
+        hf_source_url = normalize_source_url(
+            f"https://huggingface.co/{model_id}"
+        )
         endpoints.append({
             # The actual provider name (was hardcoded to "huggingface"
             # in the old design — bug fixed: see roadmap discussion).
@@ -239,6 +250,7 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
             "fetched_at": datetime.now(timezone.utc).isoformat(),
             "name": name,
             "description": None,
+            "source_url": hf_source_url,
             # Legacy 4-key capabilities shape — derived from
             # ``architecture.{input,output}_modalities`` above. The
             # normalize stage replaces this with the canonical 7-key

@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from data.models.schema import ModelEndpoint
+from data.models.source_url import normalize_source_url
 
 logger = logging.getLogger(__name__)
 
@@ -190,6 +191,15 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
     raw_id = m["id"]
     clean_id = _strip_gateway_prefix(raw_id)
 
+    # AMD does not expose a per-model detail URL on its public
+    # developer site — the public Radeon catalog page lists every
+    # free model in a single document. Per docs §4 we surface the
+    # catalog-level URL verbatim rather than fabricating a per-
+    # model path. Validation is belt-and-braces: the URL is
+    # hardcoded, so the value is always safe.
+    amd_source_url = normalize_source_url(
+        "https://developer.amd.com.cn/radeon/tokenfactory"
+    )
     return {
         "data_source": "amd",
         "provider": "amd",
@@ -198,6 +208,7 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "name": m.get("label") or m.get("model") or clean_id,
         "description": m.get("description"),
+        "source_url": amd_source_url,
         # Legacy capabilities shape — AMD's TFI-authored
         # ``derive_use_case`` produces a single string here. The
         # normalize stage (``data.process.normalize.normalize_capabilities``)

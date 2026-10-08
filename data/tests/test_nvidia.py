@@ -1019,3 +1019,42 @@ def test_parse_html_returns_rich_path_results_when_rsc_present():
         "expected the rich RSC path to recover >=30 endpoints from the "
         "fixture; got fewer -- fixture may be stale (curated fixtures have 3 endpoints)"
     )
+
+
+# ---------------------------------------------------------------------------
+# source_url derivation (docs/tfi_model_source_url.md §4 NVIDIA)
+# ---------------------------------------------------------------------------
+
+
+def test_normalize_model_derives_nvidia_build_source_url():
+    """NVIDIA Build catalog URL pattern: ``https://build.nvidia.com/<model_id>``
+    for any model_id — owned, prefixed, or legacy qc69jvmznzxy/... all
+    work because the Build catalog supports both shapes.
+    """
+    from data.providers.nvidia import _normalize_model
+
+    def _fake_obj(model_id: str, name: str = "Test"):
+        return {
+            "resourceId": model_id,
+            "displayName": name,
+            "labels": {
+                "nimType": {"values": ["Free Endpoint"], "unresolved": []},
+            },
+        }
+
+    ep = _normalize_model(_fake_obj("deepseek-ai/deepseek-v4.1-flash"))
+    assert ep.source_url == "https://build.nvidia.com/deepseek-ai/deepseek-v4.1-flash"
+
+
+def test_static_html_fallback_endpoint_has_source_url():
+    """Even when the RSC parser is unavailable (upstream shape change),
+    the static-HTML fallback endpoint must carry a Build URL so the
+    public API and Browse UI always have a source link to surface."""
+    from data.providers.nvidia import _extract_models_from_static_html
+
+    eps = _extract_models_from_static_html(
+        '<a class="linkbox-overlay" href="/nvidia/kumo-tabular">'
+        '<span>Kumo Tabular</span></a>'
+    )
+    assert len(eps) == 1
+    assert eps[0].source_url == "https://build.nvidia.com/nvidia/kumo-tabular"

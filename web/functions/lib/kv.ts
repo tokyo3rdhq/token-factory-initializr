@@ -40,6 +40,13 @@ export interface ModelEndpoint {
   fetched_at: string;
   context_length?: number | null;
   pricing?: Record<string, unknown> | null;
+  /**
+   * Optional human-readable source page for the model
+   * (e.g. https://build.nvidia.com/<owner>/<model>). Surfaces
+   * through the public API and the Browse UI. Older KV records
+   * may not carry this field — readers must tolerate absence.
+   */
+  source_url?: string | null;
 }
 
 export interface ProviderSnapshot {

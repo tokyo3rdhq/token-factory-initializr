@@ -424,11 +424,41 @@
   border-left-color: var(--magi-accent);
 }
 .tfi-model-row.selected .tfi-model-name { color: var(--magi-accent); }
+.tfi-model-name-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
 .tfi-model-name {
   font-size: var(--magi-font-size-body-sm);
   font-weight: var(--magi-font-weight-medium);
   color: var(--magi-text-primary);
   word-break: break-word;
+}
+/* Per docs/tfi_model_source_url.md §7. Subtle external-link affordance
+ * next to the model name. Must remain legible in both light/dark
+ * themes, have a visible keyboard-focus state, and never compete
+ * with the model's selection checkbox for visual weight. */
+.tfi-model-source-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: var(--magi-text-tertiary);
+  text-decoration: none;
+  vertical-align: middle;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+.tfi-model-source-link:hover {
+  color: var(--magi-accent);
+  background-color: var(--magi-bg-elevated, rgba(0, 0, 0, 0.04));
+}
+.tfi-model-source-link:focus-visible {
+  outline: 2px solid var(--magi-accent);
+  outline-offset: 1px;
 }
 .tfi-model-id {
   color: var(--magi-text-tertiary);

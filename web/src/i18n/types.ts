@@ -152,6 +152,11 @@ export interface TranslationTree {
      *  models match. Distinct from emptyBefore (which fires when
      *  the requirement filter alone produces an empty result). */
     emptyFiltered: string;
+    /** Accessible label for the per-row "View source" external
+     *  link affordance. Receives the model_id so the i18n string
+     *  can compose it naturally. Per
+     *  docs/tfi_model_source_url.md §7. */
+    viewSourceLabel: (modelId: string) => string;
     sectionRecommended: string;
     sectionOther: string;
     /** Single "All matching" section heading used when the

@@ -25,6 +25,7 @@ except ImportError:
     requests = None
 
 from data.models.schema import ModelEndpoint
+from data.models.source_url import normalize_source_url
 logger = logging.getLogger(__name__)
 
 # Request headers for WAF compatibility
@@ -377,6 +378,15 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
                 }
             metadata["labels"] = meta_labels
 
+    # NVIDIA Build catalog URL — the human-readable source page for
+    # the model. ``model_id`` is the canonical id (``<owner>/<name>``
+    # or the legacy ``qc69jvmznzxy/<slug>`` shape). Both are valid
+    # path components in the Build catalog. URL validation runs via
+    # the shared ``data.models.source_url.normalize_source_url`` so an
+    # unsafe scheme can never reach the public API or Browse UI.
+    source_url = normalize_source_url(
+        f"https://build.nvidia.com/{model_id}"
+    )
     return ModelEndpoint(
         data_source="nvidia",
         provider="nvidia",
@@ -389,6 +399,7 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         fetched_at=datetime.now(timezone.utc),
         name=name,
         description=obj.get("description", ""),
+        source_url=source_url,
         # Legacy two-key capabilities shape — the normalize stage
         # (``data.process.normalize.normalize_capabilities``) replaces
         # this with the canonical 7-key boolean shape on its way
@@ -513,6 +524,15 @@ def _extract_models_from_static_html(html: str) -> List[ModelEndpoint]:
         # span is present in 100% of live samples but we don't depend
         # on it to avoid regressing on minor markup changes.
         seen.add(slug)
+        # Static-HTML fallback uses ``nvidia/<slug>`` as the canonical
+        # model_id. The NVIDIA Build URL mirrors that shape so the
+        # public API can surface a working source link even when the
+        # RSC parser is unavailable. Validation via normalize_source_url
+        # is a defensive belt-and-braces; ``https://build.nvidia.com``
+        # is hardcoded so the result is always safe.
+        fallback_source_url = normalize_source_url(
+            f"https://build.nvidia.com/nvidia/{slug}"
+        )
         endpoints.append(
             ModelEndpoint(
                 data_source='nvidia',
@@ -526,6 +546,7 @@ def _extract_models_from_static_html(html: str) -> List[ModelEndpoint]:
                 architecture=None,
                 pricing=None,
                 context_length=None,
+                source_url=fallback_source_url,
                 metadata={
                     'extraction': 'static_html_fallback',
                     'url_slug': slug,

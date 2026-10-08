@@ -453,3 +453,40 @@ test("textResponse also revalidates via ETag", async () => {
   const text = await res.text();
   assert.equal(text, "");
 });
+
+// ---------------------------------------------------------------------------
+// source_url field (docs/tfi_model_source_url.md §6)
+// ---------------------------------------------------------------------------
+
+test("toPublicModel emits source_url when the canonical record has one", () => {
+  const m = makeEndpoint();
+  m.source_url = "https://build.nvidia.com/a/b";
+  const pm = toPublicModel(m);
+  assert.equal(pm.source_url, "https://build.nvidia.com/a/b");
+});
+
+test("toPublicModel omits source_url when the canonical record has none", () => {
+  // Backward compat: older KV records do not carry the field.
+  const m = makeEndpoint();
+  // @ts-expect-error -- intentionally omitting source_url
+  delete m.source_url;
+  const pm = toPublicModel(m);
+  assert.equal(pm.source_url, undefined);
+});
+
+test("toPublicModel omits source_url when canonical value is empty string", () => {
+  // Defensive: the data pipeline should never stamp an empty string,
+  // but the projection must be robust to it.
+  const m = makeEndpoint();
+  m.source_url = "";
+  const pm = toPublicModel(m);
+  assert.equal(pm.source_url, undefined);
+});
+
+test("toPublicModels forwards source_url on every projected model", () => {
+  const m1 = makeEndpoint({ model_id: "m1", source_url: "https://a.com/m1" } as never);
+  const m2 = makeEndpoint({ model_id: "m2", source_url: "https://a.com/m2" } as never);
+  const out = toPublicModels([m1, m2]);
+  assert.equal(out[0].source_url, "https://a.com/m1");
+  assert.equal(out[1].source_url, "https://a.com/m2");
+});
