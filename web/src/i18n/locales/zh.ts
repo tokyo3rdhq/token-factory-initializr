@@ -43,7 +43,7 @@ const zh: TranslationTree = {
     eyebrow: "Token工厂启动器",
     headline: "初始化你的 token factory。",
     subhead:
-      "挑选适合你项目的免费 AI endpoints。我们会生成开箱即用的 LiteLLM 配置。",
+      "挑选适合你项目的免费 AI endpoints，生成 LiteLLM、NewAPI 或 Bifrost 的开箱即用配置。",
     ctaBrowse: "浏览模型 →",
     ctaReset: "重置",
     fields: {

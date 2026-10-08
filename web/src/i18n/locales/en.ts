@@ -41,7 +41,7 @@ const en: TranslationTree = {
     eyebrow: "Token Factory Initializr",
     headline: "Initialize your token factory.",
     subhead:
-      "Pick the free AI endpoints that fit your project. We generate ready-to-use configuration for LiteLLM.",
+      "Pick the free AI endpoints that fit your project. Generate ready-to-use configuration for LiteLLM, NewAPI, or Bifrost.",
     ctaBrowse: "Browse models →",
     ctaReset: "Reset",
     fields: {
