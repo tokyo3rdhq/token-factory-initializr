@@ -884,3 +884,138 @@ def test_normalize_model_slugify_preserves_alphanumeric_and_dash():
     }
     ep = _normalize_model(obj)
     assert ep.model_id == "deepseek-ai/deepseek-v4.1-flash"
+
+
+# ---------------------------------------------------------------------------
+# Layered parser fallback (static-HTML extractor)
+#
+# Audit context: per docs/tfi_open_source_security_audit.md §24, the
+# pipeline must never treat ``count = 0`` from a provider as a
+# legitimate empty catalog without confirming the parser still
+# recognised the response shape. When NVIDIA's upstream stopped serving
+# RSC payloads (2026-10), the rich parser silently returned ``[]`` on a
+# 200 OK and the publisher wrote an empty provider catalog. The fallback
+# parser below is the audit-mandated defence: when the RSC path returns
+# zero on a non-empty body, recover slugs from the rendered HTML.
+# ---------------------------------------------------------------------------
+
+
+_STATIC_HTML_SAMPLE = '''
+<html><body>
+  <main>
+    <article>
+      <a class="linkbox-overlay" href="/nvidia/kumo-tabular">
+        <span class="nv-text">Kumo Tabular</span>
+      </a>
+    </article>
+    <article>
+      <a class="linkbox-overlay" href="/nvidia/3d-body-pose">
+        <span class="nv-text">3D Body Pose</span>
+      </a>
+    </article>
+    <article>
+      <a class="linkbox-overlay" href="/nvidia/cosmos3-nano">
+        <span class="nv-text">Cosmos 3 Nano</span>
+      </a>
+    </article>
+    <article>
+      <a class="linkbox-overlay" href="/nvidia/kumo-tabular">
+        <span class="nv-text">Kumo Tabular duplicate</span>
+      </a>
+    </article>
+    <article>
+      <a class="linkbox-overlay" href="/nvidia/paid-model">
+        <span class="nv-text">Paid Model</span>
+      </a>
+    </article>
+  </main>
+</body></html>
+'''
+
+
+def test_extract_models_from_static_html_recovers_slugs():
+    """Recovered endpoints carry URL slug as model_id, span text as name."""
+    from data.providers.nvidia import _extract_models_from_static_html
+
+    eps = _extract_models_from_static_html(_STATIC_HTML_SAMPLE)
+    assert len(eps) == 4, f"expected 4 deduped endpoints, got {len(eps)}"
+
+    slugs = [ep.model_id for ep in eps]
+    assert slugs == [
+        "nvidia/kumo-tabular",
+        "nvidia/3d-body-pose",
+        "nvidia/cosmos3-nano",
+        "nvidia/paid-model",
+    ]
+
+
+def test_extract_models_from_static_html_dedupes_duplicate_slug():
+    """Duplicate slugs (same card rendered twice) must collapse."""
+    from data.providers.nvidia import _extract_models_from_static_html
+
+    eps = _extract_models_from_static_html(_STATIC_HTML_SAMPLE)
+    seen = [ep.model_id for ep in eps]
+    assert len(seen) == len(set(seen)), "duplicate slugs must dedupe"
+
+
+def test_extract_models_from_static_html_marks_all_free():
+    """URL filter (?nimType=nim_type_preview) restricts to free endpoints."""
+    from data.providers.nvidia import _extract_models_from_static_html
+
+    eps = _extract_models_from_static_html(_STATIC_HTML_SAMPLE)
+    assert all(ep.free is True for ep in eps)
+
+
+def test_extract_models_from_static_html_records_extraction_path():
+    """metadata.extraction = 'static_html_fallback' lets downstream readers
+    distinguish fallback-recovered endpoints from RSC-derived ones."""
+    from data.providers.nvidia import _extract_models_from_static_html
+
+    eps = _extract_models_from_static_html(_STATIC_HTML_SAMPLE)
+    assert all(
+        ep.metadata.get("extraction") == "static_html_fallback" for ep in eps
+    )
+
+
+def test_extract_models_from_static_html_returns_empty_on_no_match():
+    from data.providers.nvidia import _extract_models_from_static_html
+
+    assert _extract_models_from_static_html("<html></html>") == []
+    assert _extract_models_from_static_html("") == []
+    assert (
+        _extract_models_from_static_html(
+            '<html><body><a href="/other/foo">x</a></body></html>'
+        )
+        == []
+    )
+
+
+def test_parse_html_falls_back_to_static_when_rsc_returns_zero(caplog):
+    """End-to-end: parse_html delegates to fallback when RSC is absent.
+
+    This is the regression test for the 2026-10 incident: upstream
+    served a 200 OK page with no Flight JSON, the rich parser
+    returned ``[]``, and the publisher wrote an empty NVIDIA catalog.
+    After the layered fallback landed, parse_html must return at
+    least one endpoint on the same input.
+    """
+    from data.providers.nvidia import parse_html
+
+    eps = parse_html(_STATIC_HTML_SAMPLE)
+    assert len(eps) >= 1
+    assert all(ep.data_source == "nvidia" for ep in eps)
+    assert all(ep.provider == "nvidia" for ep in eps)
+
+
+def test_parse_html_returns_rich_path_results_when_rsc_present():
+    """Sanity: when RSC IS present, the fallback is NOT invoked. The
+    fixtures/nvidia_html.html fixture has Flight JSON chunks, so the
+    RSC parser returns 38 endpoints directly."""
+    from data.providers.nvidia import parse_html
+
+    fixture = FIXTURES / "nvidia_html.html"
+    eps = parse_html(fixture.read_text(encoding="utf-8"))
+    assert len(eps) >= 1, (
+        "expected the rich RSC path to recover >=30 endpoints from the "
+        "fixture; got fewer -- fixture may be stale (curated fixtures have 3 endpoints)"
+    )

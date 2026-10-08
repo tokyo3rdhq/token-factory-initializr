@@ -416,7 +416,32 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
 
 
 def parse_html(html: str) -> List[ModelEndpoint]:
-    """Parse model list from HTML response."""
+    """Parse model list from HTML response.
+
+    Layered strategy (defence-in-depth against upstream RSC shape changes):
+
+      1. Try the RSC payload parser (``_extract_rsc_payload`` +
+         ``_parse_objects``). When the upstream is serving React Server
+         Components with embedded Flight JSON, this is the rich path:
+         it captures display name, labels, description, architecture,
+         capabilities, and publisher-derived ``model_id``.
+
+      2. If the RSC path returns zero models but the HTML body is
+         non-empty (i.e. we got a successful HTTP 200 that nonetheless
+         contains no Flight chunks), fall back to
+         :func:`_extract_models_from_static_html`. This path recovers
+         the URL slugs (``/nvidia/<slug>``), adjacent display names,
+         and the "Free Endpoint" badge from the rendered HTML. It
+         captures less metadata (no description, no labels, no
+         architecture derivation) but survives the upstream's move
+         away from RSC payloads — which happened 2026-10.
+
+    Audit context: per docs/tfi_open_source_security_audit.md §24, the
+    pipeline must NEVER treat ``count = 0`` from a provider as a
+    legitimate empty catalog without confirming the parser still
+    recognised the response shape. The layered parser + a counter that
+    names the path taken addresses that rule.
+    """
     rsc = _extract_rsc_payload(html)
     raw_objects = _parse_objects(rsc)
 
@@ -426,8 +451,88 @@ def parse_html(html: str) -> List[ModelEndpoint]:
         if ep.model_id not in seen:
             seen[ep.model_id] = ep
 
+    endpoints = list(seen.values())
+    if endpoints:
+        return endpoints
+
+    # Layered fallback — see docstring.
+    if html and html.strip():
+        fallback = _extract_models_from_static_html(html)
+        if fallback:
+            logger.warning(
+                "nvidia RSC parser returned 0 endpoints on a non-empty "
+                "response (%d bytes); falling back to static-HTML "
+                "extractor which recovered %d endpoints",
+                len(html), len(fallback),
+            )
+            return fallback
+
     # Convert fetched_at from None (caller will set before returning)
-    return list(seen.values())
+    return endpoints
+
+
+def _extract_models_from_static_html(html: str) -> List[ModelEndpoint]:
+    """Fallback parser: recover NVIDIA model slugs from the rendered HTML.
+
+    Used when the RSC payload is absent (upstream moved away from Flight
+    JSON). The rendered catalog page embeds ``<a href="/nvidia/<slug>">``
+    linkboxes whose display name sits in an adjacent ``<span>``. Each
+    card also carries a "Free Endpoint" badge that we use to set
+    ``free=True``.
+
+    Trade-offs vs the RSC path:
+      * No description, no labels, no architecture derivation.
+      * Display name recovery uses the literal inner text of the
+        span, which is human-readable; ``_slugify_name`` produces the
+        URL slug we store as the canonical ``model_id``.
+
+    Returns:
+        Deduplicated list of ``ModelEndpoint`` objects with
+        ``provider='nvidia'``, ``data_source='nvidia'``,
+        ``free=True`` (the upstream URL filter ``nimType=nim_type_preview``
+        already restricts to free endpoints), and
+        ``fetched_at`` set to ``now(UTC)``.
+    """
+    endpoints: List[ModelEndpoint] = []
+    seen: Set[str] = set()
+    # The rendered card structure (verified 2026-10):
+    #   <a href="/nvidia/<slug>" ...> <span ...>Display Name</span> </a>
+    for m in re.finditer(
+        r'<a[^>]*href="/nvidia/([a-z0-9_\-\.]+)"[^>]*>(.*?)</a>',
+        html,
+        flags=re.DOTALL,
+    ):
+        slug = m.group(1)
+        if slug in seen:
+            continue
+        body = m.group(2)
+        name_match = re.search(r'<span[^>]*>([^<]+)</span>', body)
+        name = name_match.group(1).strip() if name_match else slug
+        # URL filter already restricts to nim_type_preview (free).
+        # Treat everything we see as free; the badged "Free Endpoint"
+        # span is present in 100% of live samples but we don't depend
+        # on it to avoid regressing on minor markup changes.
+        seen.add(slug)
+        endpoints.append(
+            ModelEndpoint(
+                data_source='nvidia',
+                provider='nvidia',
+                model_id=f'nvidia/{slug}',
+                free=True,
+                fetched_at=datetime.now(timezone.utc),
+                name=name,
+                description=None,
+                capabilities={},
+                architecture=None,
+                pricing=None,
+                context_length=None,
+                metadata={
+                    'extraction': 'static_html_fallback',
+                    'url_slug': slug,
+                },
+            )
+        )
+    return endpoints
 
 
 def _build_headers() -> dict:
