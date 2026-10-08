@@ -76,13 +76,69 @@ class SummarizeStage(Stage):
                 context.errors.append({"stage": self.name, "error": msg})
                 return context
 
-        # tfi:manifest:latest — overwrites previous run.
+        # Sanity guard: refuse to overwrite tfi:manifest:latest when the
+        # new run's total endpoint count drops sharply vs. the previous
+        # manifest. Defends against the failure mode where a local
+        # ``python main.py`` run with stale / pre-refactor code clobbers
+        # a healthy production manifest (commit history: this happened
+        # 2026-10-08 and produced a 962 -> 1 regression that persisted
+        # until the next CI run). The dated ``tfi:manifest:<YYYY-MM-DD>``
+        # key is intentionally NOT guarded -- it's an append-only daily
+        # journal, not a clobber target.
+        #
+        # Thresholds:
+        #   old_total == 0            -> first run or KV is empty; skip guard.
+        #   new_total >= old_total * 0.5  -> normal / acceptable shrink.
+        #   new_total <  old_total * 0.5  -> abort the write; surface to
+        #                                   context.errors + notify so a
+        #                                   Feishu alert fires.
+        MANIFEST_REGRESSION_RATIO = 0.5
+        guard_msg = None
         try:
-            kv.put(manifest_key(), manifest)
+            previous = kv.get(manifest_key())
         except Exception as exc:  # noqa: BLE001
-            msg = f"SummarizeStage: put({manifest_key()}) failed: {exc!r}"
-            logger.error(msg)
-            context.errors.append({"stage": self.name, "error": msg})
+            # GET failure (network, 5xx) is non-fatal: we still write the
+            # new manifest rather than risk skipping a healthy run. The
+            # failure is logged so the regression is observable in CI.
+            logger.warning(
+                "SummarizeStage: guard GET failed (%r); proceeding with write",
+                exc,
+            )
+            previous = None
+        if previous:
+            old_total = previous.get("total")
+            if isinstance(old_total, int) and old_total > 0:
+                threshold = old_total * MANIFEST_REGRESSION_RATIO
+                if manifest["total"] < threshold:
+                    guard_msg = (
+                        f"manifest regression guard tripped: "
+                        f"old_total={old_total} new_total={manifest['total']} "
+                        f"threshold={threshold} ({MANIFEST_REGRESSION_RATIO:.0%} "
+                        f"of old). Refusing to overwrite tfi:manifest:latest. "
+                        f"Likely cause: stale code or partial fetch. "
+                        f"The dated manifest for today "
+                        f"({manifest_key(_dt.utcnow().strftime('%Y-%m-%d'))}) "
+                        f"was still written so today's record is preserved."
+                    )
+
+        if guard_msg is not None:
+            logger.error("SummarizeStage: %s", guard_msg)
+            context.errors.append({
+                "stage": self.name,
+                "error": guard_msg,
+                "old_total": previous.get("total") if previous else None,
+                "new_total": manifest["total"],
+            })
+            # Skip the latest-key write; fall through to write the
+            # dated daily snapshot below so today's record is preserved.
+        else:
+            # tfi:manifest:latest — overwrites previous run.
+            try:
+                kv.put(manifest_key(), manifest)
+            except Exception as exc:  # noqa: BLE001
+                msg = f"SummarizeStage: put({manifest_key()}) failed: {exc!r}"
+                logger.error(msg)
+                context.errors.append({"stage": self.name, "error": msg})
 
         # tfi:manifest:<YYYY-MM-DD> — dated snapshot retained per run.
         # The \"Validate results\" CI step GETs this dated key to confirm

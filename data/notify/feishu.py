@@ -87,7 +87,7 @@ def _format_card(
             "header": {
                 "title": {
                     "tag": "plain_text",
-                    "content": "Free Model Aggregator — Pipeline Run",
+                    "content": "Token Factory Initializr — Pipeline Run",
                 },
                 "template": header_template,
             },

@@ -504,3 +504,156 @@ def test_summarize_stage_records_kv_init_error():
         ctx.data["enriched"] = [_mk_ep("amd", "x/1")]
         SummarizeStage().execute(ctx)
     assert any(e["stage"] == "summarize" for e in ctx.errors)
+
+
+# ---------------------------------------------------------------------------
+# Manifest regression guard (SummarizeStage sanity check)
+#
+# Guards against the 2026-10-08 incident where a stale local
+# ``python main.py`` run with pre-refactor code clobbered the
+# production tfi:manifest:latest (962 -> 1 endpoints). The guard
+# refuses the write when the new total drops sharply vs. the old;
+# the dated daily snapshot is still written so today's record is
+# preserved.
+# ---------------------------------------------------------------------------
+
+
+def test_summarize_guard_trips_on_regression():
+    """A new manifest with <50% of the previous total aborts the
+    tfi:manifest:latest write and surfaces to context.errors.
+    The dated key is still written so today's record survives."""
+    from data.stages.summarize import SummarizeStage
+
+    class FakeKV:
+        def __init__(self, previous):
+            self.previous = previous
+            self.written: dict[str, dict] = {}
+        def get(self, key):
+            return self.previous
+        def put(self, key, value, ttl=None):
+            self.written[key] = value
+        def from_env(cls):
+            raise RuntimeError("from_env must not be used; kv was injected")
+
+    # Healthy production state at 962 endpoints; clobber attempt
+    # produces 1 endpoint (the broken-run shape we saw 2026-10-08).
+    kv = FakeKV(previous={
+        "version": "2026-10-08",
+        "generated_at": "2026-10-08T05:00:00+00:00",
+        "total": 962,
+        "providers": {},
+    })
+
+    ctx = PipelineContext()
+    # 1 endpoint, same shape as the clobbering run that wiped prod.
+    ctx.data["enriched"] = [_mk_ep("nvidia", "nvidia/legacy")]
+    ctx.state["fetch_errors"] = {}
+    SummarizeStage(kv=kv).execute(ctx)
+
+    # tfi:manifest:latest was NOT overwritten.
+    from data.storage.cloudflare_kv import manifest_key
+    assert manifest_key() not in kv.written, (
+        "guard must refuse to overwrite tfi:manifest:latest on regression"
+    )
+    # Dated daily snapshot WAS written so today's record survives.
+    from datetime import datetime as _dt
+    today = manifest_key(_dt.utcnow().strftime("%Y-%m-%d"))
+    assert today in kv.written, (
+        "dated daily snapshot must still be written when guard trips"
+    )
+    # The regression surfaces to context.errors with diagnostic data.
+    guard_errors = [e for e in ctx.errors if "manifest regression guard" in e.get("error", "")]
+    assert len(guard_errors) == 1, ctx.errors
+    err = guard_errors[0]
+    assert err["stage"] == "summarize"
+    assert err["old_total"] == 962
+    assert err["new_total"] == 1
+
+
+def test_summarize_guard_skips_when_old_total_is_zero():
+    """First-ever run (old manifest missing/empty) bypasses the guard."""
+    from data.stages.summarize import SummarizeStage
+
+    class FakeKV:
+        def __init__(self):
+            self.written: dict[str, dict] = {}
+        def get(self, key):
+            return None
+        def put(self, key, value, ttl=None):
+            self.written[key] = value
+        def from_env(cls):
+            raise RuntimeError("from_env must not be used; kv was injected")
+
+    kv = FakeKV()
+    ctx = PipelineContext()
+    ctx.data["enriched"] = [_mk_ep("amd", "x/1")]
+    ctx.state["fetch_errors"] = {}
+    SummarizeStage(kv=kv).execute(ctx)
+
+    from data.storage.cloudflare_kv import manifest_key
+    # Guard skipped: latest key IS written.
+    assert manifest_key() in kv.written
+    # No regression error recorded.
+    assert not any("manifest regression guard" in e.get("error", "") for e in ctx.errors)
+
+
+def test_summarize_guard_accepts_normal_fluctuation():
+    """Small shrink (e.g. 962 -> 900 = 6.4% drop) is not a regression."""
+    from data.stages.summarize import SummarizeStage
+
+    class FakeKV:
+        def __init__(self, previous):
+            self.previous = previous
+            self.written: dict[str, dict] = {}
+        def get(self, key):
+            return self.previous
+        def put(self, key, value, ttl=None):
+            self.written[key] = value
+        def from_env(cls):
+            raise RuntimeError("from_env must not be used; kv was injected")
+
+    kv = FakeKV(previous={
+        "version": "2026-10-08",
+        "total": 1000,
+        "providers": {},
+    })
+
+    ctx = PipelineContext()
+    # 900 endpoints = 90% of old; well above the 50% threshold.
+    ctx.data["enriched"] = [_mk_ep("amd", f"x/{i}") for i in range(900)]
+    ctx.state["fetch_errors"] = {}
+    SummarizeStage(kv=kv).execute(ctx)
+
+    from data.storage.cloudflare_kv import manifest_key
+    assert manifest_key() in kv.written
+    assert not any("manifest regression guard" in e.get("error", "") for e in ctx.errors)
+
+
+def test_summarize_guard_survives_kv_get_failure():
+    """If the guard's GET fails (network, 5xx), the write still proceeds.
+
+    We don't want a transient KV hiccup to block every daily run."""
+    from data.stages.summarize import SummarizeStage
+
+    class FakeKV:
+        def __init__(self):
+            self.written: dict[str, dict] = {}
+            self.get_attempts = 0
+        def get(self, key):
+            self.get_attempts += 1
+            raise RuntimeError("transient KV GET failure")
+        def put(self, key, value, ttl=None):
+            self.written[key] = value
+        def from_env(cls):
+            raise RuntimeError("from_env must not be used; kv was injected")
+
+    kv = FakeKV()
+    ctx = PipelineContext()
+    ctx.data["enriched"] = [_mk_ep("amd", "x/1")]
+    ctx.state["fetch_errors"] = {}
+    SummarizeStage(kv=kv).execute(ctx)
+
+    from data.storage.cloudflare_kv import manifest_key
+    assert kv.get_attempts == 1
+    # Write proceeded despite the GET failure.
+    assert manifest_key() in kv.written
