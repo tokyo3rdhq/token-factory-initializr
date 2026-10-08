@@ -605,26 +605,27 @@ class NvidiaCatalogParser:
     def fetch_all_pages(
         self,
         filters: Optional[Dict[str, str]] = None,
-        max_pages: int = 5,
+        max_pages: int = 1,
     ) -> List[str]:
-        """Fetch all pages of filtered/unfiltered catalog as raw HTML.
+        """Fetch the filtered NVIDIA catalog as raw HTML.
 
-        Pure download: returns a list of HTML strings, one per page.
-        The default ``BASE_URL`` (``?pageSize=96&filters=nimType:...``)
-        carries the entire free catalog in a single response, so
-        pagination is normally a no-op (page 2+ return empty or the
-        same data). We keep the loop as a defensive backstop in case
-        the catalog grows past ``pageSize`` or the upstream changes
-        behaviour.
+        Single-page fetch. ``BASE_URL`` already includes
+        ``pageSize=96&filters=nimType:nim_type_preview``, which
+        constrains the upstream response to the entire free
+        catalog (currently ~38 endpoints). Pagination is a no-op:
+        upstream returns a footer-only page for ``page >= 2`` with
+        no model data, and the loop would waste 4 HTTP requests
+        per pipeline run. ``max_pages`` is kept for backwards
+        compatibility but capped to 1 by default — raise it if
+        the catalog ever exceeds 96 free models AND ``BASE_URL``’s
+        ``pageSize`` is bumped accordingly.
 
         Use :func:`parse_nvidia_pages` to turn the HTML into
         ``ModelEndpoint`` objects.
 
         Args:
             filters: query filters, e.g. ``{"nimType": "nim_type_preview"}``.
-            max_pages: maximum pagination depth (default 5). With the
-                default ``BASE_URL`` the first fetch already returns
-                everything, so this is effectively unused.
+            max_pages: maximum number of pages to fetch (default 1).
 
         Returns:
             List of HTML response bodies, one per page that returned
@@ -639,7 +640,11 @@ class NvidiaCatalogParser:
             else:
                 logger.warning(f"No data on page {pg}")
                 break
-            time.sleep(1)
+            # No sleep on single-page mode. Pagination callers
+            # (max_pages > 1) get a 1s inter-page pause to avoid
+            # tripping the WAF.
+            if max_pages > 1:
+                time.sleep(1)
         return pages
 
     def get_all_pages(

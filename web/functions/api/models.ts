@@ -22,6 +22,7 @@ import {
   type Env,
 } from "../lib/kv";
 import { FIXTURE_PROVIDERS } from "../lib/fixtures";
+import { isInternalDataSource } from "../lib/internal";
 
 export async function onRequestGet(context: {
   request: Request;
@@ -35,6 +36,10 @@ export async function onRequestGet(context: {
   }
 
   if (provider) {
+    // Explicit ?provider=<ds>/<provider> queries still serve internal
+    // data sources — they're useful for debugging the cross-source
+    // signal flow. Internal sources are only hidden from the
+    // no-filter default listing below.
     const snap = await loadSingleProvider(context.env, provider);
     if (!snap) {
       return jsonError(
@@ -45,10 +50,18 @@ export async function onRequestGet(context: {
     return json([snap]);
   }
 
-  // No filter — return every active (data_source, provider) catalog.
+  // No filter — return every active (data_source, provider) catalog
+  // EXCEPT internal cross-source providers (openrouter, models_dev).
+  // Those power the pipeline's normalize-stage enrichment of the
+  // primary providers; they are NOT consumer-facing model catalogs
+  // and are excluded from the default listing per docs decision.
+  // Callers that explicitly request an internal data_source via
+  // ?provider=<ds>/<provider> still get the catalog (it's how the
+  // Browse UI debugs cross-source signals during development).
   const pairs = await listAllProviderPairs(context.env);
+  const consumerPairs = pairs.filter((p) => !isInternalDataSource(p.data_source));
   const results = await Promise.all(
-    pairs.map((p) =>
+    consumerPairs.map((p) =>
       loadProviderModels(context.env, p.data_source, p.provider)
     )
   );

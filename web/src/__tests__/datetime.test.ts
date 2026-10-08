@@ -181,3 +181,27 @@ test("formatProviderTimestamps rejects unknown status strings", () => {
   assert.equal(entries[0].status, null);
   assert.equal(entries[0].count, 5);
 });
+
+
+test("formatProviderTimestamps — Browse consumer surfaces internal-provider filter", () => {
+  // The Browse hero subhead filters out cross-source providers
+  // (openrouter / models_dev) via isInternalDataSource(). This
+  // test exercises the formatter output that the Browse page
+  // receives before filtering, so we don't bake the filter into
+  // the formatter (the formatter should stay data-shape-pure).
+  const manifest = {
+    providers: {
+      nvidia: { count: 38, status: "success", generated_at: "2026-10-08T05:33:12Z" },
+      amd: { count: 8, status: "success", generated_at: "2026-10-08T05:33:10Z" },
+      openrouter: { count: 467, status: "success", generated_at: "2026-10-08T05:33:13Z" },
+      models_dev: { count: 447, status: "success", generated_at: "2026-10-08T05:33:12Z" },
+    },
+  };
+  const entries = formatProviderTimestamps(manifest, "en-US", "UTC");
+  // Formatter returns all four (canonical order: nvidia, amd,
+  // openrouter, models_dev) — the consumer (Browse.tsx) is
+  // responsible for filtering via isInternalDataSource().
+  assert.equal(entries.length, 4);
+  const providers = entries.map((e) => e.provider);
+  assert.deepEqual(providers, ["nvidia", "amd", "openrouter", "models_dev"]);
+});

@@ -9,6 +9,7 @@ import { matchesRequirement, type Manifest, type ModelEndpoint, type ModelRequir
 import { useI18n } from "../I18nProvider";
 import { useSeo } from "../seo/useSeo";
 import { formatProviderTimestamps, resolveTimeZone } from "../utils/datetime";
+import { isInternalDataSource } from "../kv";
 
 /**
  * Tag filter taxonomy for the Browse page.
@@ -212,9 +213,18 @@ export function BrowsePage() {
   // from the manifest fetched in parallel with the catalog so the
   // count line + timestamp pills update together when the pipeline
   // re-runs. ``null`` (no manifest yet / fetch failed) → line hidden.
+  //
+  // Internal cross-source data sources (openrouter, models_dev) are
+  // filtered out: they're not consumer-facing model catalogs, just
+  // enrichment inputs that flow into the normalize stage for the
+  // primary providers (nvidia / amd / huggingface). Surfacing them
+  // on the Browse page would imply they offer end-user models,
+  // which they don't. The data pipeline still fetches them; they're
+  // just hidden from this view.
   const providerTimestamps = useMemo(() => {
     if (!manifest) return [];
-    return formatProviderTimestamps(manifest, locale, resolveTimeZone());
+    const all = formatProviderTimestamps(manifest, locale, resolveTimeZone());
+    return all.filter((entry) => !isInternalDataSource(entry.provider));
   }, [manifest, locale]);
 
   return (

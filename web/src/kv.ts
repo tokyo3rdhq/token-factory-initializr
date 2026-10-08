@@ -117,3 +117,26 @@ export const FIXTURES: {
 export function shouldUseLocalFixtures(envFlag: string | undefined): boolean {
   return envFlag === "1";
 }
+// ---------------------------------------------------------------------------
+// Internal (cross-source) vs. consumer-facing (primary) data sources.
+//
+// "Internal" data sources do not surface their own model catalogs to
+// the public API or the Browse UI. The data pipeline still fetches
+// them, but only as observation inputs that flow into the normalize
+// stage's cross-source enrichment of the primary providers
+// (nvidia / amd / huggingface).
+//
+// This mirrors ``web/functions/lib/internal.ts`` (the Cloudflare
+// Workers side). Keep both lists in sync — the React side hides the
+// count badge in the Browse hero subhead, the Functions side hides
+// the same providers from the default /api/models listing.
+// ---------------------------------------------------------------------------
+
+export const INTERNAL_DATA_SOURCES: ReadonlySet<string> = new Set([
+  "openrouter",
+  "models_dev",
+]);
+
+export function isInternalDataSource(ds: string): boolean {
+  return INTERNAL_DATA_SOURCES.has(ds);
+}
