@@ -1,13 +1,8 @@
 name: Fetch Free Models
 
 on:
-  # schedule disabled — yw79641760/token-factory-initializr is a mirror,
-  # not the canonical repo. The daily data refresh runs in the
-  # tokyo3rdhq fork instead. Manual workflow_dispatch is kept for
-  # local reproduction / debugging.
-  #
-  # schedule:
-  #   - cron: "0 2 * * *"
+  schedule:
+    - cron: "0 2 * * *"
   workflow_dispatch:
 
 
