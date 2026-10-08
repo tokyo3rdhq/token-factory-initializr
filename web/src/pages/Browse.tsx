@@ -22,15 +22,7 @@ import { isInternalDataSource } from "../kv";
  * Tags are pure metadata — adding a new one is one new entry below.
  * No magic string lookups anywhere else.
  */
-export type TagId =
-  | "chat"
-  | "vision"
-  | "tools"
-  | "reasoning"
-  | "speech"
-  | "structured_output"
-  | "free"
-  | "longCtx";
+export type TagId = "chat" | "vision" | "tools" | "free" | "longCtx";
 
 interface TagDef {
   id: TagId;
@@ -39,14 +31,11 @@ interface TagDef {
 }
 
 export const TAGS: TagDef[] = [
-  { id: "chat",              variant: "accent"  },
-  { id: "vision",            variant: "accent"  },
-  { id: "tools",             variant: "accent"  },
-  { id: "reasoning",         variant: "accent"  },
-  { id: "speech",            variant: "accent"  },
-  { id: "structured_output", variant: "accent"  },
-  { id: "free",              variant: "success" },
-  { id: "longCtx",           variant: "warning" },
+  { id: "chat",    variant: "accent"  },
+  { id: "vision",  variant: "accent"  },
+  { id: "tools",   variant: "accent"  },
+  { id: "free",    variant: "success" },
+  { id: "longCtx", variant: "warning" },
 ];
 
 /** Pure predicate — given an endpoint and a tag id, return whether
@@ -60,21 +49,6 @@ function hasTag(ep: ModelEndpoint, tag: TagId): boolean {
       return hasVision(ep);
     case "tools":
       return !!ep.capabilities?.tool_calling;
-    case "reasoning":
-      return !!ep.capabilities?.reasoning;
-    case "speech": {
-      if (ep.capabilities?.speech === true) return true;
-      // Forward-compat: a provider whose adapter omits the speech
-      // capability flag but exposes 'audio' in architecture.output
-      // (e.g. an OpenAI TTS-style endpoint) should still surface
-      // the speech tag.
-      if (Array.isArray(ep.architecture?.output)) {
-        return ep.architecture!.output.includes("audio");
-      }
-      return false;
-    }
-    case "structured_output":
-      return !!ep.capabilities?.structured_output;
     case "free":
       return ep.free === true;
     case "longCtx":
@@ -485,8 +459,6 @@ function ModelRow({
   const hasChat = !!endpoint.capabilities?.chat;
   const hasSpeech = !!endpoint.capabilities?.speech;
   const hasEmbedding = !!endpoint.capabilities?.embedding;
-  const hasReasoningBadge = !!endpoint.capabilities?.reasoning;
-  const hasStructuredOutputBadge = !!endpoint.capabilities?.structured_output;
   return (
     <label className={`tfi-model-row${selected ? " selected" : ""}`}>
       <Checkbox
@@ -530,8 +502,6 @@ function ModelRow({
         {hasTools && <Badge variant="accent">tools</Badge>}
         {hasVisionCap && <Badge variant="accent">vision</Badge>}
         {hasSpeech && <Badge variant="accent">speech</Badge>}
-        {hasReasoningBadge && <Badge variant="accent">reasoning</Badge>}
-        {hasStructuredOutputBadge && <Badge variant="accent">json</Badge>}
         {hasEmbedding && <Badge variant="warning">embed</Badge>}
         {endpoint.free && <Badge variant="success" dot>free</Badge>}
       </span>

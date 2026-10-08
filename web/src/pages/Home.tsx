@@ -56,9 +56,6 @@ export function HomePage() {
   );
   const [toolCalling, setToolCalling] = useState<'yes' | 'no'>('yes');
   const [vision, setVision] = useState<'yes' | 'no'>('no');
-  const [reasoning, setReasoning] = useState<'yes' | 'no'>('no');
-  const [speech, setSpeech] = useState<'yes' | 'no'>('no');
-  const [structuredOutput, setStructuredOutput] = useState<'yes' | 'no'>('no');
   const [cost, setCost] = useState<'free' | 'any'>('free');
   const [providers, setProviders] = useState<string[]>(["nvidia", "amd", "huggingface"]);
   const [endpointCount, setEndpointCount] = useState<number>(5);
@@ -190,41 +187,6 @@ export function HomePage() {
                     { value: "no", label: ts("home.fields.visionNo") },
                   ]}
                   onChange={(v) => setVision(v as typeof vision)}
-                />
-              </FormField>
-
-              <FormField label={ts("home.fields.reasoning")}>
-                <Segmented
-                  value={reasoning}
-                  options={[
-                    { value: "yes", label: ts("home.fields.reasoningYes") },
-                    { value: "no", label: ts("home.fields.reasoningNo") },
-                  ]}
-                  onChange={(v) => setReasoning(v as typeof reasoning)}
-                />
-              </FormField>
-            </div>
-
-            <div className="tfi-form-grid-3col">
-              <FormField label={ts("home.fields.speech")}>
-                <Segmented
-                  value={speech}
-                  options={[
-                    { value: "yes", label: ts("home.fields.speechYes") },
-                    { value: "no", label: ts("home.fields.speechNo") },
-                  ]}
-                  onChange={(v) => setSpeech(v as typeof speech)}
-                />
-              </FormField>
-
-              <FormField label={ts("home.fields.structuredOutput")}>
-                <Segmented
-                  value={structuredOutput}
-                  options={[
-                    { value: "yes", label: ts("home.fields.structuredOutputYes") },
-                    { value: "no", label: ts("home.fields.structuredOutputNo") },
-                  ]}
-                  onChange={(v) => setStructuredOutput(v as typeof structuredOutput)}
                 />
               </FormField>
 
