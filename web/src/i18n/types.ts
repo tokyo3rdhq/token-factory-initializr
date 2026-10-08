@@ -140,6 +140,10 @@ export interface TranslationTree {
     providerTimestampsSeparator: string;
     /** Tooltip explaining the per-provider timestamps line. */
     providerTimestampsTitle: string;
+    /** Tooltip for each per-provider endpoint-count badge. Receives
+     *  the count and the uppercase provider label so the i18n string
+     *  can compose them naturally. */
+    providerCountTitle: (count: number, label: string) => string;
     noReqBannerBefore: string;
     noReqBannerAfter: string;
     emptyBefore: string;

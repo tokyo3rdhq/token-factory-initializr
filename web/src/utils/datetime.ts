@@ -75,6 +75,13 @@ export interface ProviderTimestampEntry {
   timestamp: string;
   /** Raw ISO string for tooltips / debugging. */
   raw: string | null;
+  /** Number of endpoints the publisher last wrote for this provider.
+   *  Null when the manifest record lacks the field (legacy data). */
+  count: number | null;
+  /** Pipeline status the publisher recorded for this provider:
+   *  success / partial / failed / invalid. Null when the manifest
+   *  record lacks the field. */
+  status: "success" | "partial" | "failed" | "invalid" | null;
 }
 
 /**
@@ -85,7 +92,16 @@ export interface ProviderTimestampEntry {
  * displayed line is stable across renders.
  */
 export function formatProviderTimestamps(
-  manifest: { providers?: Record<string, { generated_at?: string | null }> },
+  manifest: {
+    providers?: Record<
+      string,
+      {
+        generated_at?: string | null;
+        count?: number | null;
+        status?: "success" | "partial" | "failed" | "invalid" | null;
+      }
+    >;
+  },
   locale: string,
   timeZone: string = resolveTimeZone(),
 ): ProviderTimestampEntry[] {
@@ -108,12 +124,23 @@ export function formatProviderTimestamps(
   }
 
   return ordered.map((ds) => {
-    const raw = providers[ds]?.generated_at ?? null;
+    const rec = providers[ds] ?? {};
+    const raw = rec.generated_at ?? null;
+    const count = typeof rec.count === "number" ? rec.count : null;
+    const status =
+      rec.status === "success" ||
+      rec.status === "partial" ||
+      rec.status === "failed" ||
+      rec.status === "invalid"
+        ? rec.status
+        : null;
     return {
       provider: ds,
       label: ds.toUpperCase(),
       timestamp: formatTimestamp(raw, locale, timeZone),
       raw,
+      count,
+      status,
     };
   });
 }

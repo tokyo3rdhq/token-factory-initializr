@@ -128,9 +128,15 @@ Do not expose or modify secrets. Preserve my existing configuration unless I exp
      *  locale + time zone by ``utils/datetime.ts``. The separator
      *  string sits between entries (default: bullet). */
     providerTimestampsSeparator: " · ",
-    /** Tooltip for each timestamp pill; explains the value comes from
+    /** Tooltip for the timestamps line; explains the values come from
      *  the data pipeline's publish stage. */
     providerTimestampsTitle: "Last successful catalog fetch per provider",
+    /** Tooltip for each provider count badge on the Browse hero.
+     *  The count is the number of endpoints the pipeline last
+     *  wrote for that provider. ``{count}`` and ``{label}`` are
+     *  interpolated by the caller. */
+    providerCountTitle: (count: number, label: string) =>
+      `${count.toLocaleString("en-US")} endpoints in the current ${label} catalog`,
     /** Shown when the user has filters active (tag / search) and no
      *  models match. Distinct from emptyBefore which is shown when
      *  the requirement filter is the only thing filtering. */

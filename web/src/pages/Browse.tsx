@@ -244,6 +244,17 @@ export function BrowsePage() {
                   <strong className="tfi-provider-timestamp-label">
                     {entry.label}
                   </strong>
+                  {entry.count !== null && (
+                    <span
+                      className={`tfi-provider-timestamp-count tfi-provider-timestamp-count--${entry.status ?? "unknown"}`}
+                      title={dict.browse.providerCountTitle(
+                        entry.count,
+                        entry.label,
+                      )}
+                    >
+                      {entry.count.toLocaleString(locale)}
+                    </span>
+                  )}
                   <span className="tfi-provider-timestamp-value">
                     {entry.timestamp}
                   </span>

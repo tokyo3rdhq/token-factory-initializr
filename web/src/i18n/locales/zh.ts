@@ -122,6 +122,10 @@ emptyBefore: "没有匹配的模型。试着放宽一些条件 —— ",
     /** 每个 provider 上次采集时间，按当前 locale + 时区格式化。 */
     providerTimestampsSeparator: " · ",
     providerTimestampsTitle: "每个 provider 最近一次成功采集时间",
+    /** Browse 页 hero 上每个 provider count badge 的 tooltip。
+     *  count 是 pipeline 写入该 provider 的 endpoint 数。 */
+    providerCountTitle: (count: number, label: string) =>
+      `当前 ${label} 目录中 ${count.toLocaleString("zh-CN")} 个 endpoint`,
     selectAllVisibleTemplate: (n: number) =>
       n === 1 ? "选择 1 个可见模型" : `全选可见 ${n} 个`,
     clearAllTemplate: (n: number) =>

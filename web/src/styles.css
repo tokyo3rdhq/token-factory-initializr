@@ -579,6 +579,38 @@
   color: var(--magi-text-tertiary);
   font-size: var(--magi-font-size-caption);
 }
+/* Per-provider endpoint count badge on the Browse hero. Sits
+ * between the provider label and the timestamp so the visual
+ * rhythm is "WHO · HOW MANY · WHEN". Status drives a colour
+ * cue (success = neutral, partial = amber, failed = red,
+ * invalid = red, unknown = muted). The count is monospace so
+ * digits align across rows of unequal provider name lengths. */
+.tfi-provider-timestamp-count {
+  font-family: var(--magi-font-family-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: var(--magi-font-size-caption);
+  font-weight: var(--magi-font-weight-medium);
+  padding: 0 var(--magi-space-1);
+  border-radius: var(--magi-radius-sm, 4px);
+  color: var(--magi-text-secondary);
+  background: var(--magi-bg-elevated, rgba(0, 0, 0, 0.04));
+  letter-spacing: 0.02em;
+}
+.tfi-provider-timestamp-count--success {
+  /* default — neutral ink on muted background, no extra cue */
+}
+.tfi-provider-timestamp-count--partial {
+  color: var(--magi-color-warning-fg, #92400e);
+  background: var(--magi-color-warning-bg, rgba(245, 158, 11, 0.12));
+}
+.tfi-provider-timestamp-count--failed,
+.tfi-provider-timestamp-count--invalid {
+  color: var(--magi-color-danger-fg, #991b1b);
+  background: var(--magi-color-danger-bg, rgba(239, 68, 68, 0.12));
+}
+.tfi-provider-timestamp-count--unknown {
+  color: var(--magi-text-tertiary);
+  background: transparent;
+}
 .tfi-page-cta-row {
   margin-top: var(--magi-space-3);
 }
