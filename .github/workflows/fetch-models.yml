@@ -16,6 +16,7 @@ permissions:
   contents: read
 jobs:
   fetch-models:
+    if: github.repository == 'tokyo3rdhq/token-factory-initializr'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2 — SHA-pinned per security audit F2

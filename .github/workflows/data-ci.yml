@@ -25,6 +25,7 @@ permissions:
   contents: read
 jobs:
   data-ci:
+    if: github.repository == 'tokyo3rdhq/token-factory-initializr'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
