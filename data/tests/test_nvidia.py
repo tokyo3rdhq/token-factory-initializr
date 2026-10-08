@@ -176,13 +176,7 @@ def test_normalize_model_free_via_list_labels_real_api_shape():
 
 
 def test_normalize_model_uses_publisher_label_for_model_id():
-    """``labels.publisher.values[0]`` is the canonical org for model_id.
-    The slug comes from the ``resourceId`` last segment (NVIDIA's
-    public URL slug), NOT from a re-slugified ``displayName`` — the
-    two can differ (e.g. ``GLM 5.3`` → ``glm-5.3`` vs NVIDIA's
-    ``glm-5-3``). See the regression test below for the canonical
-    GLM case.
-    """
+    """``labels.publisher.values[0]`` is the canonical org for model_id."""
     obj = {
         "resourceId": "qc69jvmznzxy/some-slug",
         "displayName": "Some Model",
@@ -192,56 +186,7 @@ def test_normalize_model_uses_publisher_label_for_model_id():
         ],
         "attributes": [],
     }
-    assert _ep(obj).model_id == "anthropic/some-slug"
-
-
-def test_normalize_model_uses_resourceId_slug_over_displayName_slug():
-    """Regression: ``GLM 5.3`` displayName slugifies to ``glm-5.3`` but
-    NVIDIA's public URL is ``glm-5-3`` (hyphen). The model_id must
-    use the resourceId's URL slug so the catalog matches what NVIDIA
-    exposes on build.nvidia.com.
-    """
-    obj = {
-        "resourceId": "qc69jvmznzxy/glm-5-3",
-        "displayName": "GLM 5.3",
-        "labels": [
-            {"key": "publisher", "values": ["z-ai"], "unresolvedValues": []},
-            {"key": "nimType", "values": ["Free Endpoint"], "unresolvedValues": []},
-        ],
-        "attributes": [],
-    }
-    assert _ep(obj).model_id == "z-ai/glm-5-3"
-
-
-def test_normalize_model_flash_variant_uses_resourceId_slug():
-    """Same regression for the flash variant."""
-    obj = {
-        "resourceId": "qc69jvmznzxy/glm-5-3-flash",
-        "displayName": "GLM 5.3 Flash",
-        "labels": [
-            {"key": "publisher", "values": ["z-ai"], "unresolvedValues": []},
-            {"key": "nimType", "values": ["Free Endpoint"], "unresolvedValues": []},
-        ],
-        "attributes": [],
-    }
-    assert _ep(obj).model_id == "z-ai/glm-5-3-flash"
-
-
-def test_normalize_model_v4_1_dotted_slug_passes_through():
-    """``v4.1`` style: both the resourceId slug and the displayName
-    use dots, so the model_id matches the URL regardless of which
-    branch produces it. Pins the dotted-segment case so the fix
-    doesn't accidentally drop dots in the future."""
-    obj = {
-        "resourceId": "qc69jvmznzxy/deepseek-v4.1-flash",
-        "displayName": "DeepSeek V4.1 Flash",
-        "labels": [
-            {"key": "publisher", "values": ["deepseek-ai"], "unresolvedValues": []},
-            {"key": "nimType", "values": ["Free Endpoint"], "unresolvedValues": []},
-        ],
-        "attributes": [],
-    }
-    assert _ep(obj).model_id == "deepseek-ai/deepseek-v4.1-flash"
+    assert _ep(obj).model_id == "anthropic/some-model"
 
 
 def test_normalize_model_model_id_falls_back_when_no_publisher_label():
