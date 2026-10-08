@@ -58,6 +58,15 @@ const en: TranslationTree = {
       vision: "Vision",
       visionYes: "Yes",
       visionNo: "No",
+      reasoning: "Reasoning",
+      reasoningYes: "Yes",
+      reasoningNo: "No",
+      speech: "Speech",
+      speechYes: "Yes",
+      speechNo: "No",
+      structuredOutput: "Structured output",
+      structuredOutputYes: "Yes",
+      structuredOutputNo: "No",
       cost: "Cost",
       costFree: "Free only",
       costAny: "Any",
@@ -160,6 +169,21 @@ Do not expose or modify secrets. Preserve my existing configuration unless I exp
       tools: {
         label: "Tools",
         description: "Models that support tool / function calling.",
+      },
+      reasoning: {
+        label: "Reasoning",
+        description:
+          "Models with explicit chain-of-thought / reasoning capability.",
+      },
+      speech: {
+        label: "Speech",
+        description:
+          "Models that produce speech / audio output (TTS or audio-capable chat).",
+      },
+      structured_output: {
+        label: "Structured output",
+        description:
+          "Models that emit JSON / schema-constrained output reliably.",
       },
       free: {
         label: "Free",
