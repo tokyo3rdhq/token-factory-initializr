@@ -97,6 +97,11 @@
       "type": ["string", "null"],
       "description": "Future: quantization method"
     },
+    "source_url": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "description": "TFI source page URL — see docs/tfi_model_source_url.md"
+    },
     "pricing": {
       "type": ["object", "null"],
       "description": "Future: pricing information"

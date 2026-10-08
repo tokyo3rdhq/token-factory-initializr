@@ -278,6 +278,15 @@ def normalize_endpoints(
                 fetched_at=fetched_at,
                 name=item.get("name"),
                 description=item.get("description"),
+                # TFI source URL (per docs/tfi_model_source_url.md §4).
+                # The source adapter has already validated the URL
+                # through ``normalize_source_url``; the normalize
+                # stage just passes the canonical value through.
+                # ``item`` may be a dict or a ModelEndpoint (older
+                # callers / unit tests); handle both.
+                source_url=getattr(item, "source_url", None)
+                if hasattr(item, "source_url")
+                else item.get("source_url"),
                 # Constructor default — the canonical shape is written
                 # below via ``object.__setattr__`` regardless of what
                 # the provider adapter stamped (nvidia = {chat,
