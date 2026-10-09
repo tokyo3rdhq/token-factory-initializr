@@ -469,7 +469,7 @@
   border: none;
   cursor: pointer;
   padding: 0;
-  margin-left: 6px;
+  margin-left: 2px;
 }
 .tfi-model-id {
   color: var(--magi-text-tertiary);
