@@ -444,9 +444,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--magi-radius-sm);
   color: var(--magi-text-tertiary);
   text-decoration: none;
   vertical-align: middle;
@@ -454,22 +454,54 @@
 }
 .tfi-model-source-link:hover {
   color: var(--magi-accent);
-  background-color: var(--magi-bg-elevated, rgba(0, 0, 0, 0.04));
+  background-color: var(--magi-bg-card-hover);
 }
 .tfi-model-source-link:focus-visible {
   outline: 2px solid var(--magi-accent);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }
-/* Copy button variant of the per-row source-link affordance. Uses
- * the same 18px icon-square treatment (sizing, color, hover, focus
- * ring) with a true <button> reset: no UA background/border, pointer
- * cursor, and a small gap from the source-link it follows. */
+
+/* Container wrapping the source-link + copy buttons in the model
+ * name row. Gives both icons a shared rounded badge with a subtle
+ * border, visually grouping them as a single affordance next to
+ * the model_id. Uses --magi-bg-card for the surface and --magi-border
+ * for the frame, matching the design system card tokens. */
+.tfi-model-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 4px;
+  background: var(--magi-bg-card);
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-md);
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+/* Button inside the icons container — reuses the source-link icon
+ * treatment (20px square, same hover color) with a true <button>
+ * reset. No extra UA chrome; inherits the container's card background
+ * so both icons share the same badge frame. */
 .tfi-model-copy-btn {
-  background: none;
+  background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0;
-  margin-left: 2px;
+  padding: 2px;
+  margin: 0;
+  border-radius: var(--magi-radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--magi-text-tertiary);
+  transition: color 120ms ease, background-color 120ms ease;
+}
+.tfi-model-copy-btn:hover {
+  color: var(--magi-accent);
+  background-color: var(--magi-bg-card-hover);
+}
+.tfi-model-copy-btn:focus-visible {
+  outline: 2px solid var(--magi-accent);
+  outline-offset: -2px;
 }
 .tfi-model-id {
   color: var(--magi-text-tertiary);

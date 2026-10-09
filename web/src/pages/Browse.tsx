@@ -508,40 +508,35 @@ function ModelRow({
       <span>
         <span className="tfi-model-name-row">
           <span className="tfi-model-name">{endpoint.model_id}</span>
-          {endpoint.source_url && (
-            <a
-              className="tfi-model-source-link"
-              href={endpoint.source_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              // Stop the <label> wrapper from intercepting the click
-              // as a model-selection toggle. The link's own click
-              // handler is the browser's default (open in new tab).
-              onClick={(e) => e.stopPropagation()}
+          <span className="tfi-model-icons">
+            {endpoint.source_url && (
+              <a
+                className="tfi-model-source-link"
+                href={endpoint.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                aria-label={dict.browse.viewSourceLabel(endpoint.model_id)}
+                title={dict.browse.viewSourceLabel(endpoint.model_id)}
+              >
+                <ExternalLink size={12} aria-hidden="true" />
+              </a>
+            )}
+            <button
+              type="button"
+              className="tfi-model-copy-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCopy(endpoint.model_id);
+              }}
               onMouseDown={(e) => e.stopPropagation()}
-              // Accessible name per docs/tfi_model_source_url.md §7.
-              // Magnifying the model_id makes the screen reader
-              // announce "View source for <model_id>" instead of
-              // reading the URL aloud.
-              aria-label={dict.browse.viewSourceLabel(endpoint.model_id)}
-              title={dict.browse.viewSourceLabel(endpoint.model_id)}
+              aria-label={copied ? dict.browse.copyCopied : dict.browse.copy}
+              title={copied ? dict.browse.copyCopied : dict.browse.copy}
             >
-              <ExternalLink size={12} aria-hidden="true" />
-            </a>
-          )}
-          <button
-            type="button"
-            className="tfi-model-source-link tfi-model-copy-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCopy(endpoint.model_id);
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            aria-label={copied ? dict.browse.copyCopied : dict.browse.copy}
-            title={copied ? dict.browse.copyCopied : dict.browse.copy}
-          >
-            <Copy size={12} aria-hidden="true" />
-          </button>
+              <Copy size={12} aria-hidden="true" />
+            </button>
+          </span>
         </span>
         {endpoint.description && (
           <div className="tfi-model-desc">{endpoint.description}</div>
