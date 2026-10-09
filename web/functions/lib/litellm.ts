@@ -17,7 +17,7 @@ import type { ModelEndpoint } from "./kv";
 const API_KEY_ENV: Record<string, string> = {
   nvidia: "NVIDIA_API_KEY",
   amd: "AMD_API_KEY",
-  huggingface: "HF_TOKEN",
+  huggingface: "HUGGING_FACE_API_KEY",
 };
 /** LiteLLM model-field prefix keyed by data source. */
 const DATA_SOURCE_PREFIX: Record<string, string> = {
@@ -68,7 +68,7 @@ export function generateLiteLLM({
   for (const ep of models) {
     const slug = slugFromModelId(ep.model_id);
     const modelName = `${ep.provider}-${slug}`;
-    const apiKeyEnv = API_KEY_ENV[ep.provider] ?? `${ep.provider.toUpperCase()}_API_KEY`;
+    const apiKeyEnv = API_KEY_ENV[ep.data_source] ?? `${ep.data_source.toUpperCase()}_API_KEY`;
     lines.push(`  - model_name: ${yamlEscape(modelName)}`);
     lines.push(`    litellm_params:`);
     lines.push(`      model: ${yamlEscape(`${litellmModelPrefix(ep)}/${ep.model_id}`)}`);

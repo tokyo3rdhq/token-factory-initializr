@@ -101,7 +101,7 @@ console.log("\nlitellm: selected models represented");
 check("contains nvidia_nim/deepseek-v4-1-flash", a.content.includes("nvidia_nim/deepseek-v4-1-flash"), true);
 check("contains huggingface/kimi-k3", a.content.includes("huggingface/kimi-k3"), true);
 check("contains api_key env reference for nvidia", a.content.includes("os.environ/NVIDIA_API_KEY"), true);
-check("contains api_key env reference for huggingface", a.content.includes("os.environ/HF_TOKEN"), true);
+check("contains api_key env reference for huggingface", a.content.includes("os.environ/HUGGING_FACE_API_KEY"), true);
 
 // Empty models → throws GeneratorError (no silent empty config).
 console.log("\nlitellm: empty models raise");

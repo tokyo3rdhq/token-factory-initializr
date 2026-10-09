@@ -19,11 +19,13 @@
 import type { ModelEndpoint } from "../kv";
 import { GeneratorError, type GenerationContext, type GeneratedConfig, type TokenFactoryGenerator, type TokenFactoryMeta } from "./types";
 
-/** Environment-variable name → env-var for the provider's API key. */
+/** API key env var name keyed by data source (not provider — the
+ *  same data source may host multiple inference providers under one
+ *  gateway, e.g. Hugging Face routing to together, openrouter, etc.). */
 const API_KEY_ENV: Record<string, string> = {
   nvidia: "NVIDIA_API_KEY",
   amd: "AMD_API_KEY",
-  huggingface: "HF_TOKEN",
+  huggingface: "HUGGING_FACE_API_KEY",
 };
 /** LiteLLM model-field prefix keyed by data source. */
 const DATA_SOURCE_PREFIX: Record<string, string> = {
@@ -76,10 +78,6 @@ function yamlEscape(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
-function resolveApiKeyEnv(provider: string): string {
-  return API_KEY_ENV[provider] ?? `${provider.toUpperCase()}_API_KEY`;
-}
-
 /** Render a ``model_list:`` YAML fragment. Empty → empty model_list. */
 function renderLiteLLMYaml(
   models: ModelEndpoint[],
@@ -92,7 +90,7 @@ function renderLiteLLMYaml(
   for (const ep of models) {
     const slug = slugFromModelId(ep.model_id);
     const modelName = `${ep.provider}-${slug}`;
-    const apiKeyEnv = resolveApiKeyEnv(ep.provider);
+    const apiKeyEnv = API_KEY_ENV[ep.data_source] ?? `${ep.data_source.toUpperCase()}_API_KEY`;
     lines.push(`  - model_name: ${yamlEscape(modelName)}`);
     lines.push(`    litellm_params:`);
     lines.push(`      model: ${yamlEscape(`${litellmModelPrefix(ep)}/${ep.model_id}`)}`);
