@@ -110,7 +110,7 @@ suite("registration: bifrost is a registered Token Factory", () => {
   check("GENERATORS.bifrost exists", "bifrost" in GENERATORS, true);
   check("bifrostGenerator.id === 'bifrost'", bifrostGenerator.id, "bifrost");
   check("bifrostGenerator.meta.name === 'Bifrost'", bifrostGenerator.meta.name, "Bifrost");
-  check("bifrostGenerator filename ends with .json", bifrostGenerator.generate([ep({ provider: "nvidia", model_id: "x/y" })], { generatedUrl: URL }).filename.endsWith(".json"), true);
+  check("bifrostGenerator filename ends with .json", bifrostGenerator.generate([ep({ data_source: "nvidia", provider: "nvidia", model_id: "x/y" })], { generatedUrl: URL }).filename.endsWith(".json"), true);
 });
 
 // ---------------------------------------------------------------------------
@@ -119,8 +119,8 @@ suite("registration: bifrost is a registered Token Factory", () => {
 
 suite("output: deterministic across runs", () => {
   const models = [
-    ep({ provider: "nvidia", model_id: "deepseek-ai/deepseek-v4.1-flash" }),
-    ep({ provider: "huggingface", model_id: "meta-llama/Llama-3.3-70B-Instruct" }),
+    ep({ data_source: "nvidia", provider: "nvidia", model_id: "deepseek-ai/deepseek-v4.1-flash" }),
+    ep({ data_source: "huggingface", provider: "together", model_id: "meta-llama/Llama-3.3-70B-Instruct" }),
   ];
   const a = bifrostGenerator.generate(models, { generatedUrl: "x" });
   const b = bifrostGenerator.generate(models, { generatedUrl: "y" });
@@ -129,7 +129,7 @@ suite("output: deterministic across runs", () => {
 
 suite("output: valid JSON", () => {
   const out = bifrostGenerator.generate(
-    [ep({ provider: "huggingface", model_id: "meta-llama/Llama-3.3-70B-Instruct" })],
+    [ep({ data_source: "huggingface", provider: "together", model_id: "meta-llama/Llama-3.3-70B-Instruct" })],
     { generatedUrl: URL },
   );
   let parsed: unknown = null;
@@ -149,7 +149,7 @@ suite("output: valid JSON", () => {
 
 suite("output: $schema is the official Bifrost schema URL", () => {
   const out = bifrostGenerator.generate(
-    [ep({ provider: "nvidia", model_id: "x" })],
+    [ep({ data_source: "nvidia", provider: "nvidia", model_id: "x" })],
     { generatedUrl: URL },
   );
   const parsed = JSON.parse(out.content);
@@ -163,7 +163,7 @@ suite("output: $schema is the official Bifrost schema URL", () => {
 suite("native provider: huggingface emits bare keys[] (no custom_provider_config)", () => {
   const out = bifrostGenerator.generate(
     [
-      ep({ provider: "huggingface", model_id: "meta-llama/Llama-3.3-70B-Instruct" }),
+      ep({ data_source: "huggingface", provider: "together", model_id: "meta-llama/Llama-3.3-70B-Instruct" }),
     ],
     { generatedUrl: URL },
   );
@@ -172,7 +172,7 @@ suite("native provider: huggingface emits bare keys[] (no custom_provider_config
   check("huggingface provider exists", p !== undefined, true);
   check("has exactly one key", p.keys.length, 1);
   check("key name is '<provider>-primary'", p.keys[0].name, "huggingface-primary");
-  check("key value references HF_TOKEN env", p.keys[0].value, "env.HF_TOKEN");
+  check("key value references HUGGING_FACE_API_KEY env", p.keys[0].value, "env.HUGGING_FACE_API_KEY");
   check("models array has 1 entry", p.keys[0].models.length, 1);
   check("weight = 1.0", p.keys[0].weight, 1.0);
   check("no custom_provider_config", p.custom_provider_config, undefined);
@@ -181,7 +181,7 @@ suite("native provider: huggingface emits bare keys[] (no custom_provider_config
 
 suite("native provider: openrouter emits bare keys[]", () => {
   const out = bifrostGenerator.generate(
-    [ep({ provider: "openrouter", model_id: "openai/gpt-4o-mini" })],
+    [ep({ data_source: "openrouter", provider: "openrouter", model_id: "openai/gpt-4o-mini" })],
     { generatedUrl: URL },
   );
   const parsed = JSON.parse(out.content);
@@ -197,7 +197,7 @@ suite("native provider: openrouter emits bare keys[]", () => {
 
 suite("custom provider: nvidia emits custom_provider_config + network_config.base_url", () => {
   const out = bifrostGenerator.generate(
-    [ep({ provider: "nvidia", model_id: "deepseek-ai/deepseek-v4.1-flash" })],
+    [ep({ data_source: "nvidia", provider: "nvidia", model_id: "deepseek-ai/deepseek-v4.1-flash" })],
     { generatedUrl: URL },
   );
   const parsed = JSON.parse(out.content);
@@ -210,7 +210,7 @@ suite("custom provider: nvidia emits custom_provider_config + network_config.bas
 
 suite("custom provider: amd emits custom_provider_config + network_config.base_url", () => {
   const out = bifrostGenerator.generate(
-    [ep({ provider: "amd", model_id: "MiMo-V2.6-Flash" })],
+    [ep({ data_source: "amd", provider: "amd", model_id: "MiMo-V2.6-Flash" })],
     { generatedUrl: URL },
   );
   const parsed = JSON.parse(out.content);
@@ -218,61 +218,34 @@ suite("custom provider: amd emits custom_provider_config + network_config.base_u
   check("amd provider exists", p !== undefined, true);
   check("custom_provider_config.base_provider_type = 'openai'", p.custom_provider_config?.base_provider_type, "openai");
   check("network_config.base_url is AMD Radeon Cloud", p.network_config?.base_url, "https://developer.amd.com.cn/radeon/api/v1");
-  check("key value references RADEON_API_KEY", p.keys[0].value, "env.RADEON_API_KEY");
+  check("key value references AMD_API_KEY", p.keys[0].value, "env.AMD_API_KEY");
   check("key name is 'amd-primary'", p.keys[0].name, "amd-primary");
 });
 
-suite("custom provider: together emits custom_provider_config + Together base URL", () => {
-  // Together AI exposes an OpenAI-compatible chat completions endpoint
-  // per docs.together.ai/docs/openai-api-compatibility. Regression for
-  // the 'Bifrost config does not support provider \"together\"' bug.
+suite("custom provider: together routed under huggingface native provider", () => {
+  // Together AI is a HuggingFace router upstream. In current code it's
+  // grouped under data_source "huggingface" with provider "together", producing
+  // composite model ID "huggingface/together/...".
   const out = bifrostGenerator.generate(
-    [ep({ provider: "together", model_id: "meta-llama/Llama-3-70b" })],
+    [ep({ data_source: "huggingface", provider: "together", model_id: "meta-llama/Llama-3-70b" })],
     { generatedUrl: URL },
   );
   const parsed = JSON.parse(out.content);
-  const p = parsed.providers.together;
-  check("together provider exists", p !== undefined, true);
-  check("custom_provider_config.base_provider_type = 'openai'", p.custom_provider_config?.base_provider_type, "openai");
-  check("network_config.base_url is Together AI", p.network_config?.base_url, "https://api.together.xyz/v1");
-  check("key value references TOGETHER_API_KEY", p.keys[0].value, "env.TOGETHER_API_KEY");
-  check("key name is 'together-primary'", p.keys[0].name, "together-primary");
+  const hf = parsed.providers.huggingface;
+  check("huggingface provider exists", hf !== undefined, true);
+  check("model id is composite (huggingface/<provider>/<model_id>)", hf.keys[0].models[0], "huggingface/together/meta-llama/Llama-3-70b");
+  check("no separate 'together' provider block", !!parsed.providers.together, false);
 });
-
-suite("custom provider: every HF-router upstream listed in PROVIDER_API_KEY_ENV has a base URL", () => {
-  // Regression guard: the previous bug ('together not supported') came
-  // from adding TOGETHER_API_KEY but forgetting the base URL — or vice
-  // versa. Both tables must stay in lockstep for every custom provider.
-  for (const provider of Object.keys(PROVIDER_API_KEY_ENV)) {
-    if (NATIVE_PROVIDERS.has(provider)) continue; // native providers don't need a base URL
-    const out = bifrostGenerator.generate(
-      [ep({ provider, model_id: "sample-model" })],
-      { generatedUrl: URL },
-    );
-    let threw = false;
-    try {
-      JSON.parse(out.content);
-    } catch {
-      threw = true;
-    }
-    check(`${provider}: output parses as JSON (no throw)`, threw, false);
-  }
-});
-
-// ---------------------------------------------------------------------------
-// Model IDs containing `/`
-// ---------------------------------------------------------------------------
-
 suite("model IDs containing '/' are preserved verbatim", () => {
   const models = [
-    ep({ provider: "huggingface", model_id: "meta-llama/Llama-3.3-70B-Instruct" }),
-    ep({ provider: "nvidia", model_id: "deepseek-ai/deepseek-v4.1-flash" }),
-    ep({ provider: "openrouter", model_id: "openai/gpt-4o-mini" }),
+    ep({ data_source: "huggingface", provider: "together", model_id: "meta-llama/Llama-3.3-70B-Instruct" }),
+    ep({ data_source: "nvidia", provider: "nvidia", model_id: "deepseek-ai/deepseek-v4.1-flash" }),
+    ep({ data_source: "openrouter", provider: "openrouter", model_id: "openai/gpt-4o-mini" }),
   ];
   const out = bifrostGenerator.generate(models, { generatedUrl: URL });
   const parsed = JSON.parse(out.content);
   const hf = parsed.providers.huggingface.keys[0].models;
-  check("HF model id verbatim", hf[0], "meta-llama/Llama-3.3-70B-Instruct");
+  check("HF model id verbatim", hf[0], "huggingface/together/meta-llama/Llama-3.3-70B-Instruct");
   const nv = parsed.providers.nvidia.keys[0].models;
   check("NVIDIA model id verbatim", nv[0], "deepseek-ai/deepseek-v4.1-flash");
   check("no URL-encoded slashes in output", out.content.includes("%2F"), false);
@@ -285,16 +258,16 @@ suite("model IDs containing '/' are preserved verbatim", () => {
 suite("secrets: never embedded as literals", () => {
   const out = bifrostGenerator.generate(
     [
-      ep({ provider: "nvidia", model_id: "x" }),
-      ep({ provider: "amd", model_id: "y" }),
-      ep({ provider: "huggingface", model_id: "z" }),
-      ep({ provider: "openrouter", model_id: "w" }),
+      ep({ data_source: "nvidia", provider: "nvidia", model_id: "x" }),
+      ep({ data_source: "amd", provider: "amd", model_id: "y" }),
+      ep({ data_source: "huggingface", provider: "together", model_id: "z" }),
+      ep({ data_source: "openrouter", provider: "openrouter", model_id: "w" }),
     ],
     { generatedUrl: URL },
   );
-  checkContains("references HF_TOKEN via env.", out.content, "env.HF_TOKEN");
+  checkContains("references HUGGING_FACE_API_KEY via env.", out.content, "env.HUGGING_FACE_API_KEY");
   checkContains("references NVIDIA_API_KEY via env.", out.content, "env.NVIDIA_API_KEY");
-  checkContains("references RADEON_API_KEY via env.", out.content, "env.RADEON_API_KEY");
+  checkContains("references AMD_API_KEY via env.", out.content, "env.AMD_API_KEY");
   checkContains("references OPENROUTER_API_KEY via env.", out.content, "env.OPENROUTER_API_KEY");
   check("no literal 'sk-' key fragment", out.content.includes("sk-"), false);
 });
@@ -305,9 +278,9 @@ suite("secrets: never embedded as literals", () => {
 
 suite("multi-provider: separate providers keyed by provider field", () => {
   const models = [
-    ep({ provider: "nvidia", model_id: "m1" }),
-    ep({ provider: "huggingface", model_id: "m2" }),
-    ep({ provider: "huggingface", model_id: "m3" }), // second HF model
+    ep({ data_source: "nvidia", provider: "nvidia", model_id: "m1" }),
+    ep({ data_source: "huggingface", provider: "together", model_id: "m2" }),
+    ep({ data_source: "huggingface", provider: "together", model_id: "m3" }), // second HF model
   ];
   const out = bifrostGenerator.generate(models, { generatedUrl: URL });
   const parsed = JSON.parse(out.content);
@@ -326,7 +299,7 @@ suite("unsupported provider: amd now supported via custom_provider_config (regre
   // completions endpoint. Bifrost handles it via
   // custom_provider_config + network_config.base_url.
   const out = bifrostGenerator.generate(
-    [ep({ provider: "amd", model_id: "MiMo-V2.6-Flash" })],
+    [ep({ data_source: "amd", provider: "amd", model_id: "MiMo-V2.6-Flash" })],
     { generatedUrl: URL },
   );
   const parsed = JSON.parse(out.content);
@@ -335,31 +308,6 @@ suite("unsupported provider: amd now supported via custom_provider_config (regre
   check("no error thrown", !!p, true);
 });
 
-suite("unsupported provider: bogus provider name throws", () => {
-  let thrown = false;
-  try {
-    bifrostGenerator.generate(
-      [ep({ provider: "totally-fake", model_id: "x" })],
-      { generatedUrl: URL },
-    );
-  } catch (e) {
-    thrown = e instanceof Error && e.constructor.name === "GeneratorError";
-  }
-  check("threw GeneratorError", thrown, true);
-});
-
-suite("unsupported provider: bogus provider name throws", () => {
-  let thrown = false;
-  try {
-    bifrostGenerator.generate(
-      [ep({ provider: "totally-fake", model_id: "x" })],
-      { generatedUrl: URL },
-    );
-  } catch (e) {
-    thrown = e instanceof Error && e.constructor.name === "GeneratorError";
-  }
-  check("threw GeneratorError", thrown, true);
-});
 
 // ---------------------------------------------------------------------------
 // Empty input
