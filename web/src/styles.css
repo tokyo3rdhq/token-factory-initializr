@@ -450,11 +450,14 @@
   color: var(--magi-text-tertiary);
   text-decoration: none;
   vertical-align: middle;
+  background: var(--magi-bg-card);
+  border: 1px solid var(--magi-border);
   transition: color 120ms ease, background-color 120ms ease;
 }
 .tfi-model-source-link:hover {
   color: var(--magi-accent);
   background-color: var(--magi-bg-card-hover);
+  border-color: var(--magi-border-strong);
 }
 .tfi-model-source-link:focus-visible {
   outline: 2px solid var(--magi-accent);
