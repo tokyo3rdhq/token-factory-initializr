@@ -18,6 +18,8 @@ import random
 import time
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import requests
+
 from data.pipeline.context import PipelineContext
 from data.pipeline.stage import Stage
 
@@ -109,6 +111,34 @@ async def _fetch_all_async(
     return fetched, errors
 
 
+def _fetch_nim_canonical_ids() -> list[str]:
+    """Fetch the canonical NIM model id list from the public inference API.
+
+    The NIM inference catalog (``https://integrate.api.nvidia.com/v1/models``)
+    is the authoritative list of model ids that can actually be called.
+    The Build catalog page can list models that are preview/preview-only
+    and not yet in the inference API — those get filtered out at
+    ``ValidateStage`` using this list.
+
+    Returns an empty list on any failure (network / shape / HTTP error);
+    ``ValidateStage`` treats an empty list as "skip NIM membership
+    validation" rather than "everything invalid", so a transient NIM API
+    outage never wipes the whole catalog.
+    """
+    try:
+        r = requests.get(
+            "https://integrate.api.nvidia.com/v1/models", timeout=15
+        )
+        r.raise_for_status()
+        data = r.json()
+        ids = [m["id"] for m in data.get("data", [])]
+        logger.info("NIM canonical ids: %d", len(ids))
+        return ids
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Could not fetch NIM canonical ids: %s", exc)
+        return []
+
+
 class FetchStage(Stage):
     """Fetch from all registered providers concurrently."""
 
@@ -130,4 +160,7 @@ class FetchStage(Stage):
         # the matching identity-matcher path.
         context.data["openrouter_models"] = fetched.get("openrouter", [])
         context.data["models_dev_models"] = fetched.get("models_dev", [])
+        # Pre-fetch canonical NIM model ids so ValidateStage can check
+        # membership without re-hitting the API.
+        context.data["nvidia_canonical_ids"] = _fetch_nim_canonical_ids()
         return context

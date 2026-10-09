@@ -386,7 +386,9 @@ def test_dsl_full_run_with_mocked_providers():
             return fake_fetched, {}
         return _coro()
 
-    with patch("data.stages.fetch._fetch_all_async", fake_fetch_all_async):
+    with patch("data.stages.fetch._fetch_all_async", fake_fetch_all_async), patch(
+        "data.stages.fetch._fetch_nim_canonical_ids", lambda: ["google/gemma"]
+    ):
         pipeline = (
             Pipeline()
             .then(FetchStage())
