@@ -460,6 +460,17 @@
   outline: 2px solid var(--magi-accent);
   outline-offset: 1px;
 }
+/* Copy button variant of the per-row source-link affordance. Uses
+ * the same 18px icon-square treatment (sizing, color, hover, focus
+ * ring) with a true <button> reset: no UA background/border, pointer
+ * cursor, and a small gap from the source-link it follows. */
+.tfi-model-copy-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 6px;
+}
 .tfi-model-id {
   color: var(--magi-text-tertiary);
   font-size: var(--magi-font-size-caption);

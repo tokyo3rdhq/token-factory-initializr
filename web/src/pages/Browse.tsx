@@ -508,19 +508,6 @@ function ModelRow({
       <span>
         <span className="tfi-model-name-row">
           <span className="tfi-model-name">{endpoint.model_id}</span>
-          <button
-            type="button"
-            className="tfi-model-copy"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCopy(endpoint.model_id);
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            aria-label={copied ? dict.browse.copyCopied : dict.browse.copy}
-            title={copied ? dict.browse.copyCopied : dict.browse.copy}
-          >
-            <Copy size={12} aria-hidden="true" />
-          </button>
           {endpoint.source_url && (
             <a
               className="tfi-model-source-link"
@@ -542,6 +529,19 @@ function ModelRow({
               <ExternalLink size={12} aria-hidden="true" />
             </a>
           )}
+          <button
+            type="button"
+            className="tfi-model-source-link tfi-model-copy-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCopy(endpoint.model_id);
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            aria-label={copied ? dict.browse.copyCopied : dict.browse.copy}
+            title={copied ? dict.browse.copyCopied : dict.browse.copy}
+          >
+            <Copy size={12} aria-hidden="true" />
+          </button>
         </span>
         {endpoint.description && (
           <div className="tfi-model-desc">{endpoint.description}</div>
