@@ -155,6 +155,10 @@ Do not expose or modify secrets. Preserve my existing configuration unless I exp
      *  Receives the model_id so the i18n string can compose it
      *  naturally — see docs/tfi_model_source_url.md §7. */
     viewSourceLabel: (modelId: string) => `View source for ${modelId}`,
+    /** Copy the model_id to the clipboard on selection. */
+    copy: "Copy ID",
+    copyCopied: "Copied",
+
     /** Tag filter taxonomy. Each tag has a label (chip text) and a
      *  description (title attribute on the chip for accessibility). */
     tags: {

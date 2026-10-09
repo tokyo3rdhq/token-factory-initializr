@@ -166,7 +166,10 @@ export interface TranslationTree {
      *  can compose it naturally. Per
      *  docs/tfi_model_source_url.md §7. */
     viewSourceLabel: (modelId: string) => string;
-    sectionRecommended: string;
+    /** Copy the model_id to the clipboard on selection. */
+    copy: string;
+    copyCopied: string;
+
     sectionOther: string;
     /** Single "All matching" section heading used when the
      *  Recommended / Other matching split is collapsed. */

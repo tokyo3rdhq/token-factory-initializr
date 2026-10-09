@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Copy, ExternalLink } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Badge, Banner, Button, Checkbox, Container, EmptyState, Input, Section, Stack } from "@tokyo3rdhq/magi-design-system";
 
@@ -477,6 +478,17 @@ function ModelRow({
   const ctx = fmtContext(endpoint.context_length);
   const hasTools = !!endpoint.capabilities?.tool_calling;
   const hasVisionCap = hasVision(endpoint);
+  const copyKey: "copy" | null = null;
+  const [copied, setCopied] = useState<"copy" | null>(null);
+  const onCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied("copy");
+      window.setTimeout(() => setCopied(null), 1500);
+    } catch {
+      // Clipboard API may be blocked; do nothing.
+    }
+  };
   // Row badges mirror the Browse tag-filter chips for the capabilities
   // a user is most likely to scan for in the row. ``chat`` is the most
   // common capability so it's surfaced as an ``accent`` badge whenever

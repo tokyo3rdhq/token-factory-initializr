@@ -123,6 +123,10 @@ emptyBefore: "没有匹配的模型。试着放宽一些条件 —— ",
     /** 每行外部链接的可访问性标签。接收 model_id 以便 i18n 字符串
      *  自由组合 —— 参见 docs/tfi_model_source_url.md §7。 */
     viewSourceLabel: (modelId: string) => `查看 ${modelId} 的源页面`,
+    /** 复制 model_id 到剪贴板 */
+    copy: "复制 ID",
+    copyCopied: "已复制",
+
     sectionRecommended: "推荐",
     sectionOther: "其他匹配",
     sectionAll: "全部匹配",
