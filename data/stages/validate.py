@@ -26,10 +26,14 @@ from __future__ import annotations
 
 from typing import Optional
 
+import logging
+
 from data.pipeline.context import PipelineContext
 from data.pipeline.stage import Stage
 from data.process.validate import validate_all
 from data.storage.cloudflare_kv import KNOWN_DATA_SOURCES
+logger = logging.getLogger(__name__)
+
 
 
 class ValidateStage(Stage):
@@ -60,6 +64,20 @@ class ValidateStage(Stage):
                 else:
                     nvidia_valid.append(ep)
             valid = nvidia_valid
+
+        # Surface invalid records to the pipeline log so CI / Feishu
+        # observers can see exactly which endpoints were rejected and why
+        # (e.g. "not in NIM API catalog"). The notify card only carries
+        # counts, so per-record detail lives here.
+        for rec in invalid:
+            ep_info = rec.get("endpoint", {})
+            issues = rec.get("issues", [])
+            logger.warning(
+                "INVALID %s/%s: %s",
+                ep_info.get("provider", "?"),
+                ep_info.get("model_id", "?"),
+                "; ".join(issues),
+            )
 
         context.data["valid"] = valid
         context.data["invalid"] = invalid
