@@ -19,14 +19,19 @@ const API_KEY_ENV: Record<string, string> = {
   amd: "AMD_API_KEY",
   huggingface: "HF_TOKEN",
 };
-const PROVIDER_PREFIX: Record<string, string> = {
+/** LiteLLM model-field prefix keyed by data source. */
+const DATA_SOURCE_PREFIX: Record<string, string> = {
   nvidia: "nvidia_nim",
   amd: "openai",
   huggingface: "huggingface",
 };
-
 function litellmModelPrefix(ep: ModelEndpoint): string {
-  return PROVIDER_PREFIX[ep.provider] ?? ep.provider;
+  const prefix = DATA_SOURCE_PREFIX[ep.data_source] ?? ep.data_source;
+  // The Hugging Face router requires the inference provider in the
+  // path: huggingface/<provider>/<model_id> (e.g. huggingface/together/…).
+  return ep.data_source === "huggingface"
+    ? `${prefix}/${ep.provider}`
+    : prefix;
 }
 
 function slugFromModelId(modelId: string): string {

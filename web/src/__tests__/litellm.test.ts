@@ -37,9 +37,14 @@ describe("litellm: model prefix per data source", () => {
     assert.match(yaml, /model:\s*'openai\/MiMo-V2.6-Flash'/);
   });
 
-  it("huggingface endpoint uses 'huggingface' prefix in model field", () => {
-    const ep = makeEp({ data_source: "huggingface", provider: "huggingface", model_id: "prism-ml/Ternary-Bonsai-27B-gguf" });
+  it("huggingface data source prefixes with the inference provider", () => {
+    const ep = makeEp({ data_source: "huggingface", provider: "together", model_id: "prism-ml/Ternary-Bonsai-27B-gguf" });
     const yaml = generateLiteLLM({ models: [ep] });
-    assert.match(yaml, /model:\s*'huggingface\/prism-ml\/Ternary-Bonsai-27B-gguf'/);
+    assert.match(yaml, /model:\s*'huggingface\/together\/prism-ml\/Ternary-Bonsai-27B-gguf'/);
+  });
+  it("huggingface data source with same provider still includes provider in path", () => {
+    const ep = makeEp({ data_source: "huggingface", provider: "huggingface", model_id: "deepseek-ai/deepseek-v4.1-flash" });
+    const yaml = generateLiteLLM({ models: [ep] });
+    assert.match(yaml, /model:\s*'huggingface\/huggingface\/deepseek-ai\/deepseek-v4.1-flash'/);
   });
 });
