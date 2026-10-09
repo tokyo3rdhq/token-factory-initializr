@@ -7,6 +7,7 @@ the downstream ``NotifyStage`` can fire a Feishu alert — silent data loss
 is unacceptable for the catalog.
 
 Writes per run (all prefixed ``tfi:``):
+  - ``tfi:manifest:<YYYY-MM-DD>`` — dated snapshot (14-day TTL) for that
   - ``tfi:models:<provider>:latest`` — per-provider snapshots
   - ``tfi:models:latest`` — aggregate list
   - ``tfi:manifest:latest`` — current manifest (overwrites previous)
@@ -103,12 +104,20 @@ class StoreStage(Stage):
             logger.error(msg)
             context.errors.append({"stage": self.name, "error": msg})
 
-        # manifest:<YYYY-MM-DD> — dated, retained forever (replaces any
-        # accidentally-stale write from a previous run on the same day).
+        # manifest:<YYYY-MM-DD> — dated snapshot, retained for 14 days
+        # via KV expirationTtl so old dates auto-expire without a
+        # cleanup job. The CI "Validate results" step reads today's
+        # key only (immune to previous-day artifacts at latest), so
+        # the 14-day window covers any post-run validation window.
+        DATED_MANIFEST_TTL_SECONDS = 14 * 86400
         dated_key = _today_key()
         try:
-            kv.put(dated_key, manifest)
-            logger.info("Wrote dated manifest snapshot to %s", dated_key)
+            kv.put(dated_key, manifest, ttl=DATED_MANIFEST_TTL_SECONDS)
+            logger.info(
+                "Wrote dated manifest snapshot to %s (ttl=%ds)",
+                dated_key,
+                DATED_MANIFEST_TTL_SECONDS,
+            )
         except Exception as exc:  # noqa: BLE001
             any_failure = True
             msg = f"StoreStage: put({dated_key}) failed: {exc!r}"
