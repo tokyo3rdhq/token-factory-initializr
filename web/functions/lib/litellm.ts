@@ -19,6 +19,15 @@ const API_KEY_ENV: Record<string, string> = {
   amd: "AMD_API_KEY",
   huggingface: "HF_TOKEN",
 };
+const PROVIDER_PREFIX: Record<string, string> = {
+  nvidia: "nvidia_nim",
+  amd: "openai",
+  huggingface: "huggingface",
+};
+
+function litellmModelPrefix(ep: ModelEndpoint): string {
+  return PROVIDER_PREFIX[ep.provider] ?? ep.provider;
+}
 
 function slugFromModelId(modelId: string): string {
   // ``google/gemma-4-31b-it`` -> ``gemma-4-31b-it``
@@ -57,7 +66,7 @@ export function generateLiteLLM({
     const apiKeyEnv = API_KEY_ENV[ep.provider] ?? `${ep.provider.toUpperCase()}_API_KEY`;
     lines.push(`  - model_name: ${yamlEscape(modelName)}`);
     lines.push(`    litellm_params:`);
-    lines.push(`      model: ${yamlEscape(`${ep.provider}/${ep.model_id}`)}`);
+    lines.push(`      model: ${yamlEscape(`${litellmModelPrefix(ep)}/${ep.model_id}`)}`);
     if (includeApiKey) {
       lines.push(`      api_key: os.environ/${apiKeyEnv}`);
     }
