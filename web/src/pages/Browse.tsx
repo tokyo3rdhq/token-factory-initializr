@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useEffect, useMemo, useState } from "react";
 import { Copy, ExternalLink } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Badge, Banner, Button, Checkbox, Container, EmptyState, Input, Section, Stack } from "@tokyo3rdhq/magi-design-system";
@@ -478,7 +477,6 @@ function ModelRow({
   const ctx = fmtContext(endpoint.context_length);
   const hasTools = !!endpoint.capabilities?.tool_calling;
   const hasVisionCap = hasVision(endpoint);
-  const copyKey: "copy" | null = null;
   const [copied, setCopied] = useState<"copy" | null>(null);
   const onCopy = async (text: string) => {
     try {
@@ -510,6 +508,19 @@ function ModelRow({
       <span>
         <span className="tfi-model-name-row">
           <span className="tfi-model-name">{endpoint.model_id}</span>
+          <button
+            type="button"
+            className="tfi-model-copy"
+            onClick={(e) => {
+              e.stopPropagation();
+              onCopy(endpoint.model_id);
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            aria-label={copied ? dict.browse.copyCopied : dict.browse.copy}
+            title={copied ? dict.browse.copyCopied : dict.browse.copy}
+          >
+            <Copy size={12} aria-hidden="true" />
+          </button>
           {endpoint.source_url && (
             <a
               className="tfi-model-source-link"

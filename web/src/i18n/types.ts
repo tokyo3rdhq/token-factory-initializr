@@ -169,11 +169,12 @@ export interface TranslationTree {
     /** Copy the model_id to the clipboard on selection. */
     copy: string;
     copyCopied: string;
-
+    sectionRecommended: string;
     sectionOther: string;
     /** Single "All matching" section heading used when the
      *  Recommended / Other matching split is collapsed. */
     sectionAll: string;
+
     /** Template: "Top {n} matching" */
     hintRecommendedTemplate: (n: number) => string;
     hintOther: string;
