@@ -57,6 +57,7 @@ def test_amd_chat_use_case_normalizes_to_canonical_chat():
     assert set(cap.keys()) == {
         "chat", "vision", "speech", "embedding",
         "tool_calling", "structured_output", "reasoning",
+        "translation",
     }
 
 
@@ -99,6 +100,7 @@ def test_amd_no_use_case_metadata_yields_all_false_canonical():
     assert set(eps[0].capabilities.keys()) == {
         "chat", "vision", "speech", "embedding",
         "tool_calling", "structured_output", "reasoning",
+        "translation",
     }
     # Every key is False — no chat (no text modality), no vision /
     # speech / embedding either.

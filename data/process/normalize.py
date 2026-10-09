@@ -30,6 +30,7 @@ CANONICAL_CAPABILITY_KEYS: tuple[str, ...] = (
     "vision",            # accepts image inputs
     "speech",            # accepts or produces audio
     "embedding",         # produces embedding vectors
+    "translation",       # accepts or produces text translation
     "tool_calling",      # tool / function calling
     "structured_output", # JSON / schema-constrained output
     "reasoning",         # reasoning / chain-of-thought
@@ -140,6 +141,44 @@ def normalize_capabilities(
         out["chat"] = True
 
     if data_source == "nvidia":
+        # Legacy attributes shape (legacy RSC payloads still carry
+        # these inside ``raw_metadata["attributes"]`` — TFI's nvidia
+        # adapter stashes the upstream ``attributes`` block there for
+        # back-compat with consumers that read metadata directly).
+        # Modern labels-driven paths produce architecture + capabilities
+        # via the architecture block above, so this branch only fills
+        # what the architecture can't infer.
+        attrs = attrs.get("attributes") if isinstance(attrs, dict) else None
+        if isinstance(attrs, dict):
+            if attrs.get("CHAT_MODALITY") == "text2textDiffusion":
+                out["chat"] = True
+            if attrs.get("TOOL_CALLING") == "true":
+                out["tool_calling"] = True
+        elif isinstance(attrs, list):
+            for a in attrs:
+                if not isinstance(a, dict):
+                    continue
+                if a.get("key") == "CHAT_MODALITY" and a.get("value") == "text2textDiffusion":
+                    out["chat"] = True
+                if a.get("key") == "TOOL_CALLING" and a.get("value") == "true":
+                    out["tool_calling"] = True
+
+        # Modern labels-driven path: usecase includes "Text Translation"
+        # (e.g. nvidia/riva-translate-4b-instruct-v2) → set translation flag.
+        # Labels live under raw_meta["labels"], not top-level keys.
+        labels_block = raw_meta.get("labels") if isinstance(raw_meta, dict) else {}
+        for key in ("usecase", "general"):
+            if not isinstance(labels_block, dict):
+                continue
+            vals = labels_block.get(key)
+            if not isinstance(vals, dict):
+                continue
+            for v in vals.get("values", []):
+                if not isinstance(v, str):
+                    continue
+                if "translation" in v.lower() or "translate" in v.lower():
+                    out["translation"] = True
+                    break
         # Legacy attributes shape (legacy RSC payloads still carry
         # these inside ``raw_metadata["attributes"]`` — TFI's nvidia
         # adapter stashes the upstream ``attributes`` block there for

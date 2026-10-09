@@ -64,6 +64,9 @@ const en: TranslationTree = {
       speech: "Speech",
       speechYes: "Yes",
       speechNo: "No",
+      translation: "Translation",
+      translationYes: "Yes",
+      translationNo: "No",
       structuredOutput: "Structured output",
       structuredOutputYes: "Yes",
       structuredOutputNo: "No",
@@ -188,6 +191,11 @@ Do not expose or modify secrets. Preserve my existing configuration unless I exp
         label: "Structured output",
         description:
           "Models that emit JSON / schema-constrained output reliably.",
+      },
+      translation: {
+        label: "Translation",
+        description:
+          "Models that support text translation tasks.",
       },
       free: {
         label: "Free",

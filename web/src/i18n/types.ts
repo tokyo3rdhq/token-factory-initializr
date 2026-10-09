@@ -90,6 +90,9 @@ export interface TranslationTree {
       speech: string;
       speechYes: string;
       speechNo: string;
+      translation: string;
+      translationYes: string;
+      translationNo: string;
       structuredOutput: string;
       structuredOutputYes: string;
       structuredOutputNo: string;
@@ -201,6 +204,7 @@ export interface TranslationTree {
       structured_output: { label: string; description: string };
       free: { label: string; description: string };
       longCtx: { label: string; description: string };
+      translation: { label: string; description: string };
     };
     /** Filter row strings. */
     filters: {

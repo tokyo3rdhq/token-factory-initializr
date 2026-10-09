@@ -35,6 +35,7 @@ export interface ModelEndpoint {
     vision?: boolean;
     speech?: boolean;
     embedding?: boolean;
+    translation?: boolean;
     tool_calling?: boolean;
     structured_output?: boolean;
     reasoning?: boolean;
@@ -174,6 +175,8 @@ export interface ModelRequirement {
     reasoning?: boolean;
     /** Endpoint must produce audio / speech output. */
     speech?: boolean;
+    /** Endpoint must support text translation. */
+    translation?: boolean;
   };
 
   /** Minimum acceptable context window (tokens). Endpoints with

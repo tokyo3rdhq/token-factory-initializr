@@ -29,6 +29,7 @@ export type TagId =
   | "reasoning"
   | "speech"
   | "structured_output"
+  | "translation"
   | "free"
   | "longCtx";
 
@@ -45,6 +46,7 @@ export const TAGS: TagDef[] = [
   { id: "reasoning",         variant: "accent"  },
   { id: "speech",            variant: "accent"  },
   { id: "structured_output", variant: "accent"  },
+  { id: "translation",       variant: "accent"  },
   { id: "free",              variant: "success" },
   { id: "longCtx",           variant: "warning" },
 ];
@@ -75,6 +77,8 @@ function hasTag(ep: ModelEndpoint, tag: TagId): boolean {
     }
     case "structured_output":
       return !!ep.capabilities?.structured_output;
+    case "translation":
+      return !!ep.capabilities?.translation;
     case "free":
       return ep.free === true;
     case "longCtx":

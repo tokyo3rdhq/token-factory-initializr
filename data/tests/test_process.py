@@ -51,6 +51,7 @@ def test_normalize_endpoints_basic():
     assert set(ep.capabilities.keys()) == {
         "chat", "vision", "speech", "embedding",
         "tool_calling", "structured_output", "reasoning",
+        "translation",
     }
     assert ep.metadata == {"context_length": 4096, "use_case": "chat"}
     assert ep.lab == "Test Lab"
@@ -85,6 +86,7 @@ def test_normalize_endpoints_defaults():
     assert set(eps[0].capabilities.keys()) == {
         "chat", "vision", "speech", "embedding",
         "tool_calling", "structured_output", "reasoning",
+        "translation",
     }
     assert all(v is False for v in eps[0].capabilities.values())
     assert eps[0].metadata == {}
