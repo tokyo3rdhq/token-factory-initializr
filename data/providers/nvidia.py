@@ -309,17 +309,29 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         # namespace prefix to avoid collisions.
         model_id = f"qc69jvmznzxy/{_slugify_name(name)}"
 
-    # Normalize labels once for downstream readers (free detection,
-    # architecture derivation, and metadata.labels).
     labels = obj.get("labels", {})
+
+    # --- NVIDIA special-case model_id correction ---
+    # NIM's /v1/models endpoint exposes canonical ids using dot notation
+    # for the GLM family (z-ai/glm-5.3, z-ai/glm-5.3-flash), not the
+    # hyphenated form (z-ai/glm-5-3, z-ai/glm-5-3-flash) seen in the RSC payload.
+    # As an explicit exception (not a general transformation) we normalize
+    # these for the catalog/schema contract. The ValidateStage will still flag
+    # them as missing from the NIM API and mark them invalid — this is expected
+    # behavior per the MVP scope.
+    if model_id.startswith("z-ai/glm-5-3"):
+        model_id = model_id.replace("glm-5-3", "glm-5.3")
+
     labels_dict = _labels_to_dict(labels)
+
+    # Read the legacy ``attributes`` block once
+    attrs = obj.get("attributes", {})
 
     # Read the legacy ``attributes`` block once — it's the source of
     # CHAT_MODALITY / TOOL_CALLING signals in older RSC payloads. Modern
     # labels-driven payloads don't carry it. Stored under metadata
     # unchanged for back-compat with consumers that read metadata
     # directly.
-    attrs = obj.get("attributes", {})
 
     # Free detection: "Free Endpoint" in nimType.values → free=True.
     nim_values: List[str] = labels_dict.get("nimType", {}).get("values", []) or []
