@@ -25,7 +25,15 @@ const API_KEY_ENV: Record<string, string> = {
   amd: "AMD_API_KEY",
   huggingface: "HF_TOKEN",
 };
-
+/** LiteLLM model prefix per provider (data source). */
+const PROVIDER_PREFIX: Record<string, string> = {
+  nvidia: "nvidia_nim",
+  amd: "openai",
+  huggingface: "huggingface",
+};
+function litellmModelPrefix(ep: ModelEndpoint): string {
+  return PROVIDER_PREFIX[ep.provider] ?? ep.provider;
+}
 const META: TokenFactoryMeta = {
   id: "litellm",
   name: "LiteLLM",
@@ -82,7 +90,7 @@ function renderLiteLLMYaml(
     const apiKeyEnv = resolveApiKeyEnv(ep.provider);
     lines.push(`  - model_name: ${yamlEscape(modelName)}`);
     lines.push(`    litellm_params:`);
-    lines.push(`      model: ${yamlEscape(`${ep.provider}/${ep.model_id}`)}`);
+    lines.push(`      model: ${yamlEscape(`${litellmModelPrefix(ep)}/${ep.model_id}`)}`);
     if (includeApiKey) {
       lines.push(`      api_key: os.environ/${apiKeyEnv}`);
     }
