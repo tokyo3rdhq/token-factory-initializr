@@ -430,6 +430,17 @@
   gap: 6px;
   flex-wrap: wrap;
 }
+/* Icon badges (source link + copy button) should sit closer to each
+ * other than to the model_id text — they form one affordance group.
+ * Negative margins pull the badges together; the row gap above
+ * still separates the group from the model_id. */
+.tfi-model-name-row .tfi-model-source-link,
+.tfi-model-name-row .tfi-model-copy-btn {
+  margin-left: -2px;
+}
+.tfi-model-name-row .tfi-model-copy-btn {
+  margin-left: 2px;
+}
 .tfi-model-name {
   font-size: var(--magi-font-size-body-sm);
   font-weight: var(--magi-font-weight-medium);
