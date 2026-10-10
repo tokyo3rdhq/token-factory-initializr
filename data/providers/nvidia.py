@@ -355,6 +355,13 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
                     capabilities["chat"] = True
                 if a.get("key") == "TOOL_CALLING" and a.get("value") == "true":
                     capabilities["tool_calling"] = True
+    
+    # Modern labels-driven path.
+    usecases = labels_dict.get("usecase", {}).get("values", [])
+    if any("translation" in uc.lower() or "translate" in uc.lower() for uc in usecases):
+        capabilities["translation"] = True
+    if any("embedding" in uc.lower() for uc in usecases):
+        capabilities["embedding"] = True
 
     # Architecture derivation: try labels first (live data path),
     # then fall back to the capability-based legacy path.
