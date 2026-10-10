@@ -580,7 +580,7 @@ function ModelRow({
         {hasTranslation && <Badge variant="accent">Translation</Badge>}
         {hasEmbedding && <Badge variant="accent">Embedding</Badge>}
         {endpoint.free && <Badge variant="success" dot>Free</Badge>}
-        {endpoint.context_length >= 128000 && <Badge variant="warning">longCtx</Badge>}
+        {endpoint.context_length !== undefined && endpoint.context_length !== null && endpoint.context_length >= 128000 && <Badge variant="warning">longCtx</Badge>}
       </span>
     </label>
   );
