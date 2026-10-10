@@ -784,7 +784,17 @@
 .tfi-tag-chip-vision .tfi-tag-chip-dot,
 .tfi-tag-chip-vision.active .tfi-tag-chip-dot,
 .tfi-tag-chip-tools .tfi-tag-chip-dot,
-.tfi-tag-chip-tools.active .tfi-tag-chip-dot {
+.tfi-tag-chip-tools.active .tfi-tag-chip-dot,
+.tfi-tag-chip-reasoning .tfi-tag-chip-dot,
+.tfi-tag-chip-reasoning.active .tfi-tag-chip-dot,
+.tfi-tag-chip-speech .tfi-tag-chip-dot,
+.tfi-tag-chip-speech.active .tfi-tag-chip-dot,
+.tfi-tag-chip-structured_output .tfi-tag-chip-dot,
+.tfi-tag-chip-structured_output.active .tfi-tag-chip-dot,
+.tfi-tag-chip-translation .tfi-tag-chip-dot,
+.tfi-tag-chip-translation.active .tfi-tag-chip-dot,
+.tfi-tag-chip-embedding .tfi-tag-chip-dot,
+.tfi-tag-chip-embedding.active .tfi-tag-chip-dot {
   background: var(--magi-accent);
 }
 .tfi-tag-chip-free .tfi-tag-chip-dot,

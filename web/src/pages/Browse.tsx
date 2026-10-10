@@ -505,6 +505,7 @@ function ModelRow({
   const hasEmbedding = !!endpoint.capabilities?.embedding;
   const hasReasoningBadge = !!endpoint.capabilities?.reasoning;
   const hasStructuredOutputBadge = !!endpoint.capabilities?.structured_output;
+  const hasTranslation = !!endpoint.capabilities?.translation;
   return (
     <label className={`tfi-model-row${selected ? " selected" : ""}`}>
       <Checkbox
@@ -550,13 +551,14 @@ function ModelRow({
       </span>
       <span className="tfi-model-meta">
         {ctx && <Badge variant="accent">{ctx}</Badge>}
-        {hasChat && <Badge variant="accent">chat</Badge>}
-        {hasTools && <Badge variant="accent">tools</Badge>}
-        {hasVisionCap && <Badge variant="accent">vision</Badge>}
-        {hasSpeech && <Badge variant="accent">speech</Badge>}
-        {hasReasoningBadge && <Badge variant="accent">reasoning</Badge>}
-        {hasStructuredOutputBadge && <Badge variant="accent">json</Badge>}
-        {hasEmbedding && <Badge variant="warning">embed</Badge>}
+        {hasChat && <Badge variant="accent">Chat</Badge>}
+        {hasTools && <Badge variant="accent">Tools</Badge>}
+        {hasVisionCap && <Badge variant="accent">Vision</Badge>}
+        {hasSpeech && <Badge variant="accent">Speech</Badge>}
+        {hasReasoningBadge && <Badge variant="neutral">Reasoning</Badge>}
+        {hasStructuredOutputBadge && <Badge variant="accent">Structured output</Badge>}
+        {hasTranslation && <Badge variant="accent">Translation</Badge>}
+        {hasEmbedding && <Badge variant="accent">Embedding</Badge>}
         {endpoint.free && <Badge variant="success" dot>free</Badge>}
       </span>
     </label>
