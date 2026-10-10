@@ -1112,3 +1112,53 @@
   .tfi-footer-meta { flex-direction: column; gap: var(--magi-space-2); }
 }
 
+
+/* ============================================================
+ * Homepage redesign — Agent/Human tab switcher
+ * ============================================================ */
+.tfi-home-section { padding-top: var(--magi-space-12); padding-bottom: var(--magi-space-12); }
+.tfi-home-intro { text-align: center; max-width: 720px; margin: 0 auto; }
+.tfi-home-headline { margin-bottom: var(--magi-space-2); }
+.tfi-home-subhead { max-width: 600px; margin: 0 auto; color: var(--magi-text-secondary); }
+
+/* Tab Switcher */
+.tfi-home-tabs-wrapper { margin-top: var(--magi-space-8); display: flex; justify-content: center; }
+.tfi-home-tabs { background: var(--magi-surface-elevated); border-radius: var(--magi-radius-full); padding: 4px; box-shadow: var(--magi-shadow-sm); border: 1px solid var(--magi-border); }
+.tfi-home-tabs .magi-segmented-option { border-radius: var(--magi-radius-full); padding: 0 var(--magi-space-5); height: 36px; font-size: 13px; font-weight: 500; transition: all 0.2s ease; display: flex; align-items: center; gap: 6px; }
+.tfi-home-tabs .magi-segmented-option[data-active="true"] { background: var(--magi-accent); color: white; }
+.tfi-home-tabs .magi-segmented-option:hover:not([data-active="true"]) { background: var(--magi-bg-raised); }
+
+/* Agent Panel */
+.tfi-home-agent-panel { margin-top: var(--magi-space-6); text-align: left; }
+.tfi-home-agent-heading { margin-bottom: var(--magi-space-1); font-size: 16px; }
+.tfi-home-agent-desc { margin-bottom: var(--magi-space-4); color: var(--magi-text-secondary); }
+.tfi-home-agent-instruction-container { position: relative; background: var(--magi-surface-elevated); border: 1px solid var(--magi-border); border-radius: var(--magi-radius-md); overflow: hidden; }
+.tfi-home-agent-prompt { padding: var(--magi-space-4); padding-right: 60px; margin: 0; font-size: 13px; line-height: 1.6; color: var(--magi-text-primary); background: transparent; white-space: pre-wrap; word-break: break-word; }
+.tfi-home-agent-copy-btn { position: absolute; top: var(--magi-space-2); right: var(--magi-space-2); display: flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 12px; color: var(--magi-text-tertiary); transition: all 0.15s ease; }
+.tfi-home-agent-copy-btn:hover { color: var(--magi-text-primary); background: var(--magi-bg-raised); }
+.tfi-home-copied-icon { color: var(--magi-success); animation: tfi-home-pop 0.3s ease; }
+@keyframes tfi-home-pop { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+/* Human Panel */
+.tfi-home-human-panel { margin-top: var(--magi-space-6); text-align: left; max-width: 600px; margin-left: auto; margin-right: auto; }
+.tfi-home-human-heading { margin-bottom: var(--magi-space-1); font-size: 16px; }
+.tfi-home-human-desc { margin-bottom: var(--magi-space-4); color: var(--magi-text-secondary); }
+.tfi-home-steps { list-style: none; padding: 0; margin: 0 0 var(--magi-space-6) 0; }
+.tfi-home-step { display: flex; gap: var(--magi-space-4); padding: var(--magi-space-3) 0; border-bottom: 1px solid var(--magi-border); }
+.tfi-home-step:last-child { border-bottom: none; }
+.tfi-home-step-marker { font-size: 12px; font-weight: 600; color: var(--magi-text-tertiary); min-width: 28px; padding-top: 2px; }
+.tfi-home-step-content h3 { margin: 0 0 var(--magi-space-1) 0; font-size: 14px; font-weight: 600; color: var(--magi-text-primary); }
+.tfi-home-step-content p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--magi-text-secondary); }
+.tfi-home-cta { text-align: center; padding-top: var(--magi-space-4); }
+.tfi-home-browse-btn { padding: 0 var(--magi-space-8); height: 44px; font-size: 15px; font-weight: 600; }
+
+/* Footer Links */
+.tfi-home-footer { margin-top: var(--magi-space-12); padding-top: var(--magi-space-6); border-top: 1px solid var(--magi-border); }
+.tfi-home-footer-links { display: flex; align-items: center; justify-content: center; gap: var(--magi-space-2); }
+.tfi-home-footer-link { color: var(--magi-text-tertiary); text-decoration: none; font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: var(--magi-radius-sm); transition: all 0.15s ease; }
+.tfi-home-footer-link:hover { color: var(--magi-text-primary); background: var(--magi-bg-raised); }
+.tfi-home-footer-separator { color: var(--magi-text-tertiary); font-size: 12px; }
+
+/* Responsive */
+@media (max-width: 768px) { .tfi-home-steps { gap: var(--magi-space-3); } .tfi-home-hero { padding-left: var(--magi-space-4); padding-right: var(--magi-space-4); } }
+@media (max-width: 375px) { .tfi-home-tabs .magi-segmented-option { padding: 0 var(--magi-space-3); font-size: 12px; height: 32px; } }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Copy } from "lucide-react";
 
 import {
   Container,
@@ -47,74 +48,103 @@ export function HomePage() {
   };
 
   return (
-    <Section spacing="lg">
+    <Section className="tfi-home-section">
       <Container>
-        <Stack gap="6" className="tfi-home-hero">
+        {/* Compact introductory block */}
+        <Stack gap="4" className="tfi-home-intro">
           <span className="magi-eyebrow">{ts("home.eyebrow")}</span>
-          <h1 className="magi-display">{ts("home.headline")}</h1>
-          <p className="magi-body-lg tfi-home-hero-subhead">{ts("home.subhead")}</p>
+          <h1 className="magi-display tfi-home-headline">{ts("home.headline")}</h1>
+          <p className="magi-body-lg tfi-home-subhead">{ts("home.subhead")}</p>
 
-          {/* Tab switcher - Agent vs Human */}
-          <Segmented
-            value={tab}
-            onChange={(v) => setTab(v as "agent" | "human")}
-            options={[
-              { value: "agent", label: ts("home.agentTab") },
-              { value: "human", label: ts("home.humanTab") },
-            ]}
-            className="tfi-home-tabs"
-          />
+          {/* Two-option audience switcher */}
+          <div className="tfi-home-tabs-wrapper">
+            <Segmented
+              value={tab}
+              onChange={(v) => setTab(v as "agent" | "human")}
+              options={[
+                { value: "agent", label: ts("home.agentTab") },
+                { value: "human", label: ts("home.humanTab") },
+              ]}
+              className="tfi-home-tabs"
+            />
+          </div>
 
-          {/* Agent tab panel */}
+          {/* One content panel whose content depends on the selected audience */}
           {tab === "agent" && (
-            <Stack gap="4" className="tfi-home-agent-panel">
-              <pre
-                className="magi-code tfi-home-prompt"
-                data-testid="home-agent-prompt"
-                aria-label="Agent bootstrap prompt"
-              >
-                <code>{dict.home.agentPromptInline}</code>
-              </pre>
-
-              <Stack
-                direction="row"
-                align="center"
-                gap="3"
-                className="tfi-home-agent-actions"
-              >
+            <div className="tfi-home-agent-panel" data-testid="home-agent-panel">
+              <h2 className="magi-h4 tfi-home-agent-heading">{ts("home.agentHeading")}</h2>
+              <p className="magi-body-md tfi-home-agent-desc">{ts("home.agentDesc")}</p>
+              
+              {/* Instruction surface with copy action */}
+              <div className="tfi-home-agent-instruction-container">
+                <pre
+                  className="magi-code tfi-home-agent-prompt"
+                  data-testid="home-agent-prompt"
+                  aria-label="Agent bootstrap prompt"
+                >
+                  <code>{dict.home.agentPromptInline}</code>
+                </pre>
                 <Button
-                  variant="primary"
+                  variant="ghost"
+                  size="sm"
                   onClick={onCopy}
                   data-testid="home-agent-copy"
                   aria-label={ts("home.agentCopyButton")}
+                  className="tfi-home-agent-copy-btn"
                 >
-                  {copied ? ts("home.agentCopiedLabel") : ts("home.agentCopyButton")}
+                  {copied ? (
+                    <>
+                      <Copy size={14} aria-hidden="true" className="tfi-home-copied-icon" />
+                      <span className="tfi-home-copied-text">{ts("home.agentCopiedLabel")}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} aria-hidden="true" />
+                      <span>{ts("home.agentCopyButton")}</span>
+                    </>
+                  )}
                 </Button>
-              </Stack>
-            </Stack>
+              </div>
+            </div>
           )}
-
-          {/* Human tab panel */}
+          
           {tab === "human" && (
-            <div className="tfi-home-steps">
-              <ol>
+            <div className="tfi-home-human-panel">
+              <h2 className="magi-h4 tfi-home-human-heading">{ts("home.humanHeading")}</h2>
+              <p className="magi-body-md tfi-home-human-desc">{ts("home.humanDesc")}</p>
+              
+              {/* Three vertically aligned steps */}
+              <ol className="tfi-home-steps">
                 <li className="tfi-home-step">
-                  <h3 className="magi-h4">{ts("home.step1Title")}</h3>
-                  <p className="magi-body-md">{ts("home.step1Desc")}</p>
+                  <div className="tfi-home-step-marker">01</div>
+                  <div className="tfi-home-step-content">
+                    <h3 className="magi-h4">{ts("home.step1Title")}</h3>
+                    <p className="magi-body-md">{ts("home.step1Desc")}</p>
+                  </div>
                 </li>
                 <li className="tfi-home-step">
-                  <h3 className="magi-h4">{ts("home.step2Title")}</h3>
-                  <p className="magi-body-md">{ts("home.step2Desc")}</p>
+                  <div className="tfi-home-step-marker">02</div>
+                  <div className="tfi-home-step-content">
+                    <h3 className="magi-h4">{ts("home.step2Title")}</h3>
+                    <p className="magi-body-md">{ts("home.step2Desc")}</p>
+                  </div>
                 </li>
                 <li className="tfi-home-step">
-                  <h3 className="magi-h4">{ts("home.step3Title")}</h3>
-                  <p className="magi-body-md">{ts("home.step3Desc")}</p>
+                  <div className="tfi-home-step-marker">03</div>
+                  <div className="tfi-home-step-content">
+                    <h3 className="magi-h4">{ts("home.step3Title")}</h3>
+                    <p className="magi-body-md">{ts("home.step3Desc")}</p>
+                  </div>
                 </li>
               </ol>
+              
+              {/* Primary action after the three steps */}
               <div className="tfi-home-cta">
                 <Button
                   variant="primary"
+                  size="lg"
                   onClick={() => navigate("/browse")}
+                  className="tfi-home-browse-btn"
                 >
                   {ts("home.browseModelsButton")}
                 </Button>
@@ -124,28 +154,30 @@ export function HomePage() {
         </Stack>
       </Container>
 
-      {/* Shared footer links */}
-      <div className="tfi-home-footer">
-        <Stack direction="row" gap="6" align="center">
-          <a
-            href="/llms.txt"
-            target="_blank"
-            rel="noreferrer"
-            className="magi-caption tfi-footer-link"
-          >
-            llms.txt
-          </a>
-          <span className="magi-caption tfi-footer-separator">|</span>
-          <a
-            href="/agents.md"
-            target="_blank"
-            rel="noreferrer"
-            className="magi-caption tfi-footer-link"
-          >
-            agents.md
-          </a>
-        </Stack>
-      </div>
+      {/* Shared documentation links for llms.txt and agents.md */}
+      <footer className="tfi-home-footer">
+        <Container>
+          <div className="tfi-home-footer-links">
+            <a
+              href="/llms.txt"
+              target="_blank"
+              rel="noreferrer"
+              className="tfi-home-footer-link"
+            >
+              llms.txt
+            </a>
+            <span className="tfi-home-footer-separator" aria-hidden="true">·</span>
+            <a
+              href="/agents.md"
+              target="_blank"
+              rel="noreferrer"
+              className="tfi-home-footer-link"
+            >
+              agents.md
+            </a>
+          </div>
+        </Container>
+      </footer>
     </Section>
   );
 }
