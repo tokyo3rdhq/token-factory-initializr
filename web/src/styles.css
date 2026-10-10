@@ -1162,3 +1162,187 @@
 /* Responsive */
 @media (max-width: 768px) { .tfi-home-steps { gap: var(--magi-space-3); } .tfi-home-hero { padding-left: var(--magi-space-4); padding-right: var(--magi-space-4); } }
 @media (max-width: 375px) { .tfi-home-tabs .magi-segmented-option { padding: 0 var(--magi-space-3); font-size: 12px; height: 32px; } }
+
+
+/* ============================================================
+ * Homepage redesign — final polish
+ * ============================================================ */
+
+/* ----- Intro row layout ----- */
+.tfi-home-intro-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  align-items: end;
+  gap: var(--magi-space-8);
+  margin-bottom: var(--magi-space-8);
+}
+
+/* Make intro content left-aligned, tab switcher right-aligned */
+.tfi-home-intro {
+  justify-self: start;
+}
+
+.tfi-home-tabs-wrapper {
+  justify-self: end;
+  display: flex;
+  align-items: flex-bottom;
+  justify-content: flex-end;
+}
+
+/* Human steps panel ----- */
+.tfi-home-steps {
+  list-style: none;
+  padding: 0;
+  margin: var(--magi-space-6) 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--magi-space-4);
+}
+
+.tfi-home-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--magi-space-4);
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-md);
+  background: var(--magi-surface-elevated);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.tfi-home-step:hover {
+  border-color: var(--magi-accent);
+  box-shadow: var(--magi-shadow-sm);
+}
+
+.tfi-home-step-marker {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--magi-text-tertiary);
+  margin-bottom: var(--magi-space-2);
+}
+
+.tfi-home-step-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--magi-text-primary);
+  line-height: 1.3;
+}
+
+/* Agent instruction panel ----- */
+.tfi-home-agent-panel {
+  margin-top: var(--magi-space-8);
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.tfi-home-agent-instruction-container {
+  position: relative;
+  background: var(--magi-surface-elevated);
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--magi-shadow-sm);
+}
+
+.tfi-home-agent-prompt {
+  padding: var(--magi-space-4);
+  padding-right: 60px;
+  margin: 0;
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", "Courier", "monospace";
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--magi-text-primary);
+  background: transparent;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+  resize: vertical;
+}
+
+.tfi-home-agent-copy-btn {
+  position: absolute;
+  top: var(--magi-space-2);
+  right: var(--magi-space-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--magi-text-tertiary);
+  background: var(--magi-bg-raised);
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-sm);
+  transition: all 0.15s ease;
+}
+
+.tfi-home-agent-copy-btn:hover {
+  color: var(--magi-text-primary);
+  background: var(--magi-surface-elevated);
+}
+
+.tfi-home-copied-icon {
+  color: var(--magi-success);
+  animation: tfi-home-pop 0.3s ease;
+}
+
+@keyframes tfi-home-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Footer ----- */
+.tfi-home-footer {
+  margin-top: var(--magi-space-12);
+  padding-top: var(--magi-space-6);
+  border-top: 1px solid var(--magi-border);
+}
+
+.tfi-home-footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--magi-space-2);
+}
+
+.tfi-home-footer-link {
+  color: var(--magi-text-tertiary);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: var(--magi-radius-sm);
+  transition: all 0.15s ease;
+}
+
+.tfi-home-footer-link:hover {
+  color: var(--magi-text-primary);
+  background: var(--magi-bg-raised);
+}
+
+.tfi-home-footer-separator {
+  color: var(--magi-text-tertiary);
+  font-size: 12px;
+}
+
+/* Responsive adjustments ----- */
+@media (max-width: 1024px) {
+  .tfi-home-intro-row {
+    grid-template-columns: 1fr;
+  }
+  .tfi-home-intro { justify-self: center; }
+  .tfi-home-tabs-wrapper { justify-self: center; margin-top: var(--magi-space-6); }
+}
+
+@media (max-width: 768px) {
+  .tfi-home-steps {
+    grid-template-columns: 1fr;
+    gap: var(--magi-space-3);
+  }
+  .tfi-home-step { max-width: 280px; margin: 0 auto; }
+}
