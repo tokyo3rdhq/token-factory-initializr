@@ -559,7 +559,7 @@ function ModelRow({
         {hasStructuredOutputBadge && <Badge variant="accent">Structured output</Badge>}
         {hasTranslation && <Badge variant="accent">Translation</Badge>}
         {hasEmbedding && <Badge variant="accent">Embedding</Badge>}
-        {endpoint.free && <Badge variant="success" dot>free</Badge>}
+        {endpoint.free && <Badge variant="success" dot>Free</Badge>}
       </span>
     </label>
   );
