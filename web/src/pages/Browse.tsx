@@ -570,7 +570,7 @@ function ModelRow({
         )}
       </span>
       <span className="tfi-model-meta">
-        {ctx && <Badge variant="accent">{ctx}</Badge>}
+        {ctx && <Badge variant="warning">{ctx}</Badge>}
         {hasChat && <Badge variant="accent">Chat</Badge>}
         {hasVisionCap && <Badge variant="accent">Vision</Badge>}
         {hasTools && <Badge variant="neutral">Tools</Badge>}
@@ -580,7 +580,6 @@ function ModelRow({
         {hasTranslation && <Badge variant="accent">Translation</Badge>}
         {hasEmbedding && <Badge variant="accent">Embedding</Badge>}
         {endpoint.free && <Badge variant="success" dot>Free</Badge>}
-        {endpoint.context_length !== undefined && endpoint.context_length !== null && endpoint.context_length >= 128000 && <Badge variant="warning">longCtx</Badge>}
       </span>
     </label>
   );
