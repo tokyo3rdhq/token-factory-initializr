@@ -1082,6 +1082,13 @@
     flex-wrap: wrap;
     margin-top: var(--magi-space-1);
   }
+  /* Count badge — small muted number shown inside tag filter chips. */
+  .tfi-tag-chip-count {
+    margin-left: 2px;
+    color: var(--magi-text-tertiary);
+    font-size: 11px;
+    line-height: 1;
+  }
   .tfi-model-meta .magi-badge { font-size: 10px; }
 
   /* Bottom CTA row — stack. */
