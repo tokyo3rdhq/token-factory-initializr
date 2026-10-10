@@ -1346,3 +1346,218 @@
   }
   .tfi-home-step { max-width: 280px; margin: 0 auto; }
 }
+
+/* ============================================================
+ * Homepage redesign — sidebar layout
+ * ============================================================ */
+
+/* ----- Section & Left intro ----- */
+.tfi-home-section {
+  padding-top: var(--magi-space-12);
+  padding-bottom: var(--magi-space-12);
+}
+
+.tfi-home-intro {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.tfi-home-headline {
+  margin-bottom: var(--magi-space-2);
+}
+
+.tfi-home-subhead {
+  max-width: 480px;
+  margin: 0;
+  color: var(--magi-text-secondary);
+}
+
+/* ----- Right sidebar card ----- */
+.tfi-home-sidebar {
+  display: inline-block;
+  width: 280px;
+  max-width: 30vw;
+  margin-left: var(--magi-space-6);
+  background: var(--magi-surface-elevated);
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-lg);
+  padding: var(--magi-space-3);
+  box-shadow: var(--magi-shadow-sm);
+  vertical-align: bottom;
+}
+
+/* Tab switcher */
+.tfi-home-tabs {
+  margin-bottom: var(--magi-space-3);
+}
+
+.tfi-home-tabs .magi-segmented {
+  padding: 4px;
+  border-radius: var(--magi-radius-full);
+  box-shadow: var(--magi-shadow-sm);
+  border: 1px solid var(--magi-border);
+}
+
+.tfi-home-tabs .magi-segmented-option {
+  border-radius: var(--magi-radius-full);
+  padding: 4px 12px;
+  height: 34px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tfi-home-tabs .magi-segmented-option[data-active="true"] {
+  background: var(--magi-accent);
+  color: white;
+}
+
+.tfi-home-tabs .magi-segmented-option:hover:not([data-active="true"]) {
+  background: var(--magi-bg-raised);
+}
+
+/* Content panel */
+.tfi-home-panel {
+  margin-bottom: var(--magi-space-3);
+}
+
+.tfi-home-human-panel .tfi-home-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tfi-home-step {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--magi-text-primary);
+  padding: 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tfi-home-cta {
+  margin-top: var(--magi-space-3);
+}
+
+.tfi-home-browse-btn {
+  display: block;
+  width: 100%;
+  padding: 6px 0;
+  font-size: 12px;
+}
+
+/* Agent instruction panel */
+.tfi-home-agent-panel {
+  position: relative;
+}
+
+.tfi-home-agent-instruction {
+  position: relative;
+}
+
+.tfi-home-agent-prompt {
+  padding: var(--magi-space-3);
+  padding-right: 52px;
+  margin: 0;
+  font-family: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", "Courier", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--magi-text-primary);
+  background: transparent;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-md);
+}
+
+.tfi-home-agent-copy-btn {
+  position: absolute;
+  top: var(--magi-space-1);
+  right: var(--magi-space-1);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 10px;
+  color: var(--magi-text-tertiary);
+  background: var(--magi-bg-raised);
+  border: 1px solid var(--magi-border);
+  border-radius: var(--magi-radius-sm);
+  transition: all 0.15s ease;
+  z-index: 1;
+}
+
+.tfi-home-agent-copy-btn:hover {
+  color: var(--magi-text-primary);
+  background: var(--magi-surface-elevated);
+}
+
+.tfi-home-copied-icon {
+  color: var(--magi-success);
+  animation: tfi-home-pop 0.3s ease;
+}
+
+@keyframes tfi-home-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Doc links */
+.tfi-home-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--magi-space-2);
+  padding-top: var(--magi-space-2);
+  border-top: 1px solid var(--magi-border);
+}
+
+.tfi-home-link {
+  color: var(--magi-text-tertiary);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--magi-radius-sm);
+  transition: all 0.15s ease;
+}
+
+.tfi-home-link:hover {
+  color: var(--magi-text-primary);
+  background: var(--magi-bg-raised);
+}
+
+.tfi-home-separator {
+  color: var(--magi-text-tertiary);
+  font-size: 11px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .tfi-home-intro-row {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .tfi-home-intro { margin-bottom: var(--magi-space-4); }
+  .tfi-home-sidebar {
+    width: 100%;
+    margin-left: 0;
+    max-width: none;
+  }
+  .tfi-home-agent-prompt {
+    font-size: 11px;
+    max-height: 180px;
+  }
+}
