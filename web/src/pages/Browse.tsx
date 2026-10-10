@@ -572,14 +572,15 @@ function ModelRow({
       <span className="tfi-model-meta">
         {ctx && <Badge variant="accent">{ctx}</Badge>}
         {hasChat && <Badge variant="accent">Chat</Badge>}
-        {hasTools && <Badge variant="accent">Tools</Badge>}
         {hasVisionCap && <Badge variant="accent">Vision</Badge>}
+        {hasTools && <Badge variant="neutral">Tools</Badge>}
         {hasSpeech && <Badge variant="accent">Speech</Badge>}
         {hasReasoningBadge && <Badge variant="neutral">Reasoning</Badge>}
         {hasStructuredOutputBadge && <Badge variant="accent">Structured output</Badge>}
         {hasTranslation && <Badge variant="accent">Translation</Badge>}
         {hasEmbedding && <Badge variant="accent">Embedding</Badge>}
         {endpoint.free && <Badge variant="success" dot>Free</Badge>}
+        {endpoint.context_length >= 128000 && <Badge variant="warning">longCtx</Badge>}
       </span>
     </label>
   );
