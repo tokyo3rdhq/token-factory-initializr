@@ -131,3 +131,32 @@ suite("en locale: bootstrap prompt is identical to the spec body (§14)", () => 
   const h = EN_HOME as Record<string, string>;
   check("en prompt matches spec verbatim", h.agentPrompt, BOOTSTRAP_PROMPT);
 });
+suite("en locale: Agent/Human tab switcher keys (§5 / §6)", () => {
+  check("agentTab present", typeof EN_HOME?.agentTab, "string");
+  checkContains("agentTab contains Agent", EN_HOME?.agentTab ?? "", "Agent");
+  check("humanTab present", typeof EN_HOME?.humanTab, "string");
+  checkContains("humanTab contains Human", EN_HOME?.humanTab ?? "", "Human");
+  check("agentPromptInline present and non-empty", typeof EN_HOME?.agentPromptInline, "string");
+  assert.ok(typeof EN_HOME?.agentPromptInline === "string" && (EN_HOME?.agentPromptInline as string).length > 0,
+    "agentPromptInline must be non-empty");
+  checkContains("agentPromptInline contains llms.txt", EN_HOME?.agentPromptInline ?? "", "llms.txt");
+  checkContains("agentPromptInline mentions discover models", EN_HOME?.agentPromptInline ?? "", "discover");
+});
+
+suite("en locale: step headings and CTA (§6)", () => {
+  checkContains("step1Title present", EN_HOME?.step1Title ?? "", "Define");
+  checkContains("step2Title present", EN_HOME?.step2Title ?? "", "Browse");
+  checkContains("step3Title present", EN_HOME?.step3Title ?? "", "Generate");
+  checkContains("browseModelsButton present", EN_HOME?.browseModelsButton ?? "", "Browse");
+});
+
+suite("en locale: documentation link label (§8)", () => {
+  checkContains("documentationLink present", EN_HOME?.documentationLink ?? "", "Documentation");
+});
+
+suite("agentPromptInline: secret-free (§14)", () => {
+  const prompt = typeof EN_HOME?.agentPromptInline === "string" ? EN_HOME?.agentPromptInline : "";
+  checkNotContains("no api_key", prompt, "api_key");
+  checkNotContains("no Bearer token", prompt, "Bearer ");
+  checkNotContains("no os.environ", prompt, "os.environ/");
+});

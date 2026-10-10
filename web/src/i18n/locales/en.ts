@@ -105,6 +105,25 @@ https://start.magi.website/
 If I provide a generated TFI configuration URL, fetch it and help me safely apply the generated configuration to my existing Token Factory configuration.
 
 Do not expose or modify secrets. Preserve my existing configuration unless I explicitly ask you to replace it.`,
+    // Homepage Agent/Human tab switcher (docs/tfi_homepage_redesign_for_human_and_agent.md)
+    agentTab: "I'm an Agent",
+    humanTab: "I'm a Human",
+    /** Agent panel — inline canonical bootstrap prompt (no modal). */
+    agentPromptInline: `Read https://start.magi.website/llms.txt to learn how to use TFI, then discover available models through its API and help me choose suitable models for my task.`,
+    /** Agent panel — copy button label. */
+    agentCopyButton: "Copy Prompt",
+    /** Agent panel — copied confirmation. */
+    agentCopiedLabel: "Copied",
+    /** Human panel — three-step headings. */
+    step1Title: "Define your needs",
+    step1Desc: "Describe what you want to do and identify the model capabilities you need, such as chat, vision, or other supported capabilities.",
+    step2Title: "Browse models",
+    step2Desc: "Explore available models, inspect their capabilities and available sources, and select suitable candidates.",
+    step3Title: "Generate config",
+    step3Desc: "Choose a supported Token Factory implementation, select your candidate models, and generate a configuration for your setup.",
+    browseModelsButton: "Browse models",
+    /** Shared footer link label — points at the Markdown-level docs. */
+    documentationLink: "Documentation",
   },
 
   browse: {

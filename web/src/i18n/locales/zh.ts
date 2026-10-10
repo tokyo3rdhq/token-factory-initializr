@@ -104,6 +104,25 @@ https://start.magi.website/
 If I provide a generated TFI configuration URL, fetch it and help me safely apply the generated configuration to my existing Token Factory configuration.
 
 Do not expose or modify secrets. Preserve my existing configuration unless I explicitly ask you to replace it.`,
+    // Homepage Agent/Human tab switcher (docs/tfi_homepage_redesign_for_human_and_agent.md)
+    agentTab: "我是 Agent",
+    humanTab: "我是 Human",
+    /** Agent panel — inline canonical bootstrap prompt (no modal). English intentional. */
+    agentPromptInline: `Read https://start.magi.website/llms.txt to learn how to use TFI, then discover available models through its API and help me choose suitable models for my task.`,
+    /** Agent panel — copy button label. */
+    agentCopyButton: "复制 Prompt",
+    /** Agent panel — copied confirmation. */
+    agentCopiedLabel: "已复制",
+    /** Human panel — three-step headings. */
+    step1Title: "定义需求",
+    step1Desc: "说清楚你要做什么、需要哪些模型能力，比如对话、视觉或其他已支持的能力。",
+    step2Title: "浏览模型",
+    step2Desc: "浏览可用模型，检查它们的能力和来源，挑选最合适的候选。",
+    step3Title: "生成配置",
+    step3Desc: "选择受支持的 Token Factory 实现，选中候选模型，为你的环境生成配置。",
+    browseModelsButton: "浏览模型",
+    /** Shared footer link label — points at the Markdown-level docs. */
+    documentationLink: "文档",
   },
 
   browse: {

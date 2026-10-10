@@ -130,6 +130,22 @@ export interface TranslationTree {
      *  Localization would break the agent's ability to recognize
      *  the prompt across clients. */
     agentPrompt: string;
+    /** Homepage Agent/Human tab switcher (docs/tfi_homepage_redesign_for_human_and_agent.md). */
+    agentTab: string;
+    humanTab: string;
+    agentPromptInline: string;
+    agentCopyButton: string;
+    agentCopiedLabel: string;
+    /** Human panel — three-step headings. */
+    step1Title: string;
+    step1Desc: string;
+    step2Title: string;
+    step2Desc: string;
+    step3Title: string;
+    step3Desc: string;
+    browseModelsButton: string;
+    /** Shared footer link label — points at the Markdown-level docs. */
+    documentationLink: string;
   };
 
   /** Browse page. */
