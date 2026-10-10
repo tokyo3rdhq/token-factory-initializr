@@ -205,6 +205,7 @@ export interface TranslationTree {
       free: { label: string; description: string };
       longCtx: { label: string; description: string };
       translation: { label: string; description: string };
+      embedding: { label: string; description: string };
     };
     /** Filter row strings. */
     filters: {

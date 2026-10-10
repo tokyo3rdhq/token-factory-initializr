@@ -42,8 +42,8 @@ test("TAGS exposes the new reasoning / speech / structured_output ids", () => {
   assert.ok(ids.includes("reasoning"), "TAGS must include 'reasoning'");
   assert.ok(ids.includes("speech"), "TAGS must include 'speech'");
   assert.ok(ids.includes("structured_output"), "TAGS must include 'structured_output'");
-  // Tag count: 9 total (8 legacy + translation).
-  assert.equal(ids.length, 9, "TAGS array must have 9 entries (8 legacy + 1 new)");
+  // Tag count: 10 total (9 legacy + embedding).
+  assert.equal(ids.length, 10, "TAGS array must have 10 entries (9 legacy + embedding)");
 });
 
 // ---------------------------------------------------------------------------

@@ -197,6 +197,10 @@ Do not expose or modify secrets. Preserve my existing configuration unless I exp
         description:
           "Models that support text translation tasks.",
       },
+      embedding: {
+        label: "Embedding",
+        description: "Models that produce dense vector representations (embeddings).",
+      },
       free: {
         label: "Free",
         description: "Endpoints with confirmed free pricing.",
