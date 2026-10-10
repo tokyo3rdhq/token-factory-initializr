@@ -41,14 +41,17 @@ interface TagDef {
 }
 
 export const TAGS: TagDef[] = [
+  // Output modalities (blue accent) — what data the model handles
   { id: "chat",              variant: "accent"  },
   { id: "vision",            variant: "accent"  },
-  { id: "tools",             variant: "accent"  },
-  { id: "reasoning",         variant: "accent"  },
   { id: "speech",            variant: "accent"  },
-  { id: "structured_output", variant: "accent"  },
   { id: "translation",       variant: "accent"  },
   { id: "embedding",         variant: "accent"  },
+  // Processing capabilities (grey neutral) — how the model thinks/acts
+  { id: "tools",             variant: "accent"  },
+  { id: "reasoning",         variant: "accent"  },
+  { id: "structured_output", variant: "accent"  },
+  // Pricing / scale
   { id: "free",              variant: "success" },
   { id: "longCtx",           variant: "warning" },
 ];
@@ -164,7 +167,7 @@ export function BrowsePage() {
   const tagCounts = useMemo(
     () => {
       const counts: Record<string, number> = {};
-      for (const tag of ["chat", "vision", "tools", "reasoning", "speech", "structured_output", "translation", "embedding", "free", "longCtx"] as TagId[]) {
+      for (const tag of ["chat", "vision", "speech", "translation", "embedding", "tools", "reasoning", "structured_output", "free", "longCtx"] as TagId[]) {
         counts[tag] = models.filter((m) => hasTag(m, tag)).length;
       }
       return counts;
