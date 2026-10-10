@@ -51,7 +51,7 @@ def test_nvidia_legacy_attrs_drive_chat_and_tool_calling():
     attrs = {"CHAT_MODALITY": "text2textDiffusion", "TOOL_CALLING": "true"}
     out = normalize_capabilities("nvidia", {"attributes": attrs}, None)
     assert out["chat"] is True
-    assert out["tool_calling"] is True
+    { id: "structured_output", variant: "neutral"  },
     assert out["vision"] is False
     assert out["speech"] is False
 

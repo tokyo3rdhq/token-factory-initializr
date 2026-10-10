@@ -50,7 +50,7 @@ export const TAGS: TagDef[] = [
   // Processing capabilities (grey neutral) — how the model thinks/acts
   { id: "tools",             variant: "accent"  },
   { id: "reasoning",         variant: "accent"  },
-  { id: "structured_output", variant: "accent"  },
+    { id: "structured_output", variant: "neutral"  },
   // Pricing / scale
   { id: "free",              variant: "success" },
   { id: "longCtx",           variant: "warning" },
@@ -576,7 +576,7 @@ function ModelRow({
         {hasTools && <Badge variant="neutral">Tools</Badge>}
         {hasSpeech && <Badge variant="accent">Speech</Badge>}
         {hasReasoningBadge && <Badge variant="neutral">Reasoning</Badge>}
-        {hasStructuredOutputBadge && <Badge variant="accent">Structured output</Badge>}
+        {hasStructuredOutputBadge && <Badge variant="neutral">Structured output</Badge>}
         {hasTranslation && <Badge variant="accent">Translation</Badge>}
         {hasEmbedding && <Badge variant="accent">Embedding</Badge>}
         {endpoint.free && <Badge variant="success" dot>Free</Badge>}
