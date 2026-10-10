@@ -807,15 +807,6 @@
 .tfi-tag-chip-longCtx.active .tfi-tag-chip-dot {
   background: var(--magi-warning, #f59e0b);
 }
-.tfi-tag-chip-longCtx {
-  background: var(--magi-warning, #f59e0b);
-  border-color: var(--magi-warning, #f59e0b);
-  color: var(--magi-text-primary);
-}
-.tfi-tag-chip-longCtx.active {
-  background: var(--magi-warning, #f59e0b);
-  border-color: var(--magi-warning, #f59e0b);
-}
 .tfi-tag-chip.active {
   color: var(--magi-text-primary);
   background: color-mix(in srgb, var(--magi-accent) 12%, transparent);
