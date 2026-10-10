@@ -393,6 +393,17 @@ def normalize_endpoints(
             ),
         )
 
+        # Safety/guardrail models emit JSON-schema-constrained verdicts
+        # by design (e.g. ``meta/llama-guard-4-12b``,
+        # ``nvidia/nemotron-3.5-content-safety``,
+        # ``nvidia/llama-3.1-nemotron-safety-guard-8b-v3``). No upstream
+        # provider (NVIDIA labels / OpenRouter supported_parameters /
+        # models.dev) currently exposes an explicit ``structured_output``
+        # signal for them, so we infer it from the model id keyword.
+        # MVP heuristic — replace with a real signal when a provider
+        # starts surfacing one.
+        apply_guard_safety_structured_output(ep)
+
         # Lift context_length: prefer metadata (where AMD/HF put it),
         # fall back to top-level (where future providers might emit it).
         # ``ModelEndpoint.context_length`` defaults to None, so we only
@@ -463,6 +474,32 @@ def _is_valid_architecture(value: Any) -> bool:
         if not all(isinstance(s, str) for s in items):
             return False
     return True
+
+
+GUARD_SAFETY_KEYWORDS: tuple[str, ...] = ("guard", "safety")
+
+
+def apply_guard_safety_structured_output(endpoint: ModelEndpoint) -> None:
+    """Infer ``structured_output`` for safety/guardrail models by id keyword.
+
+    Guardrail models (``*guard*`` / ``*safety*`` in ``model_id`` — e.g.
+    ``meta/llama-guard-4-12b``, ``nvidia/nemotron-3.5-content-safety``,
+    ``nvidia/llama-3.1-nemotron-safety-guard-8b-v3``) emit
+    JSON-schema-constrained verdicts by design. No upstream provider
+    (NVIDIA labels / OpenRouter supported_parameters / models.dev)
+    currently exposes an explicit ``structured_output`` signal for
+    them, so the capability is inferred from the model id keyword.
+    MVP heuristic — replace with a real signal when a provider starts
+    surfacing one. Additive: never turns a True off.
+    """
+    model_id = (endpoint.model_id or "").lower()
+    if not any(k in model_id for k in GUARD_SAFETY_KEYWORDS):
+        return
+    if endpoint.capabilities.get("structured_output"):
+        return
+    inferred_caps = dict(endpoint.capabilities)
+    inferred_caps["structured_output"] = True
+    object.__setattr__(endpoint, "capabilities", inferred_caps)
 
 
 def endpoint_to_dict(endpoint: ModelEndpoint) -> dict[str, Any]:

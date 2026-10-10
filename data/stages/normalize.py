@@ -27,7 +27,10 @@ from data.identity_matcher import DefaultIdentityMatcher, _normalize_id
 from data.models.schema import ModelEndpoint
 from data.pipeline.context import PipelineContext
 from data.pipeline.stage import Stage
-from data.process.normalize import normalize_endpoints
+from data.process.normalize import (
+    apply_guard_safety_structured_output,
+    normalize_endpoints,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -241,6 +244,12 @@ class NormalizeStage(Stage):
                                 best_observations = observations
                     if best_observations:
                         _apply_cross_source_signals_to_nvidia_endpoint(ep, best_observations)
+                    # Guard/safety models: infer structured_output from
+                    # the model id (see
+                    # apply_guard_safety_structured_output docstring —
+                    # the AMD/HF path applies the same rule inside
+                    # normalize_endpoints).
+                    apply_guard_safety_structured_output(ep)
                     endpoints.append(ep)
                 continue
             # AMD/HF path goes through normalize_endpoints which

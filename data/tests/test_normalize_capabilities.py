@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from data.process.normalize import (
     CANONICAL_CAPABILITY_KEYS,
+    apply_guard_safety_structured_output,
     normalize_capabilities,
 )
 
@@ -173,3 +174,112 @@ def test_empty_inputs_return_all_false():
 def test_none_inputs_return_all_false():
     out = normalize_capabilities("nvidia", None, None)
     assert all(v is False for v in out.values())
+
+
+# ---------------------------------------------------------------------------
+# Guard/safety model id heuristic (structured_output)
+# ---------------------------------------------------------------------------
+
+def _make_ep(model_id: str) -> "ModelEndpoint":
+    from datetime import datetime, timezone
+
+    from data.models.schema import ModelEndpoint
+
+    return ModelEndpoint(
+        provider="nvidia",
+        model_id=model_id,
+        data_source="nvidia",
+        free=True,
+        fetched_at=datetime.now(timezone.utc),
+        name=None,
+        description=None,
+        source_url=None,
+        capabilities={k: False for k in CANONICAL_CAPABILITY_KEYS},
+        metadata={},
+        lab="nvidia",
+    )
+
+
+def test_guard_model_id_infers_structured_output():
+    """A model with ``guard`` in its id gets structured_output=True."""
+    ep = _make_ep("meta/llama-guard-4-12b")
+    apply_guard_safety_structured_output(ep)
+    assert ep.capabilities["structured_output"] is True
+
+
+def test_safety_model_id_infers_structured_output():
+    """A model with ``safety`` in its id gets structured_output=True."""
+    ep = _make_ep("nvidia/nemotron-3.5-content-safety")
+    apply_guard_safety_structured_output(ep)
+    so = ep.capabilities["structured_output"]
+    assert so is True
+
+
+def test_normal_model_id_stays_false():
+    """Control: non-guard/safety ids never gain structured_output."""
+    ep = _make_ep("meta/llama-3.3-70b-instruct")
+    apply_guard_safety_structured_output(ep)
+    assert ep.capabilities["structured_output"] is False
+
+
+def test_guard_heuristic_is_case_insensitive():
+    ep = _make_ep("Meta/Llama-GUARD-4-12B")
+    apply_guard_safety_structured_output(ep)
+    assert ep.capabilities["structured_output"] is True
+
+
+def test_guard_heuristic_never_disables():
+    """Additive only: an already-True structured_output stays True."""
+    caps = {k: False for k in CANONICAL_CAPABILITY_KEYS}
+    caps["structured_output"] = True
+
+    from datetime import datetime, timezone
+
+    from data.models.schema import ModelEndpoint
+
+    ep = ModelEndpoint(
+        provider="nvidia",
+        model_id="meta/llama-guard-4-12b",
+        data_source="nvidia",
+        free=True,
+        fetched_at="2026-10-10T00:00:00Z" if False else datetime.now(timezone.utc),
+        name=None,
+        description=None,
+        source_url=None,
+        capabilities=caps,
+        metadata={},
+        lab="nvidia",
+    )
+    apply_guard_safety_structured_output(ep)
+    assert ep.capabilities["structured_output"] is True
+
+
+def test_guard_heuristic_via_normalize_endpoints():
+    """End-to-end through normalize_endpoints: a raw provider dict
+    with a guard id comes out with structured_output=True."""
+    from data.process.normalize import normalize_endpoints
+
+    raw = [
+        {
+            "provider": "nvidia",
+            "data_source": "nvidia",
+            "model_id": "meta/llama-guard-4-12b",
+            "free": True,
+            "name": "Llama Guard 4 12B",
+            "description": None,
+            "capabilities": {},
+            "metadata": {},
+        },
+        {
+            "provider": "nvidia",
+            "data_source": "nvidia",
+            "model_id": "meta/llama-3.3-70b-instruct",
+            "free": True,
+            "name": "Llama 3.3 70B",
+            "capabilities": {},
+            "metadata": {},
+        },
+    ]
+    endpoints = normalize_endpoints(raw)
+    assert endpoints[0].capabilities["structured_output"] is True
+    assert endpoints[1].capabilities["structured_output"] is False
