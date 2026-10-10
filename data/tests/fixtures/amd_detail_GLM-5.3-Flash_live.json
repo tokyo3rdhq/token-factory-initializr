@@ -9,7 +9,7 @@
     "providers": [
       "Radeon Cloud"
     ],
-    "sort_order": 3,
+    "sort_order": 4,
     "pricing": {
       "prompt": "1.5e-7",
       "completion": "5e-7",

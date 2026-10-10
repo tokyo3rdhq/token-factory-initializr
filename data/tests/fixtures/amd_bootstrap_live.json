@@ -41,6 +41,11 @@
       "detail_url": "/radeon/api/tokenfactory/model?id=model_gateway%3AQwen3.8-27B"
     },
     {
+      "key": "shared-model_gateway:Gemma-4-31B-IT",
+      "id": "model_gateway:Gemma-4-31B-IT",
+      "detail_url": "/radeon/api/tokenfactory/model?id=model_gateway%3AGemma-4-31B-IT"
+    },
+    {
       "key": "shared-model_gateway:MiniCPM5-2B",
       "id": "model_gateway:MiniCPM5-2B",
       "detail_url": "/radeon/api/tokenfactory/model?id=model_gateway%3AMiniCPM5-2B"
