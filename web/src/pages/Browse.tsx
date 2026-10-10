@@ -160,6 +160,18 @@ export function BrowsePage() {
     () => new Set(),
   );
 
+  // Count of models matching each tag across the full catalog
+  const tagCounts = useMemo(
+    () => {
+      const counts: Record<string, number> = {};
+      for (const tag of ["chat", "vision", "tools", "reasoning", "speech", "structured_output", "translation", "embedding", "free", "longCtx"] as TagId[]) {
+        counts[tag] = models.filter((m) => hasTag(m, tag)).length;
+      }
+      return counts;
+    },
+    [models]
+  );
+
   const toggleTag = (tag: TagId) => {
     setActiveTags((prev) => {
       const next = new Set(prev);
@@ -335,6 +347,11 @@ export function BrowsePage() {
                 >
                   <span className="tfi-tag-chip-dot" aria-hidden="true" />
                   {ts(`browse.tags.${tag.id}.label` as never)}
+                  {tagCounts[tag.id] !== undefined && (
+                    <span className="magi-caption">
+                      <span className="magi-count">{tagCounts[tag.id]}</span>
+                    </span>
+                  )}
                 </button>
               );
             })}
