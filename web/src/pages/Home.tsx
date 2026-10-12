@@ -10,6 +10,7 @@ import {
 } from "@tokyo3rdhq/magi-design-system";
 
 import { useI18n } from "../I18nProvider";
+import "../gtag";
 import { useSeo } from "../seo/useSeo";
 
 /**
@@ -120,7 +121,14 @@ export function HomePage() {
                     <button
                       type="button"
                       className="tfi-home-browse-btn"
-                      onClick={() => navigate("/browse")}
+                      onClick={() => {
+                        navigate("/browse");
+                        gtag('event', 'browse_models_clicked', {
+                          event_category: 'Human Onboarding',
+                          event_label: 'Browse models CTA',
+                          non_interaction: false,
+                        });
+                      }}
                     >
                       {ts("home.browseModelsButton")}
                     </button>
