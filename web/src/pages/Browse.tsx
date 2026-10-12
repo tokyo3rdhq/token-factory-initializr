@@ -1,3 +1,5 @@
+import en from "../i18n/locales/en";
+
 import { useEffect, useMemo, useState } from "react";
 import { Copy, ExternalLink } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -349,7 +351,7 @@ export function BrowsePage() {
                   title={ts(`browse.tags.${tag.id}.description` as never)}
                 >
                   <span className="tfi-tag-chip-dot" aria-hidden="true" />
-                  {ts('en.browse.tags.' + tag.id + '.label' as never)}
+                  {(en.browse.tags as any)[tag.id].label}
                   {tagCounts[tag.id] !== undefined && (
                     <span className="magi-caption">
                       <span className="magi-count">{tagCounts[tag.id]}</span>

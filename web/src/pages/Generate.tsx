@@ -140,8 +140,6 @@ export function GeneratePage() {
         {initializr.selectedModels.length === 0 ? (
           <EmptyState>
             {ts("generate.emptyBefore")}
-            <Link to="/">{ts("nav.start")}</Link>
-            {ts("generate.emptyForm")}
             <Link to="/browse">{ts("nav.browse")}</Link>
             {ts("generate.emptyBrowse")}
           </EmptyState>

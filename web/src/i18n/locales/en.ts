@@ -247,7 +247,7 @@ Do not expose or modify secrets. Preserve my existing configuration unless I exp
     subheadWithSelectionTemplate: (n) =>
       `${n} model${n === 1 ? "" : "s"} ready to initialize.`,
     emptyBefore: "Nothing selected. Head to ",
-    emptyForm: ", then ",
+    emptyForm: "",
     emptyBrowse: " to pick models.",
     selectionHeader: "Selection",
     fieldModel: "Model",
