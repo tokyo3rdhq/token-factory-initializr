@@ -1255,15 +1255,20 @@
   gap: var(--magi-space-2);
 }
 
+/* Each step = number + title on one baseline, description below,
+ * indented to the title axis so the column stays aligned. */
 .tfi-home-step {
   display: flex;
-  align-items: baseline;
+  flex-direction: column;
+  gap: 2px;
   font-size: 13px;
   color: var(--magi-text-primary);
-  line-height: 1.5;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.tfi-home-step-row {
+  display: flex;
+  align-items: baseline;
 }
 
 /* Fixed width for numbers so titles start at one axis */
@@ -1274,12 +1279,20 @@
   color: var(--magi-text-tertiary);
   text-align: right;
   padding-right: var(--magi-space-3);
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .tfi-home-step-title {
   flex: 1 1 auto;
   font-weight: 500;
+}
+
+/* Description — indent to the title axis (num 20px + padding 12px) */
+.tfi-home-step-desc {
+  padding-left: 32px;
+  font-size: 12px;
+  color: var(--magi-text-secondary);
+  line-height: 1.4;
 }
 
 /* Start button below the human panel, full content width */

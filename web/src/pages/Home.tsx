@@ -94,16 +94,25 @@ export function HomePage() {
                   <div className="tfi-home-human-panel" data-testid="home-human-panel">
                     <ol className="tfi-home-steps">
                       <li className="tfi-home-step">
-                        <span className="tfi-home-step-num">1</span>
-                        <span className="tfi-home-step-title">{ts("home.step1Title")}</span>
+                        <div className="tfi-home-step-row">
+                          <span className="tfi-home-step-num">1</span>
+                          <span className="tfi-home-step-title">{ts("home.step1Title")}</span>
+                        </div>
+                        <span className="tfi-home-step-desc">{ts("home.step1Desc")}</span>
                       </li>
                       <li className="tfi-home-step">
-                        <span className="tfi-home-step-num">2</span>
-                        <span className="tfi-home-step-title">{ts("home.step2Title")}</span>
+                        <div className="tfi-home-step-row">
+                          <span className="tfi-home-step-num">2</span>
+                          <span className="tfi-home-step-title">{ts("home.step2Title")}</span>
+                        </div>
+                        <span className="tfi-home-step-desc">{ts("home.step2Desc")}</span>
                       </li>
                       <li className="tfi-home-step">
-                        <span className="tfi-home-step-num">3</span>
-                        <span className="tfi-home-step-title">{ts("home.step3Title")}</span>
+                        <div className="tfi-home-step-row">
+                          <span className="tfi-home-step-num">3</span>
+                          <span className="tfi-home-step-title">{ts("home.step3Title")}</span>
+                        </div>
+                        <span className="tfi-home-step-desc">{ts("home.step3Desc")}</span>
                       </li>
                     </ol>
                   </div>

@@ -115,14 +115,14 @@ Do not expose or modify secrets. Preserve my existing configuration unless I exp
     /** Agent panel — copied confirmation. */
     agentCopiedLabel: "Copied",
     /** Human panel — three-step headings. */
-    step1Title: "Define your needs",
-    step1Desc: "Describe what you want to do and identify the model capabilities you need, such as chat, vision, or other supported capabilities.",
-    step2Title: "Browse models",
-    step2Desc: "Explore available models, inspect their capabilities and available sources, and select suitable candidates.",
+    step1Title: "Browse models",
+    step1Desc: "Explore available models by provider, capability, name, or ID.",
+    step2Title: "Select candidates",
+    step2Desc: "Choose the models that fit your needs.",
     step3Title: "Generate config",
-    step3Desc: "Choose a supported Token Factory implementation, select your candidate models, and generate a configuration for your setup.",
+    step3Desc: "Select a supported gateway and generate its configuration.",
     agentPanelIntro: "Send this prompt to your agent to use TFI service.",
-    browseModelsButton: "Start",
+    browseModelsButton: "Browse models",
     /** Shared footer link label — points at the Markdown-level docs. */
     documentationLink: "Documentation",
   },

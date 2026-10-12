@@ -114,14 +114,14 @@ Do not expose or modify secrets. Preserve my existing configuration unless I exp
     /** Agent panel — copied confirmation. */
     agentCopiedLabel: "已复制",
     /** Human panel — three-step headings. */
-    step1Title: "定义需求",
-    step1Desc: "说清楚你要做什么、需要哪些模型能力，比如对话、视觉或其他已支持的能力。",
-    step2Title: "浏览模型",
-    step2Desc: "浏览可用模型，检查它们的能力和来源，挑选最合适的候选。",
+    step1Title: "浏览模型",
+    step1Desc: "按 provider、能力、名称或 ID 探索可用模型。",
+    step2Title: "选择候选",
+    step2Desc: "挑选适合你需求的模型。",
     step3Title: "生成配置",
-    step3Desc: "选择受支持的 Token Factory 实现，选中候选模型，为你的环境生成配置。",
+    step3Desc: "选择受支持的 gateway 并生成其配置。",
     agentPanelIntro: "将此提示发送给 Agent，以使用 TFI 服务。",
-    browseModelsButton: "开始",
+    browseModelsButton: "浏览模型",
     /** Shared footer link label — points at the Markdown-level docs. */
     documentationLink: "文档",
   },

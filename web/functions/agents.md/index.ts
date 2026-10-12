@@ -267,6 +267,66 @@ TFI does NOT execute requests through any endpoint on the Agent's
 behalf — that is a future direction explicitly out of scope for
 this phase.
 
+## LiteLLM Configuration Generation Rules
+
+When generating or modifying LiteLLM configuration, follow the rules
+below to ensure that \`litellm_params.model\` is consistent with the
+existing LiteLLM provider naming conventions.
+
+### 1. Model ID Mapping
+
+Determine the LiteLLM model string from the model's \`data_source\` using
+this mapping:
+
+| \`data_source\` | \`litellm_params.model\`                |
+| ------------- | ------------------------------------- |
+| \`nvidia\`      | \`nvidia_nim/\${model_id}\`              |
+| \`amd\`         | \`openai/\${model_id}\`                  |
+| \`huggingface\` | \`huggingface/\${provider}/\${model_id}\` |
+
+Where:
+
+- \`\${model_id}\` is the model's canonical \`model_id\` returned by the TFI
+  API.
+- \`\${provider}\` is the Hugging Face inference provider associated with
+  the model, as returned by the TFI API. Do not substitute the data
+  source name or invent a provider value.
+
+### 2. ADD Entry Requirements
+
+When generating an \`ADD\` entry for LiteLLM:
+
+1. Read the model's \`data_source\`, \`model_id\`, and, when applicable,
+   \`provider\` from the TFI model data.
+2. Apply the mapping above to construct \`litellm_params.model\`.
+3. Preserve the existing configuration's naming conventions for
+   \`model_name\` and other fields.
+4. Do not use the raw \`model_id\` as \`litellm_params.model\` when the
+   mapping requires a provider prefix.
+5. Do not confuse \`model_name\` (the alias exposed to clients) with
+   \`litellm_params.model\` (the model identifier used by LiteLLM to
+   route requests).
+
+### 3. Missing or Unsupported Data
+
+- If a required field is missing, do not guess its value.
+- If \`data_source\` is not covered by the mapping, do not invent a
+  LiteLLM prefix. Consult the applicable LiteLLM integration
+  documentation or request clarification.
+- Do not assume that these rules apply to NewAPI, Bifrost, or other
+  configuration targets. Use their respective configuration
+  conventions.
+
+### 4. Existing Configuration Compatibility
+
+When adding models to an existing LiteLLM configuration, preserve the
+existing structure and conventions. Only modify unrelated entries when
+explicitly requested.
+
+The generated \`litellm_params.model\` must follow the mapping above,
+while the remaining fields should follow the existing configuration
+and the target provider's requirements.
+
 ## Human Interface
 
 https://start.magi.website/browse
