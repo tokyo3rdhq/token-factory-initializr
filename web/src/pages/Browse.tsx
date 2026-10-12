@@ -1,5 +1,3 @@
-import en from "../i18n/locales/en";
-
 import { useEffect, useMemo, useState } from "react";
 import { Copy, ExternalLink } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -351,7 +349,21 @@ export function BrowsePage() {
                   title={ts(`browse.tags.${tag.id}.description` as never)}
                 >
                   <span className="tfi-tag-chip-dot" aria-hidden="true" />
-                  {(en.browse.tags as any)[tag.id].label}
+                  {(() => {
+                    const labels: Record<string, string> = {
+                      chat: "Chat",
+                      vision: "Vision",
+                      tools: "Tools",
+                      reasoning: "Reasoning",
+                      speech: "Speech",
+                      structured_output: "Structured output",
+                      translation: "Translation",
+                      embedding: "Embedding",
+                      free: "Free",
+                      longCtx: "128K+",
+                    };
+                    return labels[tag.id];
+                  })()}
                   {tagCounts[tag.id] !== undefined && (
                     <span className="magi-caption">
                       <span className="magi-count">{tagCounts[tag.id]}</span>
