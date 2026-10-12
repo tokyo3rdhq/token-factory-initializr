@@ -349,7 +349,7 @@ export function BrowsePage() {
                   title={ts(`browse.tags.${tag.id}.description` as never)}
                 >
                   <span className="tfi-tag-chip-dot" aria-hidden="true" />
-                  {ts(`browse.tags.${tag.id}.label` as never)}
+                  {tag.id}
                   {tagCounts[tag.id] !== undefined && (
                     <span className="magi-caption">
                       <span className="magi-count">{tagCounts[tag.id]}</span>
@@ -399,13 +399,13 @@ export function BrowsePage() {
           </Banner>
         )}
 
-        {!requirement && (
-          <Banner variant="info" className="tfi-banner-spacer">
-            {ts("browse.noReqBannerBefore")}
-            <Link to="/">{ts("nav.start")}</Link>
-            {ts("browse.noReqBannerAfter")}
-          </Banner>
-        )}
+                {false && (
+                  <Banner variant="info" className="tfi-banner-spacer">
+                    {ts("browse.noReqBannerBefore")}
+                    <Link to="/">{ts("nav.start")}</Link>
+                    {ts("browse.noReqBannerAfter")}
+                  </Banner>
+                )}
 
         {loading ? (
           <EmptyState>
