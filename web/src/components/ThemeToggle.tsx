@@ -32,6 +32,14 @@ import { Monitor, Moon, Sun } from "lucide-react";
  *     flips propagate to the rendered theme.
  */
 type Mode = "system" | "dark" | "light";
+function getOSPref(): "dark" | "light" {
+  if (typeof window === "undefined") return "dark";
+  try {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  } catch {
+    return "dark";
+  }
+}
 
 const STORAGE_KEY = "tfi:theme";
 const MODE_ATTR = "data-magi-theme-mode";
@@ -66,14 +74,11 @@ function resolveTheme(mode: Mode): "dark" | "light" {
 }
 
 function cycle(mode: Mode): Mode {
-  if (mode === "system") return "dark";
-  if (mode === "dark") return "light";
-  return "system";
+  if (mode === "system") return getOSPref() === "dark" ? "light" : "dark";
+  if (mode === getOSPref()) return "system";
+  return getOSPref();
 }
-
 export function ThemeToggle() {
-  // Read the mode the FOUC script stamped on <html>. This means the
-  // first React render already matches the live DOM attribute — no
   // flicker, no theme swap on hydration.
   const [mode, setMode] = useState<Mode>(readInitialMode);
 
