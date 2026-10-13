@@ -86,11 +86,6 @@ export function App() {
               <li><Link to="/">{ts("nav.start")}</Link></li>
               <li><Link to="/browse">{ts("nav.browse")}</Link></li>
               <li><Link to="/generate">{ts("nav.generate")}</Link></li>
-              <li>
-                <a href="/api/v1/models" target="_blank" rel="noreferrer">
-                  API Reference
-                </a>
-              </li>
             </ul>
           </div>
           <div className="tfi-footer-col">
@@ -104,16 +99,6 @@ export function App() {
               <li>
                 <a href="/agents.md" target="_blank" rel="noreferrer">
                   agents.md
-                </a>
-              </li>
-              <li>
-                <a href="/api/v1/models" target="_blank" rel="noreferrer">
-                  Models API
-                </a>
-              </li>
-              <li>
-                <a href="/api/v1/models" target="_blank" rel="noreferrer">
-                  Model Details API
                 </a>
               </li>
             </ul>
