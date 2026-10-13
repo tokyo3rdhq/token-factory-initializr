@@ -65,14 +65,12 @@ export function HomePage() {
     <Section className="tfi-home-section">
       <Container>
         <div className="tfi-home-columns">
-          {/* Left-aligned intro block */}
-          <div className="tfi-home-intro-wrap">
-            <Stack gap="4" className="tfi-home-intro">
-              <span className="magi-eyebrow">{ts("home.eyebrow")}</span>
-              <h1 className="magi-display tfi-home-headline">{ts("home.headline")}</h1>
-              <p className="magi-body-lg tfi-home-subhead">{ts("home.subhead")}</p>
-            </Stack>
-          </div>
+          {/* Left-aligned hero, matching Browse/Generate layout */}
+          <Stack gap="3" className="tfi-page-hero">
+            <span className="magi-eyebrow">{ts("home.eyebrow")}</span>
+            <h1 className="magi-display tfi-home-headline">{ts("home.headline")}</h1>
+            <p className="magi-body-lg tfi-home-subhead">{ts("home.subhead")}</p>
+          </Stack>
 
           {/* Right sidebar card — top edge aligned with the headline */}
           <div className="tfi-home-sidebar">
