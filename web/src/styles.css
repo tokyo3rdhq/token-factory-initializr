@@ -1130,8 +1130,8 @@
  * ============================================================ */
 
 .tfi-home-section {
-  padding-top: var(--magi-space-12);
-  padding-bottom: var(--magi-space-12);
+  /* Match Browse/Generate: Section spacing="lg" = var(--magi-space-32) */
+  padding-block: var(--magi-space-32);
 }
 
 /* Left intro — left-aligned */
