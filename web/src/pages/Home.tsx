@@ -62,7 +62,7 @@ export function HomePage() {
   );
 
   return (
-    <Section className="tfi-home-section">
+    <Section className="tfi-home-section" style={{ paddingTop: "128px", paddingBottom: "128px" }}>
       <Container>
         <div className="tfi-home-columns">
           {/* Left-aligned hero, matching Browse/Generate layout */}
