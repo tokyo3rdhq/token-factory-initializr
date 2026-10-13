@@ -16,6 +16,7 @@ import { useInitializr } from "../initializr/InitializrContext";
 import { postGenerate, type GenerateResponse } from "../kv";
 import { useI18n } from "../I18nProvider";
 import { useSeo } from "../seo/useSeo";
+import "../gtag";
 import { SUPPORTED_TOKEN_FACTORIES } from "../../functions/lib/generators";
 
 /**
@@ -75,6 +76,13 @@ export function GeneratePage() {
     } finally {
       setSubmitting(false);
     }
+  };
+  const handleInitializeClick = async () => {
+    gtag("event", "generate_initialization_clicked", {
+      event_category: "Generate",
+      event_label: "Initialize clicked",
+    });
+    await onInitialize();
   };
 
   const copy = async (text: string, key: "yaml" | "url" | "prompt") => {
@@ -216,7 +224,7 @@ export function GeneratePage() {
                   </span>
                   <Button
                     variant="primary"
-                    onClick={onInitialize}
+                  onClick={handleInitializeClick}
                     disabled={!initializr.readiness.ready || submitting}
                     loading={submitting}
                   >

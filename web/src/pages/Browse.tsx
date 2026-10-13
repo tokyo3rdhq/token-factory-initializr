@@ -11,6 +11,7 @@ import { useI18n } from "../I18nProvider";
 import { useSeo } from "../seo/useSeo";
 import { formatProviderTimestamps, resolveTimeZone } from "../utils/datetime";
 import { isInternalDataSource } from "../kv";
+import "../gtag";
 
 /**
  * Tag filter taxonomy for the Browse page.
@@ -459,7 +460,16 @@ export function BrowsePage() {
               <span className="magi-caption tfi-caption-secondary">
                 {dict.browse.selectedCountTemplate(selection.selected.length)}
               </span>
-              <Button variant="primary" onClick={() => navigate("/generate")}>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  gtag("event", "generate_clicked", {
+                    event_category: "Navigation",
+                    event_label: "Browse to Generate",
+                  });
+                  navigate("/generate");
+                }}
+              >
                 {ts("nav.generate")} →
               </Button>
             </Stack>
