@@ -29,11 +29,11 @@ const zh: TranslationTree = {
   footer: {
     columns: {
       product: "产品",
-      resources: "资源",
-      community: "社区",
+      forAgents: "对于 Agent",
+      developers: "开发者",
       magi: "MAGI",
     },
-    brandCaption: "独立 AI 实验室。AI 基础设施,构建在边缘。为开发者与 Agent 而生。",
+    brandCaption: "发现 AI 模型、比较供应商选项，生成支持 AI 网关的配置",
     copyright: "© 2026 MAGI",
     provenance:
       "Endpoint 来源:NVIDIA NIM · AMD Radeon AI · Hugging Face Inference。生成的配置 5 分钟后过期 —— 这是设计如此。",

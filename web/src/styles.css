@@ -283,11 +283,9 @@
 /* ----- Footer (matches magi-portal's 4-col + baseline rhythm) ----- */
 /* magi-portal uses mt-32 (8rem) top margin, py-12 (3rem) vertical
  * padding, gap-10 (2.5rem) between columns. We mirror those numbers
- * but split into 4 columns (Product / Resources / Community / MAGI)
- * now that the GitHub + Discord external links have moved from the
- * header to a footer Community column. The Community column matches
- * the IA of magi-portal's footer.
- */
+ * but split into 4 columns (Product / For Agents / Developers / MAGI)
+ * per docs/tfi_footer_refactor.md. The MAGI column matches the IA of
+ * magi-portal's footer. */
 .tfi-footer {
   margin-top: var(--magi-space-32);
   padding: var(--magi-space-12) var(--magi-space-6) var(--magi-space-10);

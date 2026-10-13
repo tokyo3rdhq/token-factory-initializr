@@ -86,25 +86,40 @@ export function App() {
               <li><Link to="/">{ts("nav.start")}</Link></li>
               <li><Link to="/browse">{ts("nav.browse")}</Link></li>
               <li><Link to="/generate">{ts("nav.generate")}</Link></li>
+              <li>
+                <a href="/api/v1/models" target="_blank" rel="noreferrer">
+                  API Reference
+                </a>
+              </li>
             </ul>
           </div>
           <div className="tfi-footer-col">
-            <h4>{ts("footer.columns.resources")}</h4>
+            <h4>{ts("footer.columns.forAgents")}</h4>
             <ul>
               <li>
-                <a href="/api/manifest" target="_blank" rel="noreferrer">
-                  Catalog manifest
+                <a href="/llms.txt" target="_blank" rel="noreferrer">
+                  llms.txt
                 </a>
               </li>
               <li>
-                <a href="/api/providers" target="_blank" rel="noreferrer">
-                  Providers
+                <a href="/agents.md" target="_blank" rel="noreferrer">
+                  agents.md
+                </a>
+              </li>
+              <li>
+                <a href="/api/v1/models" target="_blank" rel="noreferrer">
+                  Models API
+                </a>
+              </li>
+              <li>
+                <a href="/api/v1/models" target="_blank" rel="noreferrer">
+                  Model Details API
                 </a>
               </li>
             </ul>
           </div>
           <div className="tfi-footer-col">
-            <h4>{ts("footer.columns.community")}</h4>
+            <h4>{ts("footer.columns.developers")}</h4>
             <ul>
               <li>
                 <a
@@ -114,29 +129,21 @@ export function App() {
                   rel="noreferrer"
                 >
                   GitHub
-                  <span aria-hidden="true">↗</span>
-                  <span className="tfi-sr-only">(opens in new tab)</span>
                 </a>
               </li>
               <li>
-                <a
-                  className="tfi-footer-ext"
-                  href="https://discord.gg/gTGnvTdyec"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Discord
-                  <span aria-hidden="true">↗</span>
-                  <span className="tfi-sr-only">(opens in new tab)</span>
+                <a href="https://github.com/tokyo3rdhq/token-factory-initializr/issues" target="_blank" rel="noreferrer">
+                  Issues
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/tokyo3rdhq/token-factory-initializr/blob/main/CONTRIBUTING.md" target="_blank" rel="noreferrer">
+                  Contributing
                 </a>
               </li>
             </ul>
           </div>
           <div className="tfi-footer-col">
-            {/* MAGI column header is a link to the parent brand site,
-                matching the navbar's two-link split. No ↗ indicator
-                (brand-mark convention — destinations like GitHub /
-                Discord get the indicator; brand links don't). */}
             <h4>
               <a
                 href="https://magi.website"
@@ -148,14 +155,11 @@ export function App() {
               </a>
             </h4>
             <ul>
-              <li className="magi-caption">{ts("footer.brandCaption")}</li>
+              <li>{ts("footer.brandCaption")}</li>
             </ul>
           </div>
         </div>
         <div className="tfi-footer-meta">
-          {/* Copyright line is a link to the parent brand — mirrors
-              the navbar MAGI lockup and the footer MAGI column header
-              so the "MAGI" affordance is consistent across the page. */}
           <a
             href="https://magi.website"
             target="_blank"

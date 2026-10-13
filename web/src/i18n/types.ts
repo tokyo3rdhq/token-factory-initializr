@@ -47,14 +47,14 @@ export interface TranslationTree {
     optionChinese: string;
   };
 
-  /** Footer (4-column layout). */
-  footer: {
-    columns: {
-      product: string;
-      resources: string;
-      community: string;
-      magi: string;
-    };
+ /** Footer (4-column layout). */
+ footer: {
+   columns: {
+     product: string;
+     forAgents: string;
+     developers: string;
+     magi: string;
+   };
     /** Brand-side caption. */
     brandCaption: string;
     /** "© 2026 MAGI". */
