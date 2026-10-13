@@ -69,9 +69,8 @@ export async function onRequestGet(context: {
     }
     const endpoints = await loadEndpoints(context.env);
     const filtered = filterEndpoints(endpoints, parsed);
-    const { modelsByEndpoint } = await loadIndexes(context.env);
     const body = publicListResponse(
-      toPublicModels(filtered, { endpointsByModel: modelsByEndpoint }),
+      toPublicModels(filtered),
     );
     const json = JSON.stringify(body);
     return jsonResponse(body, {
@@ -93,8 +92,8 @@ export async function onRequestGet(context: {
     if (!endpoint) {
       return notFound(`model not found: ${id}`);
     }
-    const { modelsByEndpoint } = await loadIndexes(context.env);
-    const model = toPublicModel(endpoint, { endpointsByModel: modelsByEndpoint });
+    const { endpointsByModel } = await loadIndexes(context.env);
+    const model = toPublicModel(endpoint, { endpointsByModel: endpointsByModel });
     const json = JSON.stringify(model);
     return jsonResponse(model, {
       etag: makeEtag(json),

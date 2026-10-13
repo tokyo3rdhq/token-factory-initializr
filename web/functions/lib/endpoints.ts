@@ -22,7 +22,7 @@ import {
   type PublicProvider,
   type PublicEndpoint,
 } from "./projection";
-import type { Env } from "./kv";
+import type { Env, ModelEndpoint } from "./kv";
 import { FIXTURE_PROVIDERS } from "./fixtures";
 
 export interface IndexBuildResult {
@@ -33,10 +33,10 @@ export interface IndexBuildResult {
   endpointById: Map<string, PublicEndpoint>;
   /** Lookup by provider id (e.g. "groq"). */
   providerById: Map<string, PublicProvider>;
-  /** For the model backref: model_id -> endpoint ids. Built
-   *  alongside the endpoints so the projection layer doesn't have
-   *  to re-scan. */
-  modelsByEndpoint: Map<string, string[]>;
+  /** For the model backref: model_id -> the canonical endpoint
+   *  records TFI knows for that model. Projection uses this to
+   *  build the nested ``endpoints[]`` array on PublicModel. */
+  endpointsByModel: Map<string, ModelEndpoint[]>;
 }
 
 /** Build the public provider + endpoint indexes from the canonical
@@ -90,21 +90,18 @@ export function buildIndexes(
     endpointById.set(ep.id, ep);
   }
 
-  // Build the model_id -> endpoint ids index. Single scan.
-  const modelsByEndpoint = new Map<string, string[]>();
-  for (const ep of endpoints) {
-    if (!ep.models) continue;
-    for (const m of ep.models) {
-      let arr = modelsByEndpoint.get(m);
-      if (!arr) {
-        arr = [];
-        modelsByEndpoint.set(m, arr);
-      }
-      arr.push(ep.id);
+  // Build the model_id -> [ModelEndpoint] index. Single scan.
+  const endpointsByModel = new Map<string, ModelEndpoint[]>();
+  for (const ep of catalog.endpoints) {
+    let arr = endpointsByModel.get(ep.model_id);
+    if (!arr) {
+      arr = [];
+      endpointsByModel.set(ep.model_id, arr);
     }
+    arr.push(ep);
   }
 
-  return { providers, endpoints, endpointById, providerById, modelsByEndpoint };
+  return { providers, endpoints, endpointById, providerById, endpointsByModel };
 }
 
 /** Load the canonical catalog and build the public indexes. The

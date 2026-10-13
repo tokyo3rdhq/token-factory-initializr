@@ -175,6 +175,41 @@ test("toPublicModel strips provenance + metadata + pricing + raw fields", () => 
   assert.equal("pricing" in out, false);
   assert.equal("raw_obj" in out, false);
   assert.equal("fetched_at" in out, false);
+  // No model-level free — free status is endpoint-scoped only
+  // (docs/tfi_model_and_endpoint_free_status_semantics.md §2.1).
+  assert.equal("free" in out, false);
+});
+
+test("toPublicModels nests per-endpoint free/pricing without model-level free", () => {
+  // Same canonical model served by two providers with DIFFERENT
+  // free status — the exact case the semantics doc §3.1 mandates.
+  const eps = [
+    makeEndpoint({
+      model_id: "Qwen/Qwen3-Next-80B-A3B-Instruct",
+      provider: "together",
+      free: false,
+      pricing: { input: 0.2, output: 0.6 },
+    }),
+    makeEndpoint({
+      model_id: "Qwen/Qwen3-Next-80B-A3B-Instruct",
+      provider: "nvidia",
+      free: true,
+      pricing: null,
+    }),
+  ];
+  const out = toPublicModels(eps);
+  assert.equal(out.length, 1, "one PublicModel per canonical model");
+  const model = out[0] as Record<string, unknown>;
+  assert.equal("free" in model, false, "no model-level free");
+  assert.equal(model.id, "Qwen/Qwen3-Next-80B-A3B-Instruct");
+  const endpoints = model.endpoints as Array<Record<string, unknown>>;
+  assert.equal(endpoints.length, 2);
+  const nvidia = endpoints.find((e) => e.provider === "nvidia")!;
+  const together = endpoints.find((e) => e.provider === "together")!;
+  assert.equal(nvidia.free, true);
+  assert.equal(nvidia.pricing, undefined, "null pricing omitted, not invented");
+  assert.equal(together.free, false);
+  assert.deepEqual(together.pricing, { input: 0.2, output: 0.6 });
 });
 
 test("toPublicModel emits capability order: chat/vision/.../tool_calling", () => {

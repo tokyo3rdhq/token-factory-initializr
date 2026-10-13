@@ -12,28 +12,25 @@ import type { ModelEndpoint } from "./kv";
 
 /** OpenAI-compatible public model shape returned by /api/v1/models. */
 export interface PublicModel {
-  /** OpenAI: model identifier. We use the canonical model_id. */
+  /** Canonical model identity (e.g. "deepseek-ai/deepseek-v4"). Shared
+   *  across every provider endpoint serving the model. */
   id: string;
-  /** OpenAI: always "model". */
   object: "model";
-  /** OpenAI: unix epoch seconds. We don't have a reliable release
-   *  timestamp for every endpoint — use 0 (the documented "unknown"
-   *  sentinel) rather than fabricate a value. */
   created: number;
-  /** Model owner (creator / publisher), e.g. "deepseek-ai", "xiaomi",
-   *  "z-ai". Optional — omitted when TFI cannot derive a reliable
-   *  owner (we never substitute the endpoint provider for the model
-   *  owner; that would mislead agents about who actually created
-   *  the model). When omitted, clients should treat it as unknown
-   *  rather than infer anything. */
+  /** Model owner (creator / publisher). NEVER the endpoint provider —
+   *  see ``deriveOwner`` for the fallback rule. Omitted when no
+   *  reliable owner is derivable. */
   owned_by?: string;
-  /** TFI extension: data source (nvidia / amd / huggingface /
-   *  openrouter / models_dev). */
+  /** TFI extension: the data source of the first endpoint TFI
+   *  observed for this model. Per-endpoint data_source lives under
+   *  ``endpoints[].provider``; this field is retained for backward
+   *  compatibility of list consumers. */
   data_source: string;
-  /** TFI extension: provider (nvidia / together / novita / etc.). */
+  /** TFI extension: the provider of the first endpoint TFI observed
+   *  for this model. See ``endpoints[]`` for the full set. */
   provider: string;
-  /** Canonical normalized capabilities — see doc §12 for the
-   *  fixed vocabulary. Order is stable for diff-friendly output. */
+  /** Canonical normalized capabilities — see doc §12 for the fixed
+   *  vocabulary. Order is stable for diff-friendly output. */
   capabilities: string[];
   /** Optional public detail fields. Always omitted when null/empty
    *  so the list endpoint stays compact. */
@@ -41,23 +38,40 @@ export interface PublicModel {
   description?: string;
   architecture?: { input: string[]; output: string[] };
   context_length?: number;
-  free?: boolean;
   lab?: string;
-  /**
-   * TFI extension: human-readable source page for the model
-   * (e.g. https://build.nvidia.com/<owner>/<model>). Omitted
-   * when the canonical record has no source URL. Backward
-   * compatible — older KV records do not carry the field.
-   */
   source_url?: string;
-  /** TFI extension: endpoint ids serving this model (per
-   *  docs/tfi_provider_and_endpoint_intelligence_api.md §9 + §26).
-   *  Stable string references into /api/v1/endpoints — never
-   *  embed full endpoint objects here. Filtered to non-internal
-   *  endpoints at projection time so cross-source providers
-   *  (openrouter / models_dev) do not leak through the model
-   *  backref either. */
-  endpoints?: string[];
+  /** Endpoints serving this model. Each carries its OWN provider,
+   *  provider-specific model_id, free status, pricing, and limits.
+   *  ``free`` is endpoint-specific — there is deliberately NO
+   *  model-level free flag (see
+   *  docs/tfi_model_and_endpoint_free_status_semantics.md). */
+  endpoints: PublicModelEndpoint[];
+}
+
+/** Per-endpoint access record nested inside a PublicModel.
+ *
+ * ``free`` is the single source of truth for THIS endpoint's free
+ * status, projected verbatim from the canonical
+ * ``ModelEndpoint.free``. It is never derived from the model name,
+ * the provider, or the absence of pricing. */
+export interface PublicModelEndpoint {
+  /** Stable endpoint id — ``{provider}:{endpoint_name}`` (see
+   *  ``toPublicEndpoint`` in projection / ``buildIndexes``). */
+  id: string;
+  /** Provider operating this endpoint. */
+  provider: string;
+  /** Provider-specific model id. Matches the canonical model_id in
+   *  the current catalog; carried explicitly so consumers never
+   *  re-derive it. */
+  model_id: string;
+  /** Endpoint-specific free status false/true. */
+  free: boolean;
+  /** Endpoint-specific pricing, when the canonical record carries
+   *  it. Omitted rather than invented. */
+  pricing?: Record<string, unknown> | null;
+  /** Endpoint-specific rate / quota limits, when known. Omitted
+   *  rather than invented. */
+  limits?: Record<string, unknown> | null;
 }
 
 /** Stable capability sort order — keeps list responses diff-friendly. */
@@ -95,20 +109,26 @@ function deriveOwner(modelId: string, lab: string | null | undefined): string | 
   return owner.length > 0 ? owner : null;
 }
 
-/**
- * Project a canonical ``ModelEndpoint`` into the public API shape.
- *
- * Strips (by construction — we never read these fields):
- *   - provenance
- *   - metadata (raw source payload / pipeline internals)
- *   - pricing
- *   - endpoint_url / region / status / limits / score
- *   - fetched_at / canonical_model_id / model_family / organization /
- *     version / quantization
- */
+/** Build the nested per-endpoint access record from a canonical
+ *  ``ModelEndpoint``. Free / pricing / limits are endpoint-scoped;
+ *  they are projected verbatim — never inferred, never collapsed. */
+function toPublicModelEndpoint(model: ModelEndpoint): PublicModelEndpoint {
+  const out: PublicModelEndpoint = {
+    id: `${model.provider}:default`,
+    provider: model.provider,
+    model_id: model.model_id,
+    free: model.free === true,
+  };
+  if (model.pricing != null) out.pricing = model.pricing;
+  return out;
+}
+
+/** Project a canonical ``ModelEndpoint`` into the public model
+ *  shape. The model-level record carries identity/metadata; the
+ *  per-endpoint access information lives under ``endpoints[]``. */
 export function toPublicModel(
   model: ModelEndpoint,
-  options: { endpointsByModel?: Map<string, string[]> } = {},
+  options: { endpointsByModel?: Map<string, ModelEndpoint[]> } = {},
 ): PublicModel {
   const caps: string[] = [];
   for (const key of CAPABILITY_ORDER) {
@@ -116,13 +136,9 @@ export function toPublicModel(
       caps.push(key);
     }
   }
-  // Surface any non-standard True capability keys too (forward compat).
   if (model.capabilities) {
     for (const [key, value] of Object.entries(model.capabilities)) {
-      if (
-        value === true &&
-        !CAPABILITY_ORDER.includes(key as (typeof CAPABILITY_ORDER)[number])
-      ) {
+      if (value === true && !CAPABILITY_ORDER.includes(key as any)) {
         caps.push(key);
       }
     }
@@ -135,70 +151,50 @@ export function toPublicModel(
     data_source: model.data_source,
     provider: model.provider,
     capabilities: caps,
+    endpoints: [],
   };
 
-  // ``owned_by`` is the model creator, not the endpoint provider.
-  // We never substitute data_source / provider for owned_by — that
-  // would mislead consumers (e.g. a DeepSeek model served on
-  // NVIDIA NIM is still owned by DeepSeek, not NVIDIA).
   const owner = deriveOwner(model.model_id, model.lab);
-  if (owner) {
-    publicModel.owned_by = owner;
-  }
+  if (owner) publicModel.owned_by = owner;
+  if (model.name) publicModel.name = model.name;
+  if (model.description) publicModel.description = model.description;
+  if (model.architecture) publicModel.architecture = model.architecture;
+  if (typeof model.context_length === "number") publicModel.context_length = model.context_length;
+  if (model.lab) publicModel.lab = model.lab;
+  if (model.source_url) publicModel.source_url = model.source_url;
 
-  if (typeof model.name === "string" && model.name.length > 0) {
-    publicModel.name = model.name;
-  }
-  if (typeof model.description === "string" && model.description.length > 0) {
-    publicModel.description = model.description;
-  }
-  if (model.architecture) {
-    publicModel.architecture = {
-      input: Array.isArray(model.architecture.input)
-        ? model.architecture.input.slice()
-        : [],
-      output: Array.isArray(model.architecture.output)
-        ? model.architecture.output.slice()
-        : [],
-    };
-  }
-  if (typeof model.context_length === "number" && model.context_length > 0) {
-    publicModel.context_length = model.context_length;
-  }
-  if (typeof model.free === "boolean") {
-    publicModel.free = model.free;
-  }
-  if (typeof model.lab === "string" && model.lab.length > 0) {
-    publicModel.lab = model.lab;
-  }
-  // TFI source URL (per docs/tfi_model_source_url.md §6) — emitted
-  // when the canonical record carries one. We do not construct the
-  // URL here; the canonical model field is the single source of
-  // truth, and the projection is a pure pass-through.
-  if (typeof model.source_url === "string" && model.source_url.length > 0) {
-    publicModel.source_url = model.source_url;
-  }
-
-  // Endpoint backref (per §9 / §26). Caller passes the pre-built
-  // endpointsByModel index so this projection stays pure (no KV
-  // access). Omit options.endpointsByModel if you do not want
-  // the backref on the public model shape.
-  const endpointIds = options.endpointsByModel?.get(model.model_id);
-  if (endpointIds && endpointIds.length > 0) {
-    publicModel.endpoints = [...endpointIds].sort();
-  }
+  // Nested endpoints — every provider record TFI has for this model.
+  // Default to the single endpoint when no index is passed, so detail
+  // routes still return a well-formed nested view.
+  const all = options.endpointsByModel?.get(model.model_id) ?? [model];
+  publicModel.endpoints = all
+    .map((e) => toPublicModelEndpoint(e))
+    .sort((a, b) => a.id.localeCompare(b.id));
 
   return publicModel;
 }
 
-/** Project a list of canonical endpoints. options is forwarded
- *  to every per-model projection so the list endpoint can attach
- *  endpoint backrefs in one pass. */
-export function toPublicModels(
-  models: ModelEndpoint[],
-  options: { endpointsByModel?: Map<string, string[]> } = {},
-): PublicModel[] {
-  return models.map((m) => toPublicModel(m, options));
+/** Group canonical endpoints by model_id and project each group
+ *  once. The nested ``endpoints[]`` is derived from the INPUT array
+ *  — so route-level filters (provider, data_source, capabilities)
+ *  apply to the nested set too; a filtered-out endpoint never leaks
+ *  back into a model object. Stable sort on the canonical model id
+ *  keeps list responses diff-friendly. */
+export function toPublicModels(endpoints: ModelEndpoint[]): PublicModel[] {
+  const byModel = new Map<string, ModelEndpoint[]>();
+  for (const ep of endpoints) {
+    const list = byModel.get(ep.model_id);
+    if (list) {
+      list.push(ep);
+    } else {
+      byModel.set(ep.model_id, [ep]);
+    }
+  }
+  const out: PublicModel[] = [];
+  for (const eps of byModel.values()) {
+    out.push(toPublicModel(eps[0], { endpointsByModel: byModel }));
+  }
+  return out.sort((a, b) => a.id.localeCompare(b.id));
 }
 
 // ---------------------------------------------------------------------------

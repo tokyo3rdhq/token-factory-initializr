@@ -56,9 +56,12 @@ Retrieve a specific model:
 
 https://start.magi.website/api/v1/models/{model_id}
 
-Model IDs may contain \`/\`. The model detail response now carries
-an \`endpoints\` field listing the public endpoint ids that serve
-the model.
+Model IDs may contain \`/\`. The model detail response embeds an
+\`endpoints\` array — one record per provider endpoint serving the
+model, each with its own \`provider\`, \`model_id\`, endpoint-specific
+\`free\` status, and optional \`pricing\`. There is no model-level
+\`free\` field: free status is a property of the endpoint, and the
+same model may be free on one provider and paid on another.
 
 ### Provider Catalog
 

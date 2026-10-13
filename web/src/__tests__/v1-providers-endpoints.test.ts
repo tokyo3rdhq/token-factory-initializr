@@ -209,7 +209,7 @@ test("buildIndexes creates one endpoint per (data_source, provider) pair", () =>
   assert.equal(idx.providerById.get("nvidia")?.id, "nvidia");
 });
 
-test("buildIndexes model_id -> endpoint ids index is correct", () => {
+test("buildIndexes model_id -> endpoints index is correct", () => {
   const cat = {
     endpoints: [
       makeEndpoint({ data_source: "huggingface", provider: "together", model_id: "shared" }),
@@ -220,9 +220,16 @@ test("buildIndexes model_id -> endpoint ids index is correct", () => {
     pairs: [],
   };
   const idx = buildIndexes(cat);
-  const shared = idx.modelsByEndpoint.get("shared")!.sort();
-  assert.deepEqual(shared, ["novita:default", "together:default"]);
-  assert.deepEqual(idx.modelsByEndpoint.get("nvidia-only"), ["nvidia:default"]);
+  const shared = idx.endpointsByModel.get("shared");
+  assert.equal(shared!.length, 2);
+  assert.deepEqual(
+    shared!.map((e) => `${e.provider}:default`).sort(),
+    ["novita:default", "together:default"],
+  );
+  assert.deepEqual(
+    idx.endpointsByModel.get("nvidia-only")!.map((e) => e.provider),
+    ["nvidia"],
+  );
 });
 
 test("buildIndexes is deterministic across repeated calls", () => {
@@ -387,44 +394,61 @@ test("parseEndpointFilters rejects empty value", () => {
   if (!r.ok) assert.equal(r.param, "status");
 });
 
-// ---------------------------------------------------------------------------
-// Model backref wiring
-// ---------------------------------------------------------------------------
-
 const { toPublicModel, toPublicModels } = await import("../../functions/lib/projection.ts");
 
-test("toPublicModel without endpointsByModel omits endpoints field", () => {
-  const m = makeEndpoint();
+test("toPublicModel nests the endpoint record by default", () => {
+  const m = makeEndpoint({ model_id: "m1", free: true, pricing: { input: 0 } });
   const pm = toPublicModel(m);
-  assert.equal(pm.endpoints, undefined);
-});
-
-test("toPublicModel with endpointsByModel attaches the matching endpoint ids", () => {
-  const m = makeEndpoint({ model_id: "m1" });
-  const idx = new Map<string, string[]>([["m1", ["together:default", "nvidia:default"]]]);
-  const pm = toPublicModel(m, { endpointsByModel: idx });
-  assert.deepEqual(pm.endpoints, ["nvidia:default", "together:default"]);
-});
-
-test("toPublicModel with endpointsByModel but no match omits endpoints field", () => {
-  const m = makeEndpoint({ model_id: "m1" });
-  const idx = new Map<string, string[]>([["other-model", ["x:default"]]]);
-  const pm = toPublicModel(m, { endpointsByModel: idx });
-  assert.equal(pm.endpoints, undefined);
-});
-
-test("toPublicModels forwards endpointsByModel to every per-model projection", () => {
-  const idx = new Map<string, string[]>([
-    ["m1", ["together:default"]],
-    ["m2", ["nvidia:default"]],
+  assert.deepEqual(pm.endpoints, [
+    {
+      id: "together:default",
+      provider: "together",
+      model_id: "m1",
+      free: true,
+      pricing: { input: 0 },
+    },
   ]);
-  const out = toPublicModels(
-    [makeEndpoint({ model_id: "m1" }), makeEndpoint({ model_id: "m2" })],
-    { endpointsByModel: idx },
-  );
-  assert.deepEqual(out[0].endpoints, ["together:default"]);
-  assert.deepEqual(out[1].endpoints, ["nvidia:default"]);
 });
+
+test("toPublicModel with endpointsByModel attaches the matching endpoint records", () => {
+  const m = makeEndpoint({ model_id: "m1", free: true });
+  const idx = new Map<string, ModelEndpoint[]>([
+    ["m1", [
+      makeEndpoint({ model_id: "m1", provider: "together", free: true }),
+      makeEndpoint({ model_id: "m1", provider: "nvidia", free: false }),
+    ]],
+  ]);
+  const pm = toPublicModel(m, { endpointsByModel: idx });
+  assert.deepEqual(
+    pm.endpoints.map((e) => e.id),
+    ["nvidia:default", "together:default"],
+  );
+  assert.equal(pm.endpoints[0].free, false);
+  assert.equal(pm.endpoints[1].free, true);
+});
+
+test("toPublicModel with endpointsByModel but no match falls back to the single endpoint", () => {
+  const m = makeEndpoint({ model_id: "m1" });
+  const idx = new Map<string, ModelEndpoint[]>([["other-model", [makeEndpoint({ model_id: "other" })]]]);
+  const pm = toPublicModel(m, { endpointsByModel: idx });
+  assert.deepEqual(pm.endpoints.map((e) => e.id), ["together:default"]);
+});
+
+test("toPublicModels groups by model_id and nests all endpoints", () => {
+  const out = toPublicModels([
+    makeEndpoint({ model_id: "m1", provider: "together", free: true }),
+    makeEndpoint({ model_id: "m1", provider: "nvidia", free: false }),
+    makeEndpoint({ model_id: "m2", provider: "together", free: true }),
+  ]);
+  assert.equal(out.length, 2);
+  assert.equal(out[0].id, "m1");
+  assert.deepEqual(
+    out[0].endpoints.map((e) => e.id),
+    ["nvidia:default", "together:default"],
+  );
+  assert.equal(out[1].endpoints.length, 1);
+});
+
 
 // ---------------------------------------------------------------------------
 // resolveBaseUrl — the data_source-first routing rule.

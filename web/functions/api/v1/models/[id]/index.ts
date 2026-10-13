@@ -44,6 +44,6 @@ export async function onRequestGet(context: {
   if (!endpoint) {
     return notFound(`model not found: ${id}`);
   }
-  const { modelsByEndpoint } = await loadIndexes(context.env);
-  return jsonResponse(toPublicModel(endpoint, { endpointsByModel: modelsByEndpoint }));
+  const { endpointsByModel } = await loadIndexes(context.env);
+  return jsonResponse(toPublicModel(endpoint, { endpointsByModel: endpointsByModel }));
 }

@@ -11,6 +11,17 @@ chronological order (newest first). Unreleased changes are at the top.
 
 ### Changed
 
+- **`/api/v1/models` + `/api/v1/models/{id}` response shape — breaking**:
+  each public model now embeds an `endpoints[]` array with one record
+  per provider endpoint (`id`, `provider`, `model_id`, `free`, optional
+  `pricing`/`limits`). The model-level `free` boolean has been removed:
+  free status is endpoint-scoped (see
+  `docs/tfi_model_and_endpoint_free_status_semantics.md`). Multiple
+  provider endpoints serving the same canonical model are now merged
+  into a single model object instead of duplicated entries; `/browse`
+  and the legacy `/api/models` route (which return canonical
+  `ModelEndpoint` records directly) are unchanged.
+
 - **License**: project is now Apache License 2.0 (was: previously
   described as proprietary in README.md; no LICENSE file existed).
 - **Repository URL**: `data/pyproject.toml` `Repository` field now

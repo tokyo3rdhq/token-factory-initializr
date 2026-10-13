@@ -120,7 +120,17 @@ Each model includes:
 
 Optional detail fields (model detail response, may be omitted):
 \`name\`, \`description\`, \`architecture: {input, output}\`,
-\`context_length\`, \`free\`, \`lab\`.
+\`context_length\`, \`lab\`.
+
+Every model embeds an \`endpoints[]\` array — one entry per provider
+endpoint serving the model. Each endpoint carries its own
+\`id\` (\`{provider}:{endpoint_name}\`), \`provider\`, \`model_id\`,
+\`free\` (endpoint-specific free status), and optional \`pricing\`/\`limits\`.
+**There is no model-level \`free\` field**: free status is an endpoint
+property — the same model may be free on one provider and paid on
+another. \`free: true\` means confirmed free under that data source's
+stated conditions; \`false\` means confirmed paid; absence/omission of
+\`pricing\` never implies free.
 
 ## Provenance
 
