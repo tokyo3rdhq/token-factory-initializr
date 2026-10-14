@@ -13,7 +13,7 @@ keywords = ["ai", "model-catalog", "litellm", "bifrost", "newapi", "cloudflare-p
 
 dependencies = [
     "requests>=2.31",       # NVIDIA fetcher (data/providers/nvidia.py)
-    # AMD + HF providers use stdlib urllib only.
+    "python-dotenv>=1.0",   # data/main.py loads .env for provider API tokens (AMD, etc.)
 ]
 
 [project.optional-dependencies]
@@ -26,7 +26,6 @@ dev = [
     "ruff>=0.6",
     "hypothesis>=6.92",
     "requests-mock>=1.12",
-    "python-dotenv",
 ]
 socks = ["PySocks>=1.7"]   # local-dev SOCKS5 proxy for the HF provider
 

@@ -43,6 +43,8 @@ jobs:
           CLOUDFLARE_KV_NAMESPACE_ID: ${{ secrets.CLOUDFLARE_KV_NAMESPACE_ID }}
           # Optional: Feishu webhook for failure alerts.
           FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+          # AMD v1/models capability API bearer token (data/providers/amd.py).
+          AMD_API_TOKEN: ${{ secrets.AMD_API_TOKEN }}
         run: |
           cd data
           python main.py
