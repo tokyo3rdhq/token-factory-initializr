@@ -421,7 +421,27 @@ def normalize_endpoints(
         if not isinstance(candidate, int):
             candidate = item.get("context_length")
         if isinstance(candidate, int):
-            object.__setattr__(ep, "context_length", candidate)
+            # --- Prove provenance as native ---
+            # When the value comes from the provider's metadata attribute,
+            # we consider it a native fact.  This prevents EnrichStage
+            # from overwriting it with a cross-source observation.
+            if isinstance(metadata, dict) \
+                    and "context_length" in metadata:
+                # Build a native provenance record.
+                from data.stages.enrich import _make_provenance_record
+
+                record = _make_provenance_record(
+                    source="amd",
+                    source_id=ep.model_id,
+                    source_field="context_length",
+                    method="native",
+                    confidence=1.0,
+                    observed_at=ep.fetched_at,
+                )
+                ep.provenance["context_length"] = record
+
+        # Now actually set the top-level field.
+        object.__setattr__(ep, "context_length", candidate)
 
         # Lift architecture: AMD/HF parsed dicts carry the structured
         # modalities at top level (``architecture: {input: [...],
