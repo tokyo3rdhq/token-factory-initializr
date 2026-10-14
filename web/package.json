@@ -21,7 +21,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260923.1",
     "@rollup/rollup-linux-x64-gnu": "^4.50.0",
-    "@tokyo3rdhq/magi-design-system": "^0.8.2",
+    "@tokyo3rdhq/magi-design-system": "^0.8.3",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

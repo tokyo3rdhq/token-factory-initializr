@@ -1075,15 +1075,17 @@
   /* Model row — collapse the multi-column grid into a single
    * stacked column with badges wrapping below the model id. */
   .tfi-model-row {
-    grid-template-columns: 24px 1fr;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     gap: var(--magi-space-2);
     padding: var(--magi-space-3);
   }
   .tfi-model-meta {
-    grid-column: 1 / -1;
     justify-content: flex-start;
     flex-wrap: wrap;
     margin-top: var(--magi-space-1);
+    width: 100%;
   }
   /* Count badge — small muted number shown inside tag filter chips. */
   .tfi-tag-chip-count {
@@ -1114,7 +1116,6 @@
 }
 
 /* ============================================================
- * Homepage — lobehub-style sidebar layout
  *
  * Structure:
  *   [Left: eyebrow + headline + subhead, left-aligned]
