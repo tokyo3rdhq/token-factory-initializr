@@ -13,7 +13,6 @@
     "test": "tsx --test src/__tests__/*.test.ts"
   },
   "dependencies": {
-    "@tokyo3rdhq/magi-design-system": "^0.8.0",
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -22,6 +21,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260923.1",
     "@rollup/rollup-linux-x64-gnu": "^4.50.0",
+    "@tokyo3rdhq/magi-design-system": "^0.8.2",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
