@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Copy, User, Bot } from "lucide-react";
+import { Copy, Check, User, Bot } from "lucide-react";
 
 import {
   Container,
@@ -147,8 +147,9 @@ export function HomePage() {
                       data-testid="home-agent-copy"
                       className={`tfi-home-copy-btn ${copied ? "tfi-home-copied" : ""}`}
                       onClick={onCopy}
+                      title={copied ? ts("home.agentCopiedLabel") : ts("home.agentCopyButton")}
                     >
-                      <Copy size={14} aria-hidden="true" />
+                      {copied ? <Check size={14} strokeWidth={2.5} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
                     </button>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Copy, ExternalLink } from "lucide-react";
+import { Copy, Check, ExternalLink } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Badge, Banner, Button, Checkbox, Container, EmptyState, Input, Section, Stack } from "@tokyo3rdhq/magi-design-system";
 
@@ -579,7 +579,7 @@ function ModelRow({
             aria-label={copied ? dict.browse.copyCopied : dict.browse.copy}
             title={copied ? dict.browse.copyCopied : dict.browse.copy}
           >
-            <Copy size={12} aria-hidden="true" />
+            {copied ? <Check size={12} strokeWidth={2.5} aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
           </button>
         </span>
         {endpoint.description && (
