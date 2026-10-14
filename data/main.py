@@ -17,7 +17,10 @@ Run via GitHub Actions workflow or manually with:
 """
 
 import logging
+import os
 import sys
+
+from dotenv import load_dotenv
 
 from data.pipeline.context import PipelineContext
 from data.stages import build_default_pipeline
@@ -25,12 +28,23 @@ from data.stages import build_default_pipeline
 logger = logging.getLogger(__name__)
 
 
+def _load_env() -> None:
+    """Load ``data/.env`` (or ``./.env``) into ``os.environ``.
+
+    Real environment variables win over file values (never clobbered).
+    GitHub Actions passes secrets as real env vars; local runs read
+    them from the checked-out-ignored ``data/.env`` file.
+    """
+    load_dotenv()
+    load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
+
+
 def main() -> None:
     """Compose + run the default pipeline."""
+    _load_env()
     print("=" * 60)
     print("Free Model Aggregator — Data Pipeline")
     print("=" * 60)
-
     pipeline = build_default_pipeline()
     result = pipeline.run(PipelineContext())
 

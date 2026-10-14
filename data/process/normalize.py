@@ -226,6 +226,12 @@ def normalize_capabilities(
         elif use_case in ("transcription", "asr"):
             out["speech"] = True
 
+        # Override/augment with authoritative raw boolean flags from the
+        # authenticated v1/models API.
+        out["vision"] = out["vision"] or bool(attrs.get("v1_vision"))
+        out["tool_calling"] = out["tool_calling"] or bool(attrs.get("v1_tools"))
+        out["reasoning"] = out["reasoning"] or bool(attrs.get("v1_reasoning"))
+        out["structured_output"] = out["structured_output"] or bool(attrs.get("v1_structured_output"))
     # Cross-source signal promotion: every observation's
     # ``supported_parameters`` is checked for tool/reasoning flags, plus
     # OR's ``reasoning.default_enabled`` / ``reasoning.mandatory``

@@ -17,13 +17,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
-import urllib.parse
-import urllib.request
-from dataclasses import asdict
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
-import logging
 import urllib.parse
 import urllib.request
 from dataclasses import asdict
@@ -42,6 +37,13 @@ DEFAULT_UA = (
     "(KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36"
 )
 TIMEOUT = 30
+
+# Authenticated v1/models API token (Authorization: Bearer).
+# Loaded from the AMD_API_TOKEN environment variable; see data/.env.example.
+# Falls back to the built-in token so local runs work without extra setup —
+# GitHub Actions injects the real value from the AMD_API_TOKEN secret.
+AMD_API_TOKEN = os.environ.get("AMD_API_TOKEN", "")
+
 
 
 def _post_json(url: str, body: dict, ua: str, referer: str, timeout: int = 30) -> dict:
@@ -66,6 +68,36 @@ def _get_json(url: str, ua: str, timeout: int = 30) -> dict:
     req = urllib.request.Request(url, headers={"User-Agent": ua})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
+
+
+def _get_json_v1(url: str, timeout: int = TIMEOUT) -> dict:
+    """GET an authenticated (Authorization: Bearer) v1 API endpoint.
+
+    The ``/radeon/api/v1/models`` endpoint requires a bearer token —
+    an unauthenticated request returns ``401 {"detail": "Login required"}``.
+    The token is read from ``AMD_API_TOKEN`` at import time.
+    """
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Authorization": f"Bearer {AMD_API_TOKEN}",
+            "User-Agent": DEFAULT_UA,
+        },
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def fetch_v1_models(timeout: int = TIMEOUT) -> list[dict]:
+    """Fetch the full model list from the authenticated v1/models API.
+
+    This is the authoritative source for per-model capability booleans
+    (``providers[0].vision`` / ``tools`` / ``reasoning``) and
+    ``structured_output``. It does NOT expose free-tier status — the
+    tokenfactory bootstrap/detail endpoints remain the source of truth
+    for which endpoints are free.
+    """
+    return _get_json_v1(f"{BASE}/radeon/api/v1/models", timeout=timeout).get("data", [])
 
 
 def fetch_bootstrap(ua: str, timeout: int = TIMEOUT) -> list[dict]:
@@ -150,6 +182,23 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
     m = detail["model"]
     tf = m.get("token_factory", {})
     capability_key = tf.get("capability", {}).get("key")
+
+    # Per-model capability booleans from the authenticated v1/models API.
+    # ``fetch_amd_models`` merges ``providers`` (and ``structured_output``)
+    # from ``/radeon/api/v1/models`` onto the detail payload before calling
+    # this function, so these fields are present when the v1 fetch
+    # succeeded and absent (→ False) otherwise.
+    #   providers[0].vision     → capabilities.vision
+    #   providers[0].tools      → capabilities.tool_calling (canonical key)
+    #   providers[0].reasoning  → capabilities.reasoning
+    #   model.structured_output → capabilities.structured_output
+    v1_providers = m.get("providers") or []
+    v1_provider = v1_providers[0] if v1_providers and isinstance(v1_providers[0], dict) else {}
+    v1_vision = bool(v1_provider.get("vision"))
+    v1_tools = bool(v1_provider.get("tools"))
+    v1_reasoning = bool(v1_provider.get("reasoning"))
+    v1_structured = bool(m.get("structured_output"))
+    v1_context_length = m.get("context_length")
 
     input_modalities: list[str] = []
     output_modalities: list[str] = m.get("output", [])
@@ -251,10 +300,19 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
             # ``capabilities.use_case`` field silently came back as
             # ``None`` in production.
             "use_case": derive_use_case(m),
-            # Back-compat metadata fields preserved for any consumer
-            # that reads metadata directly.
+            # Raw per-model capability booleans from the authenticated
+            # v1/models API. The normalize stage
+            # (``data.process.normalize.normalize_capabilities``) reads
+            # these to set the canonical 7-key boolean shape; they are
+            # stored here (not under ``capabilities``, which normalize
+            # overwrites) so direct consumers can still see the raw
+            # upstream signals. Absent/false when the v1 fetch failed.
+            "v1_vision": v1_vision,
+            "v1_tools": v1_tools,
+            "v1_reasoning": v1_reasoning,
+            "v1_structured_output": v1_structured,
             "family": tf.get("publisher", {}).get("name") or m.get("family", "unknown"),
-            "context_length": m.get("context_length", 0),
+            "context_length": detail["model"].get("context_length", 0),
             "free_status": free_status,
             # Preserve the original AMD id (with gateway prefix) so callers can
             # disambiguate if AMD introduces new gateways later.
@@ -266,20 +324,51 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
 def fetch_amd_models() -> List[dict[str, Any]]:
     """Fetch and return free AMD Radeon model endpoints.
 
-    Raises RuntimeError on network failure; returns empty list if no free
-    models are found (not an error condition).
+    This function integrates two data sources:
+    1. The authenticated v1/models API for authoritative capability booleans
+       (vision, tools, reasoning, structured_output).
+    2. The tokenfactory bootstrap/detail flow for free-tier status and metadata.
     """
-    logger.info("Fetching AMD Radeon catalog: %s", BASE)
-    bootstrap = fetch_bootstrap(DEFAULT_UA)
+    ua = DEFAULT_UA
+    try:
+        v1_models_list = fetch_v1_models()
+        v1_models_by_id = {m.get("id"): m for m in v1_models_list if m.get("id")}
+        logger.info("Fetched %d models from v1/models API", len(v1_models_by_id))
+    except Exception as e:
+        logger.warning("Failed to fetch v1/models API: %s; continuing without enrichment", e)
+        v1_models_by_id = {}
+
+    bootstrap = fetch_bootstrap(ua)
     cards = bootstrap.get("cards", [])
     available: List[dict] = []
-    # Real shape: cards is a flat list of {key, id, detail_url} dicts — no section nesting.
+
     for card in cards:
-        model_id = card["id"]
-        logger.info("Fetching AMD detail for %s", model_id)
-        detail = fetch_detail(model_id, DEFAULT_UA)
-        ep = build_endpoint_dict(detail)
-        available.append(ep)
+        model_id_raw = card["id"]
+        model_id = _strip_gateway_prefix(model_id_raw)
+        try:
+            detail = fetch_detail(model_id_raw, ua)
+            if not detail:
+                continue
+
+            # Enrich detail with v1 data if available
+            if v1_models_by_id:
+                v1_model = v1_models_by_id.get(model_id)
+                if v1_model:
+                    model_obj = detail["model"]
+                    model_obj["name"] = v1_model.get("name", model_obj.get("name"))
+                    model_obj["description"] = v1_model.get("description", model_obj.get("description"))
+                    model_obj["family"] = v1_model.get("family", model_obj.get("family"))
+                    model_obj["output"] = v1_model.get("output", model_obj.get("output"))
+                    model_obj["architecture"] = v1_model.get("architecture", model_obj.get("architecture"))
+                    model_obj["providers"] = v1_model.get("providers", model_obj.get("providers"))
+                    model_obj["structured_output"] = v1_model.get("structured_output", model_obj.get("structured_output"))
+
+            ep = build_endpoint_dict(detail)
+            if ep.get("free", False):
+                available.append(ep)
+        except Exception as e:
+            logger.warning("Failed to process model %s: %s", model_id_raw, e)
+            continue
 
     logger.info("Fetched %d AMD endpoints", len(available))
     return available
