@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Check, ExternalLink } from "lucide-react";
+import { Copy, Check, ExternalLink, Code } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Badge, Banner, Button, Checkbox, Container, EmptyState, Input, Section, Stack } from "@tokyo3rdhq/magi-design-system";
 
@@ -581,6 +581,18 @@ function ModelRow({
           >
             {copied ? <Check size={12} strokeWidth={2.5} aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
           </button>
+          <a
+            className="tfi-model-copy-btn"
+            href={`https://start.magi.website/api/v1/models/${endpoint.model_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+            aria-label={`API specification for ${endpoint.model_id}`}
+            title={`API specification for ${endpoint.model_id}`}
+          >
+            <Code size={12} aria-hidden="true" />
+          </a>
         </span>
         {endpoint.description && (
           <div className="tfi-model-desc">{endpoint.description}</div>
