@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Copy, Check, ExternalLink, Code } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Badge, Banner, Button, Checkbox, Container, EmptyState, Input, Section, Stack } from "@tokyo3rdhq/magi-design-system";
+import { Badge, Banner, Button, Checkbox, Container, EmptyState, Grid, Input, Section, Stack } from "@tokyo3rdhq/magi-design-system";
 
 import { fmtContext, hasVision } from "../components/format";
 import { useSelection } from "../components/SelectionContext";
@@ -507,7 +507,11 @@ function BrowseSection({
 }
 
 function ModelList({ children }: { children: React.ReactNode }) {
-  return <div className="tfi-model-list">{children}</div>;
+  return (
+    <Grid cols={{ sm: 1, md: 2, lg: 3 }} gap={5}>
+      {children}
+    </Grid>
+  )
 }
 
 function ModelRow({
