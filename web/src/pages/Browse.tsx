@@ -570,8 +570,7 @@ function ModelRow({
             </a>
           )}
           <button
-            type="button"
-            className="tfi-model-copy-btn"
+            className={`tfi-model-copy-btn${copied ? " copied" : ""}`}
             onClick={(e) => {
               e.stopPropagation();
               onCopy(endpoint.model_id);
