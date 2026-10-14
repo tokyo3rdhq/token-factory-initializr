@@ -463,9 +463,16 @@ def normalize_endpoints(
                     cs_input.extend(m for m in cs_arch["input"] if isinstance(m, str))
                 if isinstance(cs_arch.get("output"), list):
                     cs_output.extend(m for m in cs_arch["output"] if isinstance(m, str))
-            merged_input = list(dict.fromkeys([*base_input, *cs_input]))
-            merged_output = list(dict.fromkeys([*base_output, *cs_output]))
-            arch = {"input": merged_input, "output": merged_output}
+            # Only merge cross-source architecture when the provider
+            # did not already supply an architecture dict.  This
+            # preserves provider-native modality lists (e.g. AMD's
+            # ``input_modalities`` / ``output_modalities`` from the
+            # v1 API) and prevents cross-source signals from injecting
+            # extra modalities such as ``video`` or ``audio``.
+            if not arch:
+                merged_input = list(dict.fromkeys([*base_input, *cs_input]))
+                merged_output = list(dict.fromkeys([*base_output, *cs_output]))
+                arch = {"input": merged_input, "output": merged_output}
         if _is_valid_architecture(arch):
             object.__setattr__(ep, "architecture", arch)
 
