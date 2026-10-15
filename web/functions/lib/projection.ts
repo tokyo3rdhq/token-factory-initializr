@@ -114,7 +114,7 @@ function deriveOwner(modelId: string, lab: string | null | undefined): string | 
  *  they are projected verbatim — never inferred, never collapsed. */
 function toPublicModelEndpoint(model: ModelEndpoint): PublicModelEndpoint {
   const out: PublicModelEndpoint = {
-    id: `${model.provider}:default`,
+    id: `${model.data_source}:${model.provider}`,
     provider: model.provider,
     model_id: model.model_id,
     free: model.free === true,
@@ -545,9 +545,9 @@ export function toPublicEndpoint(
   } = {},
 ): PublicEndpoint {
   const meta = getProviderMetadata(provider);
-  const endpointName = opts.endpointName ?? "default";
+
   const out: PublicEndpoint = {
-    id: `${provider}:${endpointName}`,
+    id: `${dataSource}:${provider}`,
     provider,
     data_source: dataSource,
     // Protocol is single-valued in the public schema; if the provider
@@ -575,6 +575,7 @@ export function toPublicEndpoint(
   // the documented "omit if absent" convention.
   return JSON.parse(JSON.stringify(out)) as PublicEndpoint;
 }
+
 
 /** Strip a PublicEndpoint of all fields the user must NOT see
  *  according to §38. Re-applied as defence-in-depth in case a future

@@ -84,9 +84,9 @@ test("toPublicProvider on an unknown provider still produces a valid object", ()
 // Endpoint projection
 // ---------------------------------------------------------------------------
 
-test("toPublicEndpoint id format is {provider}:{endpoint_name}", () => {
+test("toPublicEndpoint id format is {data_source}:{provider}", () => {
   const ep = toPublicEndpoint("huggingface", "together", ["m1", "m2"]);
-  assert.equal(ep.id, "together:default");
+  assert.equal(ep.id, "huggingface:together");
 });
 
 test("toPublicEndpoint carries protocol + base_url + authentication + status + models", () => {
@@ -111,11 +111,11 @@ test("toPublicEndpoint models are sorted for diff-friendly output", () => {
   assert.deepEqual(ep.models, ["a", "m", "z"]);
 });
 
-test("toPublicEndpoint honours endpointName override", () => {
+test("toPublicEndpoint ignores endpointName override in favor of data_source:provider", () => {
   const ep = toPublicEndpoint("huggingface", "together", ["m1"], {
     endpointName: "region-eu",
   });
-  assert.equal(ep.id, "together:region-eu");
+  assert.equal(ep.id, "huggingface:together");
 });
 
 test("toPublicEndpoint status can be overridden", () => {
@@ -184,10 +184,9 @@ test("buildIndexes dedupes endpoints by (data_source, provider) pair", () => {
   };
   const idx = buildIndexes(cat);
   assert.equal(idx.endpoints.length, 1, "3 models on same pair -> 1 endpoint");
-  assert.equal(idx.endpoints[0].provider, "together");
-  assert.equal(idx.endpoints[0].id, "together:default");
-  assert.equal(idx.providers.length, 1);
+  assert.equal(idx.endpoints[0].id, "huggingface:together");
   assert.equal(idx.providers[0].id, "together");
+  assert.equal(idx.providers.length, 1);
 });
 
 test("buildIndexes creates one endpoint per (data_source, provider) pair", () => {
@@ -205,7 +204,7 @@ test("buildIndexes creates one endpoint per (data_source, provider) pair", () =>
   assert.equal(idx.endpoints.length, 3);
   assert.equal(idx.providers.length, 3);
   // Lookup maps.
-  assert.equal(idx.endpointById.get("together:default")?.provider, "together");
+  assert.equal(idx.endpointById.get("huggingface:together")?.provider, "together");
   assert.equal(idx.providerById.get("nvidia")?.id, "nvidia");
 });
 
@@ -223,8 +222,8 @@ test("buildIndexes model_id -> endpoints index is correct", () => {
   const shared = idx.endpointsByModel.get("shared");
   assert.equal(shared!.length, 2);
   assert.deepEqual(
-    shared!.map((e) => `${e.provider}:default`).sort(),
-    ["novita:default", "together:default"],
+    shared!.map((e) => e.provider).sort(),
+    ["novita", "together"],
   );
   assert.deepEqual(
     idx.endpointsByModel.get("nvidia-only")!.map((e) => e.provider),
@@ -334,8 +333,7 @@ test("filterPublicEndpoints model_id filter matches endpoints serving the model"
   const out = filterPublicEndpoints(endpoints, { model_id: ["m2"] });
   // m2 is on together + nvidia — OR-within-dimension means any
   // endpoint serving m2 matches.
-  assert.equal(out.length, 2);
-  assert.deepEqual(out.map((e) => e.id).sort(), ["nvidia:default", "together:default"]);
+  assert.deepEqual(out.map((e) => e.id).sort(), ["huggingface:together", "nvidia:nvidia"]);
 });
 
 test("filterPublicEndpoints model_id with no matches returns empty", () => {
@@ -401,7 +399,7 @@ test("toPublicModel nests the endpoint record by default", () => {
   const pm = toPublicModel(m);
   assert.deepEqual(pm.endpoints, [
     {
-      id: "together:default",
+      id: "huggingface:together",
       provider: "together",
       model_id: "m1",
       free: true,
@@ -421,7 +419,7 @@ test("toPublicModel with endpointsByModel attaches the matching endpoint records
   const pm = toPublicModel(m, { endpointsByModel: idx });
   assert.deepEqual(
     pm.endpoints.map((e) => e.id),
-    ["nvidia:default", "together:default"],
+    ["huggingface:nvidia", "huggingface:together"],
   );
   assert.equal(pm.endpoints[0].free, false);
   assert.equal(pm.endpoints[1].free, true);
@@ -431,7 +429,7 @@ test("toPublicModel with endpointsByModel but no match falls back to the single 
   const m = makeEndpoint({ model_id: "m1" });
   const idx = new Map<string, ModelEndpoint[]>([["other-model", [makeEndpoint({ model_id: "other" })]]]);
   const pm = toPublicModel(m, { endpointsByModel: idx });
-  assert.deepEqual(pm.endpoints.map((e) => e.id), ["together:default"]);
+  assert.deepEqual(pm.endpoints.map((e) => e.id), ["huggingface:together"]);
 });
 
 test("toPublicModels groups by model_id and nests all endpoints", () => {
@@ -444,7 +442,7 @@ test("toPublicModels groups by model_id and nests all endpoints", () => {
   assert.equal(out[0].id, "m1");
   assert.deepEqual(
     out[0].endpoints.map((e) => e.id),
-    ["nvidia:default", "together:default"],
+    ["huggingface:nvidia", "huggingface:together"],
   );
   assert.equal(out[1].endpoints.length, 1);
 });
