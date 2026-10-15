@@ -28,7 +28,7 @@ const en: TranslationTree = {
     columns: {
       product: "Product",
       forAgents: "For Agents",
-      developers: "Developers",
+      community: "Community",
       magi: "MAGI",
     },
     brandCaption: "Discover AI models, compare provider options, and generate configurations for supported AI gateways.",

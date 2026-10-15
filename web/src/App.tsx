@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
+import { ExternalLink } from "lucide-react";
 import { MagiLockup } from "@tokyo3rdhq/magi-design-system";
 import { UtilityBar } from "./components/UtilityBar";
 import { useI18n } from "./I18nProvider";
@@ -104,7 +105,7 @@ export function App() {
             </ul>
           </div>
           <div className="tfi-footer-col">
-            <h4>{ts("footer.columns.developers")}</h4>
+            <h4>{ts("footer.columns.community")}</h4>
             <ul>
               <li>
                 <a
@@ -114,6 +115,18 @@ export function App() {
                   rel="noreferrer"
                 >
                   GitHub
+                  <ExternalLink size={11} aria-hidden="true" />
+                </a>
+              </li>
+              <li>
+                <a
+                  className="tfi-footer-ext"
+                  href="https://discord.gg/gTGnvTdyec"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Discord
+                  <ExternalLink size={11} aria-hidden="true" />
                 </a>
               </li>
               <li>

@@ -30,7 +30,7 @@ const zh: TranslationTree = {
     columns: {
       product: "产品",
       forAgents: "对于 Agent",
-      developers: "开发者",
+      community: "社区",
       magi: "MAGI",
     },
     brandCaption: "发现 AI 模型、比较供应商选项，生成支持 AI 网关的配置",
