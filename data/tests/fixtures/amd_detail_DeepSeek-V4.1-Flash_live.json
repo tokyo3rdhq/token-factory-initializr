@@ -11,9 +11,9 @@
     ],
     "sort_order": 1,
     "pricing": {
-      "prompt": "1.4e-7",
-      "completion": "2.8e-7",
-      "input_cache_read": "2.8e-9"
+      "prompt": "2.8e-7",
+      "completion": "5.6e-7",
+      "input_cache_read": "5.6e-9"
     },
     "quickstart_template": "",
     "display_config": {
@@ -46,9 +46,9 @@
         "providerId": "self-dploy",
         "externalId": "DeepSeek-V4.1-Flash",
         "pricing": {
-          "prompt": "1.4e-7",
-          "completion": "2.8e-7",
-          "input_cache_read": "2.8e-9"
+          "prompt": "2.8e-7",
+          "completion": "5.6e-7",
+          "input_cache_read": "5.6e-9"
         },
         "streaming": true,
         "vision": true,
@@ -126,23 +126,23 @@
           {
             "key": "input",
             "label": "Input",
-            "amount": "0.14",
-            "unit": "pts / 1M tokens",
-            "value": "0.14 pts / 1M tokens"
-          },
-          {
-            "key": "output",
-            "label": "Output",
             "amount": "0.28",
             "unit": "pts / 1M tokens",
             "value": "0.28 pts / 1M tokens"
           },
           {
+            "key": "output",
+            "label": "Output",
+            "amount": "0.56",
+            "unit": "pts / 1M tokens",
+            "value": "0.56 pts / 1M tokens"
+          },
+          {
             "key": "cache_read",
             "label": "Cache read",
-            "amount": "0.0028",
+            "amount": "0.0056",
             "unit": "pts / 1M tokens",
-            "value": "0.0028 pts / 1M tokens"
+            "value": "0.0056 pts / 1M tokens"
           }
         ]
       },

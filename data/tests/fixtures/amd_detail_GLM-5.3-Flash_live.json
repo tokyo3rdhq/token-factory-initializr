@@ -11,9 +11,9 @@
     ],
     "sort_order": 4,
     "pricing": {
-      "prompt": "1.5e-7",
-      "completion": "5e-7",
-      "input_cache_read": "3e-8"
+      "prompt": "2.8e-7",
+      "completion": "5.6e-7",
+      "input_cache_read": "5.6e-9"
     },
     "quickstart_template": "",
     "display_config": {
@@ -47,9 +47,9 @@
         "providerId": "self-dploy",
         "externalId": "GLM-5.3-Flash",
         "pricing": {
-          "prompt": "1.5e-7",
-          "completion": "5e-7",
-          "input_cache_read": "3e-8"
+          "prompt": "2.8e-7",
+          "completion": "5.6e-7",
+          "input_cache_read": "5.6e-9"
         },
         "streaming": true,
         "vision": false,
@@ -128,23 +128,23 @@
           {
             "key": "input",
             "label": "Input",
-            "amount": "0.15",
+            "amount": "0.28",
             "unit": "pts / 1M tokens",
-            "value": "0.15 pts / 1M tokens"
+            "value": "0.28 pts / 1M tokens"
           },
           {
             "key": "output",
             "label": "Output",
-            "amount": "0.5",
+            "amount": "0.56",
             "unit": "pts / 1M tokens",
-            "value": "0.5 pts / 1M tokens"
+            "value": "0.56 pts / 1M tokens"
           },
           {
             "key": "cache_read",
             "label": "Cache read",
-            "amount": "0.03",
+            "amount": "0.0056",
             "unit": "pts / 1M tokens",
-            "value": "0.03 pts / 1M tokens"
+            "value": "0.0056 pts / 1M tokens"
           }
         ]
       },
