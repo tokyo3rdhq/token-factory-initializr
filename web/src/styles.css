@@ -10,7 +10,26 @@
  * override propagates automatically.
  * ============================================================ */
 
+/* ---------- Box-sizing guard ---------- */
+/* The design-system reset declares border-box under @layer magi.reset,
+ * but no layout-layer rule re-asserts it on .magi-container. Anything
+ * that computes content-box then makes width:100% + inline padding
+ * overflow the viewport (right edge clipped). Product-scope, unlayered
+ * rules win over every @layer, so enforce border-box here. */
+[data-magi-app],
+[data-magi-app] *,
+[data-magi-app] *::before,
+[data-magi-app] *::after {
+  box-sizing: border-box;
+}
+
 /* ---------- CSS custom properties ---------- */
+/* Guard against stray horizontal overflow (e.g. wide code blocks or
+ * long model ids) without breaking the sticky topbar: `clip` does
+ * not create a scroll container the way `hidden` does. */
+body {
+  overflow-x: clip;
+}
 :root {
   --tfi-topbar-offset: 44px;
 }
@@ -1029,29 +1048,38 @@
 
 /* ----- Mobile ----- */
 @media (max-width: 640px) {
-  /* Topbar — stack brand / nav / utility vertically so the brand
-   * "Token Factory Initializr" doesn't collide with the nav links on
-   * narrow viewports. The inner keeps the constrained max-width so
-   * the utility row stays right-aligned. */
+  /* Two-row mobile topbar: [brand ............ utility] / [nav links]
+   * No absolute positioning, no overlap, no horizontal clipping. */
   .tfi-topbar-inner {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
     height: auto;
     gap: var(--magi-space-2);
     padding: var(--magi-space-2) var(--magi-space-4);
   }
   .tfi-brand {
-    justify-content: space-between;
-    width: 100%;
+    flex: 1;
+    min-width: 0;
+    justify-content: flex-start;
+    gap: var(--magi-space-2);
   }
-  .tfi-brand-product { display: none; }
+  .tfi-brand-product-link {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .tfi-nav {
+    position: static;
+    transform: none;
     width: 100%;
-    justify-content: space-around;
-    gap: var(--magi-space-1);
+    order: 3;
+    justify-content: center;
+    gap: var(--magi-space-4);
   }
-  .tfi-nav-link { font-size: 11px; padding: 0 2px; }
-  .tfi-topbar-utility { justify-content: flex-end; }
+  .tfi-topbar-utility {
+    flex-shrink: 0;
+    justify-content: flex-end;
+  }
 
   /* Hero — smaller typography on phone widths. */
   .tfi-page-hero { margin-bottom: var(--magi-space-4); }
