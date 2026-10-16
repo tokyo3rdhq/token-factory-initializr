@@ -132,11 +132,11 @@ export function shouldUseLocalFixtures(envFlag: string | undefined): boolean {
 // the same providers from the default /api/models listing.
 // ---------------------------------------------------------------------------
 
-export const INTERNAL_DATA_SOURCES: ReadonlySet<string> = new Set([
-  "openrouter",
-  "models_dev",
-]);
+// Static string-keyed membership table — Record per ts-set-map rule.
+const INTERNAL_DATA_SOURCES: Record<string, true> = {
+  models_dev: true,
+};
 
 export function isInternalDataSource(ds: string): boolean {
-  return INTERNAL_DATA_SOURCES.has(ds);
+  return INTERNAL_DATA_SOURCES[ds] === true;
 }

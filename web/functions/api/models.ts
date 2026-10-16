@@ -51,13 +51,11 @@ export async function onRequestGet(context: {
   }
 
   // No filter — return every active (data_source, provider) catalog
-  // EXCEPT internal cross-source providers (openrouter, models_dev).
-  // Those power the pipeline's normalize-stage enrichment of the
-  // primary providers; they are NOT consumer-facing model catalogs
-  // and are excluded from the default listing per docs decision.
-  // Callers that explicitly request an internal data_source via
-  // ?provider=<ds>/<provider> still get the catalog (it's how the
-  // Browse UI debugs cross-source signals during development).
+  // EXCEPT models_dev (cross-source enrichment only). openrouter and
+  // kilo are consumer-facing catalogs now and appear here by default.
+  // Callers that explicitly request models_dev via
+  // ?provider=<ds>/<provider> still get its catalog for development
+  // debugging of cross-source signals.
   const pairs = await listAllProviderPairs(context.env);
   const consumerPairs = pairs.filter((p) => !isInternalDataSource(p.data_source));
   const results = await Promise.all(

@@ -10,11 +10,11 @@
 // primary source means it shows up in /api/models default listings,
 // /api/v1/models listings, and the Browse hero subhead.
 
-export const INTERNAL_DATA_SOURCES: ReadonlySet<string> = new Set([
-  "openrouter",  // cross-source enrichment only; provider = openrouter
-  "models_dev",  // cross-source enrichment only; provider = models_dev
-]);
+// Static string-keyed membership table — Record per ts-set-map rule.
+const INTERNAL_DATA_SOURCES: Record<string, true> = {
+  models_dev: true, // cross-source enrichment only; provider = models_dev
+};
 
 export function isInternalDataSource(ds: string): boolean {
-  return INTERNAL_DATA_SOURCES.has(ds);
+  return INTERNAL_DATA_SOURCES[ds] === true;
 }
