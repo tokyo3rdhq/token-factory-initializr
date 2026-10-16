@@ -345,6 +345,7 @@ const DATA_SOURCE_BASE_URLS: Readonly<Record<string, string>> = {
   huggingface: "https://router.huggingface.co/v1",
   openrouter: "https://openrouter.ai/api/v1",
   groq: "https://api.groq.com/openai/v1",
+  kilo: "https://api.kilo.ai/api/gateway",
 };
 
 /** Single source of truth for the per-provider display name +
@@ -452,6 +453,12 @@ const PROVIDER_METADATA: Readonly<Record<string, ProviderMetadata>> = {
     protocols: ["openai-compatible"],
     nativeBaseUrl: "https://api.featherless.ai/v1",
     documentationUrl: "https://featherless.ai",
+  },
+  kilo: {
+    displayName: "Kilo AI",
+    protocols: ["openai-compatible"],
+    nativeBaseUrl: "https://api.kilo.ai/api/gateway",
+    documentationUrl: "https://kilo.ai/docs/gateway",
   },
 };
 

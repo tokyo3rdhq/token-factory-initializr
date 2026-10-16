@@ -545,3 +545,32 @@ test("toPublicProvider does NOT include a base_url (provider has no native URL f
   assert.equal((p as Record<string, unknown>).base_url, undefined);
   assert.equal((p as Record<string, unknown>).nativeBaseUrl, undefined);
 });
+
+// ---------------------------------------------------------------------------
+// Kilo registry entries — regression for the missing base_url /
+// protocols / name / documentation_url on data_source=kilo. Adding a
+// new data source requires BOTH a DATA_SOURCE_BASE_URLS entry and a
+// PROVIDER_METADATA entry; these tests pin that contract.
+// ---------------------------------------------------------------------------
+
+test("resolveBaseUrl: data_source=kilo uses the Kilo AI gateway", () => {
+  assert.equal(
+    resolveBaseUrl("kilo", "kilo"),
+    "https://api.kilo.ai/api/gateway",
+  );
+});
+
+test("toPublicEndpoint kilo:kilo carries base_url + openai-compatible protocol", () => {
+  const ep = toPublicEndpoint("kilo", "kilo", ["kilo-auto/efficient"]);
+  assert.equal(ep.id, "kilo:kilo");
+  assert.equal(ep.base_url, "https://api.kilo.ai/api/gateway");
+  assert.equal(ep.protocol, "openai-compatible");
+});
+
+test("toPublicProvider kilo carries name, protocols, documentation_url", () => {
+  const p = toPublicProvider("kilo", "kilo");
+  assert.equal(p.id, "kilo");
+  assert.equal(p.name, "Kilo AI");
+  assert.deepEqual(p.protocols, ["openai-compatible"]);
+  assert.equal(p.documentation_url, "https://kilo.ai/docs/gateway");
+});
