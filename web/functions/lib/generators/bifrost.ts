@@ -105,6 +105,7 @@ export const PROVIDER_API_KEY_ENV: Record<string, string> = {
   huggingface: "HUGGING_FACE_API_KEY",
   amd: "AMD_API_KEY",
   nvidia: "NVIDIA_API_KEY",
+  kilo: "KILO_API_KEY",
 };
 
 /** Providers Bifrost has a built-in type for. Anything outside this
@@ -140,14 +141,15 @@ const CUSTOM_OPENAI_BASE_URLS: Record<string, string> = {
   // official AMD Radeon Cloud docs (amd-aim.github.io/radeon-cloud-docs
   // Quickstart).
   amd: "https://developer.amd.com.cn/radeon/api/v1",
+  // Kilo AI — OpenAI-compatible gateway (kilo.ai/docs/gateway),
+  // same base URL used by the TFI public API (projection.ts).
+  kilo: "https://api.kilo.ai/api/gateway",
 };
 
-/** Per-provider ordering for stable JSON output. Bifrost doesn't
- *  mandate ordering, but a stable order keeps the generated config
- *  diff-friendly across runs. */
 const PROVIDER_ORDER = [
   "nvidia",
   "amd",
+  "kilo",
   "huggingface",
   "groq",
   "openrouter",
