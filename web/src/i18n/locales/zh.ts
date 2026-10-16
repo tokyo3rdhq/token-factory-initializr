@@ -35,8 +35,7 @@ const zh: TranslationTree = {
     },
     brandCaption: "发现 AI 模型、比较供应商选项，生成支持 AI 网关的配置",
     copyright: "© 2026 MAGI",
-    provenance:
-      "Endpoint 来源:NVIDIA NIM · AMD Radeon AI · Hugging Face Inference。生成的配置 5 分钟后过期 —— 这是设计如此。",
+    provenance: "",
   },
 
   home: {

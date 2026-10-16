@@ -164,9 +164,8 @@ export function App() {
             rel="noreferrer"
             className="tfi-footer-meta-magi"
           >
-            {ts("footer.copyright")}
+            © 2026 MAGI. All rights reserved.
           </a>
-          <span>{ts("footer.provenance")}</span>
         </div>
       </footer>
     </div>

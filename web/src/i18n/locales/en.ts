@@ -33,8 +33,7 @@ const en: TranslationTree = {
     },
     brandCaption: "Discover AI models, compare provider options, and generate configurations for supported AI gateways.",
     copyright: "© 2026 MAGI",
-    provenance:
-      "Endpoints from NVIDIA NIM · AMD Radeon AI · Hugging Face Inference. Generated configs expire in 5 minutes — by design.",
+    provenance: "",
   },
 
   home: {
