@@ -290,11 +290,11 @@ this mapping:
 
 | \`data_source\` | \`litellm_params.model\`                |
 | ------------- | ------------------------------------- |
-| \`nvidia\`      | \`nvidia_nim/\${model_id}`              |
-| \`amd\`         | \`openai/\${model_id}`                  |
-| \`kilo\`      | \`openai/\${model_id}`                  |
-| \`openrouter\` | \`openrouter/\${model_id}`              |
-| \`huggingface\` | \`huggingface/\${provider}/\${model_id}`    |
+| \`nvidia\` | \`nvidia_nim/\${model_id}\` |
+| \`amd\` | \`openai/\${model_id}\` |
+| \`kilo\` | \`openai/\${model_id}\` |
+| \`openrouter\` | \`openrouter/\${model_id}\` |
+| \`huggingface\` | \`huggingface/\${provider}/\${model_id}\` |
 Where:
 
 - \`\${model_id}\` is the model's canonical \`model_id\` returned by the TFI
