@@ -47,4 +47,16 @@ describe("litellm: model prefix per data source", () => {
     const yaml = generateLiteLLM({ models: [ep] });
     assert.match(yaml, /model:\s*'huggingface\/huggingface\/deepseek-ai\/deepseek-v4.1-flash'/);
   });
+
+  it("kilo endpoint uses 'openai' prefix in model field", () => {
+    const ep = makeEp({ data_source: "kilo", provider: "kilo", model_id: "kilo-auto/glm-5-3" });
+    const yaml = generateLiteLLM({ models: [ep] });
+    assert.match(yaml, /model:\s*'openai\/kilo-auto\/glm-5-3'/);
+  });
+
+  it("openrouter endpoint uses 'openrouter' prefix in model field", () => {
+    const ep = makeEp({ data_source: "openrouter", provider: "openrouter", model_id: "deepseek/deepseek-r1" });
+    const yaml = generateLiteLLM({ models: [ep] });
+    assert.match(yaml, /model:\s*'openrouter\/deepseek\/deepseek-r1'/);
+  });
 });

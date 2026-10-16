@@ -722,6 +722,14 @@ model_list:
     litellm_params:
       model: nvidia/google/gemma-4-31b-it
       api_key: os.environ/NVIDIA_API_KEY
+  - model_name: kilo-glm-5-3
+    litellm_params:
+      model: openai/kilo-auto/glm-5-3
+      api_key: os.environ/KILO_API_KEY
+  - model_name: openrouter-deepseek-r1
+    litellm_params:
+      model: openrouter/deepseek/deepseek-r1
+      api_key: os.environ/OPENROUTER_API_KEY
 ```
 
 Never store real API keys.
@@ -736,6 +744,17 @@ os.environ/HF_TOKEN
 ```
 
 Provider-specific authentication should be configurable later.
+## Model ID Mapping Rules
+
+When generating LiteLLM configurations, each data source maps its `model_id` to a provider-specific prefix:
+
+- **nvidia** → `nvidia/<model_id>` (e.g., `nvidia/google/gemma-4-31b-it`)
+- **amd** → `openai/<model_id>` (e.g., `openai/meta-llama/Meta-Llama-3.1-8B-Instruct`)
+- **huggingface** → `huggingface/<provider>/<model_id>` (e.g., `huggingface/together/meta-llama/Llama-3.3-70B-Instruct`)
+- **kilo** → `openai/<model_id>` (e.g., `openai/kilo-auto/glm-5-3`)
+- **openrouter** → `openrouter/<model_id>` (e.g., `openrouter/deepseek/deepseek-r1`)
+
+The prefix is followed by the raw `model_id` from the catalog. See `web/functions/lib/generators/litellm.ts:DATA_SOURCE_PREFIX` for the canonical implementation.
 
 ---
 

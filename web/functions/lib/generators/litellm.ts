@@ -26,12 +26,16 @@ const API_KEY_ENV: Record<string, string> = {
   nvidia: "NVIDIA_API_KEY",
   amd: "AMD_API_KEY",
   huggingface: "HUGGING_FACE_API_KEY",
+  kilo: "KILO_API_KEY",
+  openrouter: "OPENROUTER_API_KEY",
 };
 /** LiteLLM model-field prefix keyed by data source. */
 const DATA_SOURCE_PREFIX: Record<string, string> = {
   nvidia: "nvidia_nim",
   amd: "openai",
   huggingface: "huggingface",
+  kilo: "openai",
+  openrouter: "openrouter",
 };
 function litellmModelPrefix(ep: ModelEndpoint): string {
   const prefix = DATA_SOURCE_PREFIX[ep.data_source] ?? ep.data_source;
