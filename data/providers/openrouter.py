@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+from data.models.source_url import normalize_source_url
 
 try:
     import requests
@@ -85,6 +86,12 @@ def _build_raw_observation(data: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(reasoning, dict):
         reasoning = {}
 
+    pricing = data.get("pricing") or {}
+    if not isinstance(pricing, dict):
+        pricing = {}
+
+    source_url = normalize_source_url(f"https://openrouter.ai/models/{model_id}")
+
     return {
         "provider": "openrouter",
         "data_source": "openrouter",
@@ -93,6 +100,7 @@ def _build_raw_observation(data: dict[str, Any]) -> dict[str, Any]:
         "description": data.get("description"),
         "architecture": architecture,
         "context_length": data.get("context_length"),
+        "pricing": pricing,
         "metadata": {
             # Pass these through so normalize_capabilities can read
             # them when this observation is merged into an endpoint.
@@ -103,6 +111,7 @@ def _build_raw_observation(data: dict[str, Any]) -> dict[str, Any]:
             "hugging_face_id": data.get("hugging_face_id"),
             "top_provider": data.get("top_provider"),
         },
+        "source_url": source_url,
     }
 
 

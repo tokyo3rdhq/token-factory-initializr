@@ -1,0 +1,78 @@
+{
+  "data": [
+    {
+      "id": "kilo-auto/free",
+      "name": "Kilo Auto Free",
+      "description": "Automatic routing to free models",
+      "architecture": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "context_length": 128000,
+      "pricing": {
+        "prompt": "0",
+        "completion": "0",
+        "discount": 0
+      },
+      "supported_parameters": [
+        "temperature"
+      ],
+      "isFree": true,
+      "top_provider": {
+        "context_length": 128000
+      }
+    },
+    {
+      "id": "stealth/glyph-cluster",
+      "name": "Glyph Cluster",
+      "description": "Specialized glyph model",
+      "architecture": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "context_length": 32000,
+      "pricing": {
+        "prompt": "0.000000000000",
+        "completion": "0.000000000000",
+        "discount": 0
+      },
+      "supported_parameters": [],
+      "isFree": true,
+      "top_provider": {
+        "context_length": 32000
+      }
+    },
+    {
+      "id": "paid/model",
+      "name": "Paid Model",
+      "description": "Should be filtered out",
+      "architecture": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "context_length": 32000,
+      "pricing": {
+        "prompt": "0.01",
+        "completion": "0.02",
+        "discount": 0
+      },
+      "supported_parameters": [],
+      "isFree": false,
+      "top_provider": {
+        "context_length": 32000
+      }
+    }
+  ]
+}

@@ -97,7 +97,7 @@ def test_snapshot_groups_by_data_source_and_provider():
         _mk_ep("huggingface", "zai-org", "zai-org/glm"),
     ]
     desired = build_desired_state(endpoints)
-    assert sorted(desired["data_source_order"]) == ["amd", "huggingface", "nvidia"]
+    assert sorted(desired["data_source_order"]) == ["amd", "huggingface", "kilo", "nvidia", "openrouter"]
     assert desired["data_sources"]["nvidia"]["provider_order"] == ["nvidia"]
     assert desired["data_sources"]["amd"]["provider_order"] == ["amd"]
     assert sorted(desired["data_sources"]["huggingface"]["provider_order"]) == [
@@ -109,7 +109,7 @@ def test_snapshot_groups_by_data_source_and_provider():
 
 def test_snapshot_emits_every_known_source_even_when_empty():
     desired = build_desired_state([])
-    assert sorted(desired["data_source_order"]) == ["amd", "huggingface", "nvidia"]
+    assert sorted(desired["data_source_order"]) == ["amd", "huggingface", "kilo", "nvidia", "openrouter"]
     for ds in desired["data_source_order"]:
         assert desired["data_sources"][ds]["provider_order"] == []
 
@@ -126,7 +126,9 @@ def test_snapshot_stage_populates_artifact():
     assert sorted(out.artifacts["desired_state"]["data_source_order"]) == [
         "amd",
         "huggingface",
+        "kilo",
         "nvidia",
+        "openrouter",
     ]
 
 

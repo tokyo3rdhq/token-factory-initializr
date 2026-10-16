@@ -179,7 +179,7 @@ def test_filter_free_unknown_provider_passthrough():
 
 def test_provider_free_filters_registry():
     """All three expected providers must be registered."""
-    assert set(PROVIDER_FREE_FILTERS) == {"nvidia", "amd", "huggingface"}
+    assert set(PROVIDER_FREE_FILTERS) == {"nvidia", "amd", "huggingface", "openrouter", "kilo"}
 
 
 def test_filter_free_handles_empty_input():

@@ -130,7 +130,7 @@ def provider_manifest_key(data_source: str) -> str:
 # pipeline. Used by the snapshot stage to ensure every source emits a
 # provider manifest, even if it had zero providers in the run (so
 # consumers can distinguish "no providers" from "no data yet").
-KNOWN_DATA_SOURCES: tuple[str, ...] = ("nvidia", "amd", "huggingface")
+KNOWN_DATA_SOURCES: tuple[str, ...] = ("nvidia", "amd", "huggingface", "openrouter", "kilo")
 
 # Cloudflare REST API base (v4).
 _API_BASE = "https://api.cloudflare.com/client/v4"

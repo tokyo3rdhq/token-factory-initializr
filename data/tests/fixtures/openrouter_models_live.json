@@ -1,0 +1,53 @@
+{
+  "data": [
+    {
+      "id": "google/gemma-4-26b-a4b-it:free",
+      "name": "Gemma 4 26B a4b IT",
+      "description": "Free version of Gemma 4",
+      "architecture": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "context_length": 131072,
+      "pricing": {
+        "prompt": "0",
+        "completion": "0"
+      },
+      "supported_parameters": [
+        "temperature",
+        "top_p"
+      ],
+      "isFree": true,
+      "top_provider": {
+        "context_length": 131072
+      }
+    },
+    {
+      "id": "paid/model",
+      "name": "OR Paid",
+      "description": "Should be filtered out",
+      "architecture": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "context_length": 32000,
+      "pricing": {
+        "prompt": "0.1",
+        "completion": "0.2"
+      },
+      "supported_parameters": [],
+      "isFree": false,
+      "top_provider": {
+        "context_length": 32000
+      }
+    }
+  ]
+}

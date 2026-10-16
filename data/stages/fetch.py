@@ -43,6 +43,7 @@ def _build_default_registry() -> List[Tuple[str, Callable[[], List[dict]]]]:
     from data.providers.models_dev import fetch_models_dev_models
     from data.providers.nvidia import fetch_catalog_page
     from data.providers.openrouter import fetch_openrouter_models
+    from data.providers.kilo import fetch_kilo_models
 
     return [
         ("nvidia", fetch_catalog_page),
@@ -50,6 +51,7 @@ def _build_default_registry() -> List[Tuple[str, Callable[[], List[dict]]]]:
         ("huggingface", fetch_huggingface_models),
         ("openrouter", fetch_openrouter_models),
         ("models_dev", fetch_models_dev_models),
+        ("kilo", fetch_kilo_models),
     ]
 
 
@@ -160,6 +162,9 @@ class FetchStage(Stage):
         # the matching identity-matcher path.
         context.data["openrouter_models"] = fetched.get("openrouter", [])
         context.data["models_dev_models"] = fetched.get("models_dev", [])
+        # Kilo is now a production data source (docs/tfi_kiloai_integration_and_openrouter_promotion_implementation.md):
+        # its observations flow into normalize_endpoints as catalog records.
+        context.data["kilo_models"] = fetched.get("kilo", [])
         # Pre-fetch canonical NIM model ids so ValidateStage can check
         # membership without re-hitting the API.
         context.data["nvidia_canonical_ids"] = _fetch_nim_canonical_ids()

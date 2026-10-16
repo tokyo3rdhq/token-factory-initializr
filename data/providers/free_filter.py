@@ -83,11 +83,71 @@ def filter_huggingface_free(endpoints: List[dict]) -> List[dict]:
 # ---------------------------------------------------------------------------
 
 
+
+
+
+
+def filter_openrouter_free(endpoints: List[dict]) -> List[dict]:
+    """Drop OpenRouter endpoints whose pricing contains non-zero values.
+
+    The rule: a model is considered free when **every** value in its
+    ``pricing`` dict is numerically zero (string "0", int 0, float 0.0,
+    or numeric-zero strings like "0.000000000000").
+    """
+    from decimal import Decimal, InvalidOperation
+
+    def _is_zero(v):
+        try:
+            return Decimal(str(v)) == 0
+        except InvalidOperation:
+            return False
+
+    kept = []
+    for ep in endpoints:
+        pricing = ep.get("pricing")
+        if not pricing:
+            # No pricing field → not qualifying as free
+            continue
+        if all(_is_zero(v) for v in pricing.values()):
+            ep["free"] = True
+            kept.append(ep)
+    return kept
+
+
+def filter_kilo_free(endpoints: List[dict]) -> List[dict]:
+    """Drop Kilo endpoints whose pricing contains non-zero values.
+
+    The rule: a model is considered free when **every** value in its
+    ``pricing`` dict is numerically zero (string "0", int 0, float 0.0,
+    or numeric-zero strings like "0.000000000000").
+    """
+    from decimal import Decimal, InvalidOperation
+
+    def _is_zero(v):
+        try:
+            return Decimal(str(v)) == 0
+        except InvalidOperation:
+            return False
+
+    kept = []
+    for ep in endpoints:
+        pricing = ep.get("pricing")
+        if not pricing:
+            # No pricing field → not qualifying as free (per spec)
+            continue
+        if all(_is_zero(v) for v in pricing.values()):
+            # Stamp free flag so downstream stages can use it
+            ep["free"] = True
+            kept.append(ep)
+    return kept
+
 # Each provider's filter. New providers register here.
 PROVIDER_FREE_FILTERS: Dict[str, Callable[[List[Any]], List[Any]]] = {
     "nvidia": filter_nvidia_free,
     "amd": filter_amd_free,
     "huggingface": filter_huggingface_free,
+    "kilo": filter_kilo_free,
+    "openrouter": filter_openrouter_free,
 }
 
 

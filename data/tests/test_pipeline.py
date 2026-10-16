@@ -120,7 +120,7 @@ def test_default_pipeline_does_not_import_pipeline_in_misplaced_way():
 
 def test_provider_registry_lists_all_providers():
     assert {n for n, _ in PROVIDER_FETCHERS} == {
-        "nvidia", "amd", "huggingface", "openrouter", "models_dev",
+        "nvidia", "amd", "huggingface", "openrouter", "models_dev", "kilo"
     }
 
 
