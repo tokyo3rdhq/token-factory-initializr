@@ -240,6 +240,21 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
     raw_id = m["id"]
     clean_id = _strip_gateway_prefix(raw_id)
 
+    # Rich human-facing description. AMD exposes three copies:
+    #   model.description            — v1/models placeholder
+    #                                 ("Dynamic aux-router service
+    #                                 managed by Model Ops")
+    #   model.token_factory.description   — tokenfactory page copy
+    #   model.display_config.description   — same copy, detail page
+    # The tokenfactory page copy is the authoritative marketing
+    # description; prefer it over the v1 placeholder so models like
+    # Clef / OmniVoice / d3 / d3-flash get real descriptions.
+    desc = (
+        tf.get("description")
+        or m.get("display_config", {}).get("description")
+        or m.get("description")
+    )
+
     # AMD does not expose a per-model detail URL on its public
     # developer site — the public Radeon catalog page lists every
     # free model in a single document. Per docs §4 we surface the
@@ -256,7 +271,7 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
         "free": is_free,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "name": m.get("label") or m.get("model") or clean_id,
-        "description": m.get("description"),
+        "description": desc,
         "source_url": amd_source_url,
         # Legacy capabilities shape — AMD's TFI-authored
         # ``derive_use_case`` produces a single string here. The

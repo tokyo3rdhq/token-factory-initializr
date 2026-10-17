@@ -311,8 +311,63 @@ def test_build_endpoint_dict_keeps_id_without_known_prefix():
     assert result["model_id"] == "no-prefix-here"
 
 
+def test_build_endpoint_dict_prefers_token_factory_description():
+    """token_factory.description is the authoritative marketing copy.
+
+    model.description may carry a v1/models placeholder ("Dynamic
+    aux-router service managed by Model Ops"); the tokenfactory detail
+    copy is richer. Regression test for the Clef / OmniVoice / d3 /
+    d3-flash placeholder-description bug.
+    """
+    detail = {
+        "model": {
+            "id": "model_gateway:Clef",
+            "label": "Clef",
+            "output": ["text"],
+            "description": "Dynamic aux-router service managed by Model Ops",
+            "token_factory": {
+                "status": {"key": "free_endpoint"},
+                "capability": {"key": "decision"},
+                "publisher": {"name": "Radeon Cloud"},
+                "description": "Cloudflare's 27B decision model",
+            },
+            "display_config": {
+                "description": "Display-config description copy",
+            },
+            "provider_pricing": [{}],
+            "context_length": 0,
+        }
+    }
+    result = build_endpoint_dict(detail)
+    assert result["description"] == "Cloudflare's 27B decision model"
+
+
+def test_build_endpoint_dict_falls_back_to_display_config_description():
+    """No token_factory.description → use display_config.description."""
+    detail = {
+        "model": {
+            "id": "model_gateway:X",
+            "label": "X",
+            "output": ["text"],
+            "description": "Placeholder copy",
+            "token_factory": {
+                "status": {"key": "free_endpoint"},
+                "capability": {"key": "chat"},
+                "publisher": {"name": "AMD"},
+            },
+            "display_config": {
+                "description": "Display-config description copy",
+            },
+            "provider_pricing": [{}],
+            "context_length": 4096,
+        }
+    }
+    result = build_endpoint_dict(detail)
+    assert result["description"] == "Display-config description copy"
+
+
 def test_build_endpoint_dict_pulls_description_from_model():
-    """description should come from model.description, not be hardcoded None."""
+    """model.description is the last-resort fallback."""
     detail = {
         "model": {
             "id": "model_gateway:X",
