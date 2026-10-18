@@ -21,7 +21,7 @@ const API_KEY_ENV: Record<string, string> = {
   kilo: "KILO_API_KEY",
   openrouter: "OPENROUTER_API_KEY",
 };
-/** LiteLLM model-field prefix keyed by data source. */
+/** LiteLLM model-field prefix keyed by data source (docs §1 Rule 2). */
 const DATA_SOURCE_PREFIX: Record<string, string> = {
   nvidia: "nvidia_nim",
   amd: "openai",
@@ -29,10 +29,33 @@ const DATA_SOURCE_PREFIX: Record<string, string> = {
   kilo: "openai",
   openrouter: "openrouter",
 };
+/** LiteLLM adapter prefix for decision models (docs §1 Rule 1). */
+const DECISION_PREFIX = "hosted_vllm";
+
+/**
+ * Decision-model detection per docs/tfi_litellm_configuration_generation_rules.md §1 Rule 1 + §3.
+ *
+ * A model is a decision model ONLY when its `architecture.output`
+ * declares the `decision` modality. Never infer it from the model
+ * name or from `reasoning`/`tools`/`structured_output` capabilities.
+ */
+export function isDecisionModel(ep: ModelEndpoint): boolean {
+  return ep.architecture?.output?.includes("decision") ?? false;
+}
+
+/**
+ * Resolve the LiteLLM model-field prefix for an endpoint.
+ *
+ * Rule 1 (precedence): decision models → `hosted_vllm`, regardless of
+ * `data_source`. Rule 2: otherwise the data-source mapping table, with
+ * the Hugging Face router requiring the inference provider in the path
+ * (`huggingface/<provider>/<model_id>`).
+ */
 function litellmModelPrefix(ep: ModelEndpoint): string {
+  if (isDecisionModel(ep)) {
+    return DECISION_PREFIX;
+  }
   const prefix = DATA_SOURCE_PREFIX[ep.data_source] ?? ep.data_source;
-  // The Hugging Face router requires the inference provider in the
-  // path: huggingface/<provider>/<model_id> (e.g. huggingface/together/…).
   return ep.data_source === "huggingface"
     ? `${prefix}/${ep.provider}`
     : prefix;
