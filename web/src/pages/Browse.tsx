@@ -577,7 +577,7 @@ function ModelRow({
         aria-label={`Select ${endpoint.model_id}`}
       />
       <Badge variant="neutral">{endpoint.provider}</Badge>
-      <span>
+      <div className="tfi-model-content">
         <span className="tfi-model-name-row">
           <span className="tfi-model-name">{endpoint.model_id}</span>
           {endpoint.source_url && (
@@ -622,22 +622,21 @@ function ModelRow({
         {endpoint.description && (
           <div className="tfi-model-desc">{endpoint.description}</div>
         )}
-      </span>
-      <span className="tfi-model-meta">
-        {endpoint.free && <Badge variant="success" dot>Free</Badge>}
-        {ctx && <Badge variant="warning">{ctx}</Badge>}
-        {hasChat && <Badge variant="accent">Chat</Badge>}
-        {hasVisionCap && <Badge variant="accent">Vision</Badge>}
-        {hasSpeech && <Badge variant="accent">Speech</Badge>}
-        {hasTranslation && <Badge variant="accent">Translation</Badge>}
-        {hasEmbedding && <Badge variant="accent">Embedding</Badge>}
-        {hasDecision && <Badge variant="accent">Decision</Badge>}
-        {hasTools && <Badge variant="neutral">Tools</Badge>}
-        {hasReasoningBadge && <Badge variant="neutral">Reasoning</Badge>}
-        {hasStructuredOutputBadge && <Badge variant="neutral">Structured output</Badge>}
-        {hasStreaming && <Badge variant="neutral">Streaming</Badge>}
-
-      </span>
+        <span className="tfi-model-meta">
+          {endpoint.free && <Badge variant="success" dot>Free</Badge>}
+          {ctx && <Badge variant="warning">{ctx}</Badge>}
+          {hasChat && <Badge variant="accent">Chat</Badge>}
+          {hasVisionCap && <Badge variant="accent">Vision</Badge>}
+          {hasSpeech && <Badge variant="accent">Speech</Badge>}
+          {hasTranslation && <Badge variant="accent">Translation</Badge>}
+          {hasEmbedding && <Badge variant="accent">Embedding</Badge>}
+          {hasDecision && <Badge variant="accent">Decision</Badge>}
+          {hasTools && <Badge variant="neutral">Tools</Badge>}
+          {hasReasoningBadge && <Badge variant="neutral">Reasoning</Badge>}
+          {hasStructuredOutputBadge && <Badge variant="neutral">Structured output</Badge>}
+          {hasStreaming && <Badge variant="neutral">Streaming</Badge>}
+        </span>
+      </div>
     </label>
   );
 }
