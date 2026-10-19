@@ -17,8 +17,8 @@
     },
     "quickstart_template": "",
     "display_config": {
-      "name": "DeepSeek-V4.1-Flash",
-      "description": "DeepSeek-V4.1-Flash served by the AMD GPU Cloud",
+      "name": "DeepSeek-V4.1-Flash-1017",
+      "description": "DeepSeek-V4.1-Flash-1017 served by the AMD GPU Cloud",
       "publisher": "DeepSeek",
       "publisher_mark": "D",
       "capability_key": "vision",
@@ -81,9 +81,9 @@
     "token_factory": {
       "section": "public_free",
       "source": "model_gateway",
-      "name": "DeepSeek-V4.1-Flash",
+      "name": "DeepSeek-V4.1-Flash-1017",
       "model": "DeepSeek-V4.1-Flash",
-      "description": "DeepSeek-V4.1-Flash served by the AMD GPU Cloud",
+      "description": "DeepSeek-V4.1-Flash-1017 served by the AMD GPU Cloud",
       "publisher": {
         "name": "DeepSeek",
         "mark": "D"

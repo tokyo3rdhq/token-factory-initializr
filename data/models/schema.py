@@ -108,18 +108,25 @@ class ModelEndpoint:
     # empty.
     architecture: Optional[dict[str, list[str]]] = None
 
-    # ``supported_features`` — endpoint-level interface/runtime features
-    # (docs/tfi_add_supported_features.md). Distinct from
+    # ``supported_parameters`` — endpoint-level interface/runtime
+    # parameters (docs/tfi_add_supported_parameters.md). Distinct from
     # ``capabilities`` (what the model can do) and from
-    # ``architecture`` (input/output data modalities). Vocabulary is
-    # closed: initially just ``"streaming"``. Populated ONLY from
-    # explicit source signals — e.g. AMD's
-    # ``provider_pricing[0].streaming`` boolean or an explicit
-    # ``stream`` entry in ``supported_parameters``. Missing/ambiguous
-    # source data leaves the list empty; absence is never confirmed
-    # support. Endpoint-scoped: a feature observed on one endpoint is
-    # never promoted to sibling endpoints of the same model.
-    supported_features: list[str] = field(default_factory=list)
+    # ``architecture`` (input/output data modalities). Named to match
+    # the upstream sources (AMD v1 / OpenRouter / HF router all expose
+    # ``supported_parameters``); the values are TFI-canonical tokens
+    # from a closed vocabulary: ``tool_calling`` / ``reasoning`` /
+    # ``structured_output`` / ``streaming`` (the first three migrated
+    # from ``capabilities`` on 2026-10-19). Populated ONLY from
+    # explicit source signals — e.g. AMD's ``providers[0].tools`` /
+    # ``provider_pricing[0].streaming`` booleans, HF's per-provider
+    # ``supports_tools`` / ``supports_structured_output``, or explicit
+    # ``tools`` / ``reasoning`` / ``structured_outputs`` / ``stream``
+    # tokens in the upstream ``supported_parameters`` lists.
+    # Missing/ambiguous source data leaves the list empty; absence is
+    # never confirmed support. Endpoint-scoped: a parameter observed
+    # on one endpoint is never promoted to sibling endpoints of the
+    # same model.
+    supported_parameters: list[str] = field(default_factory=list)
 
     # Lab / organization the model is attributed to (HF: ``owned_by``,
     # AMD: ``token_factory.publisher.name``, NVIDIA: empty). Kept as a

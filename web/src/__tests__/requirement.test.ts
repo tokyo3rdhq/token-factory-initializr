@@ -57,7 +57,8 @@ const NV_TEXT = ep({
   provider: "nvidia",
   model_id: "nvidia/text-8b",
   name: "Text 8B",
-  capabilities: { chat: true, tool_calling: true },
+  capabilities: { chat: true },
+  supported_parameters: ["tool_calling"],
   architecture: { input: ["text"], output: ["text"] },
   context_length: 131072,
 });

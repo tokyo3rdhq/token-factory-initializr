@@ -12,7 +12,7 @@ entry also exposes.
 
 from __future__ import annotations
 
-from data.process.normalize import normalize_capabilities
+from data.process.normalize import normalize_capabilities, normalize_supported_parameters
 
 
 def _amd_endpoint_dict(use_case: str = "chat") -> dict:
@@ -77,8 +77,11 @@ def test_amd_minicpm_picks_up_tool_calling_from_models_dev():
     })
     caps = endpoints[0].capabilities
     assert caps["chat"] is True  # from AMD use_case
-    assert caps["tool_calling"] is True  # from models.dev supported_parameters
-    assert caps["reasoning"] is True  # from models.dev supported_parameters
+    # tool_calling / reasoning live in supported_parameters now
+    # (migrated 2026-10-19) — promoted from models.dev tokens.
+    params = endpoints[0].supported_parameters
+    assert "tool_calling" in params  # from models.dev supported_parameters
+    assert "reasoning" in params  # from models.dev supported_parameters
 
 
 def test_amd_minicpm_unions_modalities_across_sources():
@@ -121,8 +124,7 @@ def test_amd_endpoint_with_no_cross_source_signals_unchanged():
     endpoints = normalize_endpoints([_amd_endpoint_dict()])
     caps = endpoints[0].capabilities
     assert caps["chat"] is True
-    assert caps.get("tool_calling", False) is False
-    assert caps.get("reasoning", False) is False
+    assert endpoints[0].supported_parameters == []
 
 
 def test_backward_compat_single_dict_still_works():
@@ -135,8 +137,14 @@ def test_backward_compat_single_dict_still_works():
         cross_source_signals=_md_observation(),
     )
     assert caps["chat"] is True
-    assert caps["tool_calling"] is True
-    assert caps["reasoning"] is True
+    params = normalize_supported_parameters(
+        "amd",
+        {"use_case": "chat"},
+        None,
+        cross_source_signals=_md_observation(),
+    )
+    assert "tool_calling" in params
+    assert "reasoning" in params
 
 
 def test_amd_context_length_native_provenance_not_overwritten():
@@ -221,9 +229,9 @@ def test_amd_slug_fallback_lookup_resolves_minicpm5_2b():
             "openbmb/minicpm5-2b": [_md_observation()],
         },
     )
-    caps = endpoints[0].capabilities
-    assert caps["tool_calling"] is True
-    assert caps["reasoning"] is True
+    params = endpoints[0].supported_parameters
+    assert "tool_calling" in params
+    assert "reasoning" in params
     # Description is only replaced at the enrich stage, not normalize;
     # verify normalize didn't drop the AMD description.
     assert endpoints[0].description == "Dynamic sglang-router service managed by Model Ops"

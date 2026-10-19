@@ -10,7 +10,7 @@ makes them part of the primary-source view of the model.
 
 from __future__ import annotations
 
-from data.process.normalize import normalize_capabilities
+from data.process.normalize import normalize_capabilities, normalize_supported_parameters
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +54,9 @@ def test_amd_use_case_chat_fused_with_or_vision():
 
 
 # ---------------------------------------------------------------------------
-# supported_parameters fusion (tool_calling, reasoning)
+# supported_parameters fusion (tool_calling, reasoning) — migrated from
+# capabilities on 2026-10-19, so these flows surface through
+# normalize_supported_parameters now.
 # ---------------------------------------------------------------------------
 
 
@@ -64,8 +66,8 @@ def test_nvidia_tool_calling_from_or_supported_parameters():
         "architecture": {"input": ["text"], "output": ["text"]},
         "metadata": {"supported_parameters": ["tools"]},
     }
-    out = normalize_capabilities("nvidia", {}, None, cross_source_signals=or_signals)
-    assert out["tool_calling"] is True
+    params = normalize_supported_parameters("nvidia", {}, None, cross_source_signals=or_signals)
+    assert "tool_calling" in params
 
 
 def test_nvidia_tool_calling_from_tool_choice():
@@ -73,8 +75,8 @@ def test_nvidia_tool_calling_from_tool_choice():
         "architecture": {"input": ["text"], "output": ["text"]},
         "metadata": {"supported_parameters": ["tool_choice"]},
     }
-    out = normalize_capabilities("nvidia", {}, None, cross_source_signals=or_signals)
-    assert out["tool_calling"] is True
+    params = normalize_supported_parameters("nvidia", {}, None, cross_source_signals=or_signals)
+    assert "tool_calling" in params
 
 
 def test_nvidia_reasoning_from_or_default_enabled():
@@ -85,8 +87,8 @@ def test_nvidia_reasoning_from_or_default_enabled():
             "reasoning": {"default_enabled": True},
         },
     }
-    out = normalize_capabilities("nvidia", {}, None, cross_source_signals=or_signals)
-    assert out["reasoning"] is True
+    params = normalize_supported_parameters("nvidia", {}, None, cross_source_signals=or_signals)
+    assert "reasoning" in params
 
 
 def test_nvidia_reasoning_from_or_supported_parameters():
@@ -94,8 +96,8 @@ def test_nvidia_reasoning_from_or_supported_parameters():
         "architecture": {"input": ["text"], "output": ["text"]},
         "metadata": {"supported_parameters": ["reasoning"]},
     }
-    out = normalize_capabilities("nvidia", {}, None, cross_source_signals=or_signals)
-    assert out["reasoning"] is True
+    params = normalize_supported_parameters("nvidia", {}, None, cross_source_signals=or_signals)
+    assert "reasoning" in params
 
 
 # ---------------------------------------------------------------------------
@@ -116,8 +118,10 @@ def test_no_cross_source_signals_unchanged_behavior():
     """When cross_source_signals is None, behavior matches the legacy path."""
     out = normalize_capabilities("nvidia", {"attributes": {"CHAT_MODALITY": "text2textDiffusion"}}, None)
     assert out["chat"] is True
-    assert out["tool_calling"] is False
     assert out["vision"] is False
+    assert normalize_supported_parameters(
+        "nvidia", {"attributes": {"CHAT_MODALITY": "text2textDiffusion"}}, None
+    ) == []
 
 
 def test_empty_cross_source_signals_unchanged_behavior():
@@ -128,4 +132,3 @@ def test_empty_cross_source_signals_unchanged_behavior():
         cross_source_signals={},
     )
     assert out["chat"] is True
-    assert out["tool_calling"] is False

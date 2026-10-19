@@ -17,22 +17,25 @@ import type { ModelEndpoint } from "./kv";
 import type { PublicModel } from "./projection";
 
 /** Allowed capability vocabulary (doc §12). Order is stable for
- *  diff-friendly error messages. */
+ *  diff-friendly error messages. The three interface/runtime keys
+ *  moved to ``KNOWN_SUPPORTED_PARAMETERS`` on 2026-10-19. */
 export const KNOWN_CAPABILITIES: ReadonlyArray<string> = [
   "chat",
   "vision",
   "speech",
   "embedding",
-  "reasoning",
-  "tool_calling",
-  "structured_output",
+  "translation",
   "decision",
 ];
 
-/** Allowed supported_features vocabulary
- *  (docs/tfi_add_supported_features.md §3.2). Fixed — an unknown
- *  value is a client error, same contract as capabilities. */
-export const KNOWN_SUPPORTED_FEATURES: ReadonlyArray<string> = [
+/** Allowed supported_parameters vocabulary
+ *  (docs/tfi_add_supported_parameters.md §3.2). Fixed — an unknown
+ *  value is a client error, same contract as capabilities. The three
+ *  interface keys migrated from capabilities on 2026-10-19. */
+export const KNOWN_SUPPORTED_PARAMETERS: ReadonlyArray<string> = [
+  "tool_calling",
+  "reasoning",
+  "structured_output",
   "streaming",
 ];
 
@@ -41,7 +44,7 @@ export interface ModelFilters {
   data_source?: string[];
   provider?: string[];
   capabilities?: string[];
-  supported_features?: string[];
+  supported_parameters?: string[];
 }
 
 /** Sentinel returned by ``parseFilters`` when a 400 is warranted. */
@@ -107,20 +110,20 @@ export function parseFilters(
     filters.capabilities = caps;
   }
 
-  const feats = splitCsv(params.get("supported_features"));
-  if (feats.length > 0) {
-    const unknown = feats.filter((f) => !KNOWN_SUPPORTED_FEATURES.includes(f));
+  const paramList = splitCsv(params.get("supported_parameters"));
+  if (paramList.length > 0) {
+    const unknown = paramList.filter((p) => !KNOWN_SUPPORTED_PARAMETERS.includes(p));
     if (unknown.length > 0) {
       return {
         error: {
-          message: `Unknown supported feature: ${unknown.join(", ")}. Allowed: ${KNOWN_SUPPORTED_FEATURES.join(", ")}.`,
+          message: `Unknown supported parameter: ${unknown.join(", ")}. Allowed: ${KNOWN_SUPPORTED_PARAMETERS.join(", ")}.`,
           type: "invalid_request_error",
-          param: "supported_features",
-          code: "invalid_supported_feature",
+          param: "supported_parameters",
+          code: "invalid_supported_parameter",
         },
       };
     }
-    filters.supported_features = feats;
+    filters.supported_parameters = paramList;
   }
 
   return filters;
@@ -145,9 +148,9 @@ export function filterEndpoints(
         }
       }
     }
-    if (filters.supported_features && filters.supported_features.length > 0) {
-      const have = Array.isArray(ep.supported_features) ? ep.supported_features : [];
-      for (const required of filters.supported_features) {
+    if (filters.supported_parameters && filters.supported_parameters.length > 0) {
+      const have = Array.isArray(ep.supported_parameters) ? ep.supported_parameters : [];
+      for (const required of filters.supported_parameters) {
         if (!have.includes(required)) {
           return false;
         }
@@ -177,9 +180,9 @@ export function filterPublicModels(
         }
       }
     }
-    if (filters.supported_features && filters.supported_features.length > 0) {
-      const have = Array.isArray(m.supported_features) ? m.supported_features : [];
-      for (const required of filters.supported_features) {
+    if (filters.supported_parameters && filters.supported_parameters.length > 0) {
+      const have = Array.isArray(m.supported_parameters) ? m.supported_parameters : [];
+      for (const required of filters.supported_parameters) {
         if (!have.includes(required)) {
           return false;
         }

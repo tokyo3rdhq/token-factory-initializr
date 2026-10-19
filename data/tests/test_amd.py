@@ -818,7 +818,7 @@ def test_build_endpoint_dict_uses_amd_catalog_level_source_url():
 
 
 # ---------------------------------------------------------------------------
-# supported_features: streaming (docs/tfi_add_supported_features.md §3.2)
+# supported_parameters: streaming (docs/tfi_add_supported_parameters.md §3.2)
 # ---------------------------------------------------------------------------
 
 
@@ -862,7 +862,7 @@ def test_build_endpoint_dict_missing_streaming_flag_stays_none():
 
 def test_normalize_endpoints_maps_streaming_metadata_to_feature():
     """End-to-end: AMD endpoint dict with metadata.streaming True
-    normalizes into supported_features == ["streaming"] on the
+    normalizes into supported_parameters == ["streaming"] on the
     canonical ModelEndpoint."""
     from data.process.normalize import normalize_endpoints
 
@@ -870,56 +870,56 @@ def test_normalize_endpoints_maps_streaming_metadata_to_feature():
         detail = json.load(f)
     raw = build_endpoint_dict(detail)
     eps = normalize_endpoints([raw])
-    assert eps[0].supported_features == ["streaming"]
+    assert eps[0].supported_parameters == ["streaming"]
 
 
 def test_normalize_endpoints_explicit_false_streaming_stays_empty():
-    """Explicit False → empty supported_features (unknown ≠ supported)."""
+    """Explicit False → empty supported_parameters (unknown ≠ supported)."""
     from data.process.normalize import normalize_endpoints
 
     with open(str(FIXTURES / "amd_detail_MinerU2.5-Pro_live.json"), encoding="utf-8") as f:
         detail = json.load(f)
     raw = build_endpoint_dict(detail)
     eps = normalize_endpoints([raw])
-    assert eps[0].supported_features == []
+    assert eps[0].supported_parameters == []
 
 
 def test_normalize_endpoints_missing_signal_never_fabricates_streaming():
     """No streaming signal anywhere (NVIDIA-style endpoint with empty
-    metadata) → supported_features stays empty. Missing ≠ true."""
+    metadata) → supported_parameters stays empty. Missing ≠ true."""
     from data.process.normalize import normalize_endpoints
 
     eps = normalize_endpoints([{"provider": "nvidia", "model_id": "x/y"}])
-    assert eps[0].supported_features == []
+    assert eps[0].supported_parameters == []
 
 
-def test_normalize_supported_features_cross_source_stream_parameter():
+def test_normalize_supported_parameters_cross_source_stream_parameter():
     """Cross-source observation with an explicit ``stream`` in
     supported_parameters promotes streaming when the primary source
     emitted no signal."""
-    from data.process.normalize import normalize_supported_features
+    from data.process.normalize import normalize_supported_parameters
 
-    assert normalize_supported_features(
+    assert normalize_supported_parameters(
         "nvidia",
         {},
-        [{"metadata": {"supported_parameters": ["stream", "tools"]}}],
-    ) == ["streaming"]
+        cross_source_signals=[{"metadata": {"supported_parameters": ["stream", "tools"]}}],
+    ) == ["tool_calling", "streaming"]
 
 
-def test_normalize_supported_features_primary_source_wins():
+def test_normalize_supported_parameters_primary_source_wins():
     """Primary source's explicit False blocks cross-source promotion —
     same primary-source-wins semantics as capability promotion."""
-    from data.process.normalize import normalize_supported_features
+    from data.process.normalize import normalize_supported_parameters
 
-    assert normalize_supported_features(
+    assert normalize_supported_parameters(
         "amd",
         {"streaming": False},
-        [{"metadata": {"supported_parameters": ["stream"]}}],
+        cross_source_signals=[{"metadata": {"supported_parameters": ["stream"]}}],
     ) == []
 
 
 # ---------------------------------------------------------------------------
-# decision capability (docs/tfi_add_supported_features.md §3.1)
+# decision capability (docs/tfi_add_supported_parameters.md §3.1)
 # ---------------------------------------------------------------------------
 
 

@@ -20,6 +20,7 @@ from data.process.normalize import (
     CANONICAL_CAPABILITY_KEYS,
     apply_guard_safety_structured_output,
     normalize_capabilities,
+    normalize_supported_parameters,
 )
 
 
@@ -51,9 +52,11 @@ def test_nvidia_legacy_attrs_drive_chat_and_tool_calling():
     attrs = {"CHAT_MODALITY": "text2textDiffusion", "TOOL_CALLING": "true"}
     out = normalize_capabilities("nvidia", {"attributes": attrs}, None)
     assert out["chat"] is True
-    assert out["structured_output"] is False
     assert out["vision"] is False
     assert out["speech"] is False
+    # Migrated interface parameter — surfaced via supported_parameters.
+    params = normalize_supported_parameters("nvidia", {"attributes": attrs}, None)
+    assert params == ["tool_calling"]
 
 
 def test_nvidia_legacy_attrs_in_list_form():
@@ -65,7 +68,8 @@ def test_nvidia_legacy_attrs_in_list_form():
     ]
     out = normalize_capabilities("nvidia", {"attributes": attrs}, None)
     assert out["chat"] is True
-    assert out["tool_calling"] is True
+    params = normalize_supported_parameters("nvidia", {"attributes": attrs}, None)
+    assert params == ["tool_calling"]
 
 
 def test_nvidia_legacy_attrs_via_modern_architecture_path():
@@ -77,8 +81,11 @@ def test_nvidia_legacy_attrs_via_modern_architecture_path():
     out = normalize_capabilities("nvidia", {"attributes": attrs}, arch)
     assert out["chat"] is True  # from architecture: text in output, no embedding
     assert out["vision"] is True  # from architecture: image in output
-    # tool_calling only comes from legacy attrs.
-    assert out["tool_calling"] is False
+    # tool_calling only comes from legacy attrs — none here, so the
+    # parameter list stays empty.
+    assert normalize_supported_parameters(
+        "nvidia", {"attributes": attrs}, arch
+    ) == []
 
 
 def test_nvidia_with_no_signals():
@@ -204,14 +211,14 @@ def test_guard_model_id_infers_structured_output():
     """A model with ``guard`` in its id gets structured_output=True."""
     ep = _make_ep("meta/llama-guard-4-12b")
     apply_guard_safety_structured_output(ep)
-    assert ep.capabilities["structured_output"] is True
+    assert ep.supported_parameters == ["structured_output"]
 
 
 def test_safety_model_id_infers_structured_output():
     """A model with ``safety`` in its id gets structured_output=True."""
     ep = _make_ep("nvidia/nemotron-3.5-content-safety")
     apply_guard_safety_structured_output(ep)
-    so = ep.capabilities["structured_output"]
+    so = "structured_output" in (ep.supported_parameters or [])
     assert so is True
 
 
@@ -219,19 +226,18 @@ def test_normal_model_id_stays_false():
     """Control: non-guard/safety ids never gain structured_output."""
     ep = _make_ep("meta/llama-3.3-70b-instruct")
     apply_guard_safety_structured_output(ep)
-    assert ep.capabilities["structured_output"] is False
+    assert ep.supported_parameters == []
 
 
 def test_guard_heuristic_is_case_insensitive():
     ep = _make_ep("Meta/Llama-GUARD-4-12B")
     apply_guard_safety_structured_output(ep)
-    assert ep.capabilities["structured_output"] is True
+    assert ep.supported_parameters == ["structured_output"]
 
 
 def test_guard_heuristic_never_disables():
     """Additive only: an already-True structured_output stays True."""
     caps = {k: False for k in CANONICAL_CAPABILITY_KEYS}
-    caps["structured_output"] = True
 
     from datetime import datetime, timezone
 
@@ -250,8 +256,9 @@ def test_guard_heuristic_never_disables():
         metadata={},
         lab="nvidia",
     )
+    object.__setattr__(ep, "supported_parameters", ["structured_output"])
     apply_guard_safety_structured_output(ep)
-    assert ep.capabilities["structured_output"] is True
+    assert ep.supported_parameters == ["structured_output"]
 
 
 def test_guard_heuristic_via_normalize_endpoints():
@@ -281,5 +288,5 @@ def test_guard_heuristic_via_normalize_endpoints():
         },
     ]
     endpoints = normalize_endpoints(raw)
-    assert endpoints[0].capabilities["structured_output"] is True
-    assert endpoints[1].capabilities["structured_output"] is False
+    assert endpoints[0].supported_parameters == ["structured_output"]
+    assert endpoints[1].supported_parameters == []

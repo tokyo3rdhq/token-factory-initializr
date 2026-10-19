@@ -1,12 +1,7 @@
-// Tests for the Browse page tag taxonomy — specifically the three
-// new capabilities added in the source_url implementation:
-// reasoning / speech / structured_output.
-//
-// The Browse UI surfaces 8 tags (chat / vision / tools / reasoning
-// / speech / structured_output / free / longCtx). The first three
-// were already tested by the existing browse-filters suite; this
-// file pins the contract for the new three so a future
-// normalization regression surfaces immediately.
+// Tests for the Browse page tag taxonomy — capability chips,
+// the migrated interface/parameter tags (tools / reasoning /
+// structured_output / streaming, moved to supported_parameters on
+// 2026-10-19), and the decision capability.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -42,32 +37,35 @@ test("TAGS exposes the new reasoning / speech / structured_output ids", () => {
   assert.ok(ids.includes("reasoning"), "TAGS must include 'reasoning'");
   assert.ok(ids.includes("speech"), "TAGS must include 'speech'");
   assert.ok(ids.includes("structured_output"), "TAGS must include 'structured_output'");
-  // Tag count: 11 total (9 legacy + embedding + streaming).
-  assert.equal(ids.length, 11, "TAGS array must have 11 entries (9 legacy + embedding + streaming)");
+  // Tag count: 12 total (6 capabilities + 4 parameters + free + longCtx).
+  assert.equal(ids.length, 12, "TAGS array must have 12 entries (6 capabilities + 4 parameters + free + longCtx)");
+  // decision capability is wired in too.
+  assert.ok(ids.includes("decision"), "TAGS must include 'decision'");
 });
 
 // ---------------------------------------------------------------------------
-// hasTag predicates — supported_features axis (streaming)
+// hasTag predicates — supported_parameters axis (streaming)
 // ---------------------------------------------------------------------------
 
-test("hasTag streaming is true when supported_features contains streaming", () => {
-  const ep = makeEndpoint({ supported_features: ["streaming"] });
+test("hasTag streaming is true when supported_parameters contains streaming", () => {
+  const ep = makeEndpoint({ supported_parameters: ["streaming"] });
   assert.equal(hasTag(ep, "streaming"), true);
 });
 
-test("hasTag streaming is false when supported_features is missing (historical records)", () => {
+test("hasTag streaming is false when supported_parameters is missing (historical records)", () => {
   const ep = makeEndpoint({});
   assert.equal(hasTag(ep, "streaming"), false);
 });
 
-test("hasTag streaming is false when supported_features is empty or lists other features", () => {
-  assert.equal(hasTag(makeEndpoint({ supported_features: [] }), "streaming"), false);
-  assert.equal(hasTag(makeEndpoint({ supported_features: ["other"] }), "streaming"), false);
+test("hasTag streaming is false when supported_parameters is empty or lists other features", () => {
+  assert.equal(hasTag(makeEndpoint({ supported_parameters: [] }), "streaming"), false);
+  assert.equal(hasTag(makeEndpoint({ supported_parameters: ["other"] }), "streaming"), false);
 });
 
 test("hasTag streaming never infers from metadata or capability flags", () => {
   const ep = makeEndpoint({
-    capabilities: { chat: true, reasoning: true },
+    capabilities: { chat: true },
+    supported_parameters: ["reasoning"],
     metadata: { streaming: true },
   });
   assert.equal(hasTag(ep, "streaming"), false);
@@ -90,7 +88,7 @@ test("streaming tag uses the neutral (gray) variant", () => {
 
 test("applyFilters filters by the streaming tag", () => {
   const eps = [
-    makeEndpoint({ model_id: "a/streaming-model", supported_features: ["streaming"] }),
+    makeEndpoint({ model_id: "a/streaming-model", supported_parameters: ["streaming"] }),
     makeEndpoint({ model_id: "b/plain-model" }),
   ];
   const out = applyFilters(eps, "", new Set(["streaming"]));
@@ -102,14 +100,16 @@ test("applyFilters filters by the streaming tag", () => {
 // hasTag predicates — capability → tag axis
 // ---------------------------------------------------------------------------
 
-test("hasTag reasoning is true when capabilities.reasoning is true", () => {
-  const ep = makeEndpoint({ capabilities: { reasoning: true } });
+test("hasTag reasoning is true when supported_parameters contains reasoning", () => {
+  const ep = makeEndpoint({ supported_parameters: ["reasoning"] });
   assert.equal(hasTag(ep, "reasoning"), true);
 });
 
-test("hasTag reasoning is false when capability is missing or false", () => {
+test("hasTag reasoning is false when the parameter is missing or absent", () => {
   assert.equal(hasTag(makeEndpoint(), "reasoning"), false);
-  assert.equal(hasTag(makeEndpoint({ capabilities: { reasoning: false } }), "reasoning"), false);
+  assert.equal(hasTag(makeEndpoint({ supported_parameters: ["tool_calling"] }), "reasoning"), false);
+  // Legacy shape (reasoning under capabilities) must NOT match.
+  assert.equal(hasTag(makeEndpoint({ capabilities: { reasoning: true } }), "reasoning"), false);
 });
 
 test("hasTag speech is true when capabilities.speech is true", () => {
@@ -129,15 +129,20 @@ test("hasTag speech falls back to architecture.output containing 'audio'", () =>
   assert.equal(hasTag(ep, "speech"), true);
 });
 
-test("hasTag structured_output is true when capabilities.structured_output is true", () => {
-  const ep = makeEndpoint({ capabilities: { structured_output: true } });
+test("hasTag structured_output is true when supported_parameters contains it", () => {
+  const ep = makeEndpoint({ supported_parameters: ["structured_output"] });
   assert.equal(hasTag(ep, "structured_output"), true);
 });
 
-test("hasTag structured_output is false when capability is missing or false", () => {
+test("hasTag structured_output is false when the parameter is missing or absent", () => {
   assert.equal(hasTag(makeEndpoint(), "structured_output"), false);
   assert.equal(
-    hasTag(makeEndpoint({ capabilities: { structured_output: false } }), "structured_output"),
+    hasTag(makeEndpoint({ supported_parameters: ["streaming"] }), "structured_output"),
+    false,
+  );
+  // Legacy shape must NOT match.
+  assert.equal(
+    hasTag(makeEndpoint({ capabilities: { structured_output: true } }), "structured_output"),
     false,
   );
 });
@@ -150,8 +155,8 @@ test("applyFilters accepts the three new tag ids in the activeTags set", () => {
   // Regression: the type for activeTags was widened to include the
   // three new ids. Filtering with the new ids as the only active tag
   // must work.
-  const modelA = makeEndpoint({ model_id: "m/with-reasoning", capabilities: { reasoning: true } });
-  const modelB = makeEndpoint({ model_id: "m/no-reasoning", capabilities: {} });
+  const modelA = makeEndpoint({ model_id: "m/with-reasoning", supported_parameters: ["reasoning"] });
+  const modelB = makeEndpoint({ model_id: "m/no-reasoning", supported_parameters: [] });
 
   const out = applyFilters([modelA, modelB], "", new Set(["reasoning"]));
   assert.equal(out.length, 1);
@@ -165,9 +170,9 @@ test("applyFilters AND semantics across the new tag axes (active set = chat+reas
   // semantics (which is OR-within-dimension per the model filter
   // spec). The test below pins the current AND behaviour so the
   // contract is explicit and any future change is intentional.
-  const epA = makeEndpoint({ model_id: "m/chat+reasoning", capabilities: { chat: true, reasoning: true } });
+  const epA = makeEndpoint({ model_id: "m/chat+reasoning", capabilities: { chat: true }, supported_parameters: ["reasoning"] });
   const epB = makeEndpoint({ model_id: "m/chat-only", capabilities: { chat: true } });
-  const epC = makeEndpoint({ model_id: "m/reasoning-only", capabilities: { reasoning: true } });
+  const epC = makeEndpoint({ model_id: "m/reasoning-only", supported_parameters: ["reasoning"] });
 
   const out = applyFilters(
     [epA, epB, epC],
@@ -178,12 +183,12 @@ test("applyFilters AND semantics across the new tag axes (active set = chat+reas
   assert.equal(out[0].model_id, "m/chat+reasoning");
 });
 
-test("applyFilters AND across dimensions (legacy tag + new tag)", () => {
-  // The user can combine chat (legacy) with reasoning (new). Both
-  // must hold for a model to pass.
-  const epA = makeEndpoint({ model_id: "m/chat+reasoning", capabilities: { chat: true, reasoning: true } });
+test("applyFilters AND across dimensions (capability tag + parameter tag)", () => {
+  // The user can combine chat (capability) with reasoning
+  // (parameter). Both must hold for a model to pass.
+  const epA = makeEndpoint({ model_id: "m/chat+reasoning", capabilities: { chat: true }, supported_parameters: ["reasoning"] });
   const epB = makeEndpoint({ model_id: "m/chat-only", capabilities: { chat: true } });
-  const epC = makeEndpoint({ model_id: "m/reasoning-only", capabilities: { reasoning: true } });
+  const epC = makeEndpoint({ model_id: "m/reasoning-only", supported_parameters: ["reasoning"] });
 
   const out = applyFilters(
     [epA, epB, epC],
@@ -197,7 +202,7 @@ test("applyFilters AND across dimensions (legacy tag + new tag)", () => {
 test("applyFilters with no activeTags is the identity pass-through", () => {
   const eps = [
     makeEndpoint({ capabilities: { chat: true } }),
-    makeEndpoint({ capabilities: { reasoning: true } }),
+    makeEndpoint({ supported_parameters: ["reasoning"] }),
     makeEndpoint({ capabilities: { speech: true } }),
   ];
   const out = applyFilters(eps, "", new Set());
@@ -211,9 +216,9 @@ test("applyFilters with no activeTags is the identity pass-through", () => {
 const { matchesRequirement } = await import("../../src/types.ts");
 
 test("matchesRequirement: capability.reasoning=true filters out non-reasoning models", () => {
-  const ep = makeEndpoint({ capabilities: { reasoning: false } });
+  const ep = makeEndpoint({ supported_parameters: [] });
   assert.equal(matchesRequirement(ep, { capabilities: { reasoning: true } }), false);
-  const ep2 = makeEndpoint({ capabilities: { reasoning: true } });
+  const ep2 = makeEndpoint({ supported_parameters: ["reasoning"] });
   assert.equal(matchesRequirement(ep2, { capabilities: { reasoning: true } }), true);
 });
 
@@ -239,7 +244,7 @@ test("matchesRequirement: capability.speech falls back to architecture.output=au
 test("matchesRequirement: capability.structuredOutput=true filters out non-structured models", () => {
   const ep = makeEndpoint({ capabilities: {} });
   assert.equal(matchesRequirement(ep, { capabilities: { structuredOutput: true } }), false);
-  const ep2 = makeEndpoint({ capabilities: { structured_output: true } });
+  const ep2 = makeEndpoint({ supported_parameters: ["structured_output"] });
   assert.equal(matchesRequirement(ep2, { capabilities: { structuredOutput: true } }), true);
 });
 

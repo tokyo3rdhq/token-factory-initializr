@@ -50,7 +50,6 @@ def test_normalize_endpoints_basic():
     assert ep.capabilities["chat"] is True
     assert set(ep.capabilities.keys()) == {
         "chat", "vision", "speech", "embedding",
-        "tool_calling", "structured_output", "reasoning",
         "translation", "decision",
     }
     assert ep.metadata == {"context_length": 4096, "use_case": "chat"}
@@ -85,7 +84,6 @@ def test_normalize_endpoints_defaults():
     # Canonical shape is always emitted — every key present, all False.
     assert set(eps[0].capabilities.keys()) == {
         "chat", "vision", "speech", "embedding",
-        "tool_calling", "structured_output", "reasoning",
         "translation", "decision",
     }
     assert all(v is False for v in eps[0].capabilities.values())

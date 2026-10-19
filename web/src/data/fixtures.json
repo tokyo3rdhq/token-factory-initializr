@@ -45,7 +45,7 @@
           "name": "DeepSeek V4.1 Flash",
           "description": null,
           "free": true,
-          "capabilities": { "chat": true, "tool_calling": true },
+          "capabilities": { "chat": true },
           "architecture": { "input": ["text"], "output": ["text", "tool_calls"] },
           "lab": "deepseek-ai",
           "metadata": {},
@@ -89,7 +89,7 @@
           "fetched_at": "2026-09-25T00:00:00Z",
           "context_length": 1048576,
           "pricing": { "prompt": "1.4e-7", "completion": "2.8e-7" },
-          "supported_features": ["streaming"]
+          "supported_parameters": ["streaming"]
         }
       ]
     },

@@ -130,7 +130,7 @@ def derive_use_case(model: dict) -> str | None:
     if cap in ("transcription", "asr"):
         return "transcription"
     # AMD's token_factory.capability.key explicitly declares
-    # decision-oriented models (docs/tfi_add_supported_features.md §3.1
+    # decision-oriented models (docs/tfi_add_supported_parameters.md §3.1
     # — source-mapping rule: map only when the source data explicitly
     # identifies a decision output; never infer from model id).
     if cap in ("decision",):
@@ -218,8 +218,8 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
     # top-level ``pricing`` field.
     # ``streaming`` boolean — explicit per-endpoint feature flag from
     # the same ``provider_pricing[0]`` block. Consumed by
-    # ``data.process.normalize.normalize_supported_features`` to set
-    # the canonical ``supported_features: ["streaming"]``. ``None``
+    # ``data.process.normalize.normalize_supported_parameters`` to set
+    # the canonical ``supported_parameters: ["streaming"]``. ``None``
     # (absent upstream) is preserved so the normalize stage can
     # distinguish "explicitly not supported" from "no data" —
     # missing never becomes confirmed support.
@@ -343,7 +343,7 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
             "v1_structured_output": v1_structured,
             # Explicit streaming feature flag from
             # ``provider_pricing[0].streaming`` — consumed by
-            # ``normalize_supported_features`` (never inferred).
+            # ``normalize_supported_parameters`` (never inferred).
             # ``None`` when AMD's payload doesn't carry the flag.
             "streaming": streaming_flag,
             "family": tf.get("publisher", {}).get("name") or m.get("family", "unknown"),

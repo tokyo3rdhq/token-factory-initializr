@@ -24,21 +24,19 @@ export interface ModelEndpoint {
   free: boolean;
 
   /** Canonical capability flags — the normalize stage
-   *  (``data.process.normalize.normalize_capabilities``) writes a
-   *  fixed 7-key boolean shape into this field so every endpoint
-   *  across nvidia / huggingface / amd reads the same axis. Keys
-   *  that upstream doesn't surface are explicitly False rather than
-   *  undefined. See ``CANONICAL_CAPABILITY_KEYS`` in
-   *  data/process/normalize.py for the source-of-truth list. */
+   *  emits the same closed key set across all providers so the UI
+   *  reads one shape. Keys that upstream doesn't surface are
+   *  explicitly False rather than undefined. See
+   *  ``CANONICAL_CAPABILITY_KEYS`` in data/process/normalize.py for
+   *  the source-of-truth list. Interface/runtime parameters
+   *  (tool_calling / reasoning / structured_output / streaming)
+   *  moved to ``supported_parameters`` on 2026-10-19. */
   capabilities: {
     chat?: boolean;
     vision?: boolean;
     speech?: boolean;
     embedding?: boolean;
     translation?: boolean;
-    tool_calling?: boolean;
-    structured_output?: boolean;
-    reasoning?: boolean;
     decision?: boolean;
   };
 
@@ -67,11 +65,13 @@ export interface ModelEndpoint {
   /** Optional per-token pricing. */
   pricing?: Record<string, unknown> | null;
 
-  /** Endpoint-level interface/runtime features
-   *  (docs/tfi_add_supported_features.md). Vocabulary: ``streaming``.
-   *  Populated only from explicit source signals — absence is never
-   *  confirmed support. Optional: older KV records lack the field. */
-  supported_features?: string[];
+  /** Endpoint-level interface/runtime parameters
+   *  (docs/tfi_add_supported_parameters.md). Named to match upstream
+   *  sources. Vocabulary: ``tool_calling`` / ``reasoning`` /
+   *  ``structured_output`` / ``streaming``. Populated only from
+   *  explicit source signals — absence is never confirmed support.
+   *  Optional: older KV records lack the field. */
+  supported_parameters?: string[];
 }
 
 export interface ProviderSnapshot {
@@ -308,6 +308,9 @@ export function matchesRequirement(
 // by the normalize stage (``data.process.normalize.normalize_capabilities``).
 // Vision falls back to ``architecture.input`` because AMD's vision
 // flag is derived from modalities rather than a top-level boolean.
+// The interface/runtime predicates (tool calling / structured output
+// / reasoning) read ``supported_parameters`` — migrated from
+// capabilities on 2026-10-19.
 // ---------------------------------------------------------------------------
 
 function hasVision(ep: ModelEndpoint): boolean {
@@ -320,15 +323,23 @@ function hasVision(ep: ModelEndpoint): boolean {
 }
 
 function hasToolCalling(ep: ModelEndpoint): boolean {
-  return ep.capabilities?.tool_calling === true;
+  // Migrated to supported_parameters on 2026-10-19.
+  return param(ep, "tool_calling");
 }
 
 function hasStructuredOutput(ep: ModelEndpoint): boolean {
-  return ep.capabilities?.structured_output === true;
+  return param(ep, "structured_output");
 }
 
 function hasReasoning(ep: ModelEndpoint): boolean {
-  return ep.capabilities?.reasoning === true;
+  return param(ep, "reasoning");
+}
+
+/** True when the endpoint's supported_parameters list contains the
+ * given token. Tolerates records without the field (older
+ * snapshots). */
+function param(ep: ModelEndpoint, token: string): boolean {
+  return Array.isArray(ep.supported_parameters) && ep.supported_parameters.includes(token);
 }
 
 function hasSpeech(ep: ModelEndpoint): boolean {

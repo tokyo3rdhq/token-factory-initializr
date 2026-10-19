@@ -64,6 +64,20 @@ def validate_endpoint(ep: ModelEndpoint) -> list[str]:
     if not isinstance(ep.metadata, dict):
         issues.append("metadata is not a dict")
 
+    # supported_parameters — canonical closed vocabulary. Unknown
+    # tokens are a validation issue (they'd break API filtering, which
+    # 400s on unknown values).
+    if not isinstance(ep.supported_parameters, list):
+        issues.append("supported_parameters is not a list")
+    else:
+        from data.process.normalize import CANONICAL_SUPPORTED_PARAMETER_KEYS
+
+        for token in ep.supported_parameters:
+            if not isinstance(token, str):
+                issues.append(f"supported_parameters token is not a string: {token!r}")
+            elif token not in CANONICAL_SUPPORTED_PARAMETER_KEYS:
+                issues.append(f"unknown supported_parameters token: {token!r}")
+
     # context_length is a top-level optional[int] field. None means
     # "unknown / not provided"; any other non-int is an error.
     if ep.context_length is not None and not isinstance(ep.context_length, int):

@@ -32,13 +32,15 @@ export interface PublicModel {
   /** Canonical normalized capabilities — see doc §12 for the fixed
    *  vocabulary. Order is stable for diff-friendly output. */
   capabilities: string[];
-  /** TFI extension: endpoint-level interface/runtime features
-   *  (docs/tfi_add_supported_features.md). Fixed vocabulary —
-   *  initially just ``"streaming"``. Union of the features confirmed
-   *  on ANY of this model's endpoints (endpoint-level facts are
-   *  endpoint-scoped; the model-level array is the aggregated view
-   *  for filtering). Omitted when empty. */
-  supported_features?: string[];
+  /** TFI extension: endpoint-level interface/runtime parameters
+   *  (docs/tfi_add_supported_parameters.md). Fixed vocabulary —
+   *  ``tool_calling`` / ``reasoning`` / ``structured_output`` /
+   *  ``streaming`` (the first three migrated from capabilities on
+   *  2026-10-19). Union of the parameters confirmed on ANY of this
+   *  model's endpoints (endpoint-level facts are endpoint-scoped; the
+   *  model-level array is the aggregated view for filtering). Omitted
+   *  when empty. */
+  supported_parameters?: string[];
   /** Optional public detail fields. Always omitted when null/empty
    *  so the list endpoint stays compact. */
   name?: string;
@@ -79,29 +81,34 @@ export interface PublicModelEndpoint {
   /** Endpoint-specific rate / quota limits, when known. Omitted
    *  rather than invented. */
   limits?: Record<string, unknown> | null;
-  /** Endpoint-specific interface/runtime features
-   *  (docs/tfi_add_supported_features.md). Fixed vocabulary —
-   *  initially just ``"streaming"``. Omitted when empty; never
-   *  promoted to sibling endpoints of the same model. */
-  supported_features?: string[];
+  /** Endpoint-specific interface/runtime parameters
+   *  (docs/tfi_add_supported_parameters.md). Fixed vocabulary —
+   *  ``tool_calling`` / ``reasoning`` / ``structured_output`` /
+   *  ``streaming``. Omitted when empty; never promoted to sibling
+   *  endpoints of the same model. */
+  supported_parameters?: string[];
 }
 
-/** Stable capability sort order — keeps list responses diff-friendly. */
+/** Stable capability sort order — keeps list responses diff-friendly.
+ * The three interface/runtime keys (``tool_calling`` / ``reasoning`` /
+ * ``structured_output``) moved to ``SUPPORTED_PARAMETER_ORDER`` on
+ * 2026-10-19. */
 const CAPABILITY_ORDER = [
   "chat",
   "vision",
   "speech",
   "embedding",
-  "reasoning",
-  "tool_calling",
-  "structured_output",
+  "translation",
   "decision",
 ] as const;
 
-/** Stable supported-features sort order — same contract as
- * ``CAPABILITY_ORDER`` (docs/tfi_add_supported_features.md §3.2).
- * Vocabulary is closed: initially just ``streaming``. */
-const SUPPORTED_FEATURE_ORDER = [
+/** Stable supported-parameters sort order — same contract as
+ * ``CAPABILITY_ORDER`` (docs/tfi_add_supported_parameters.md §3.2).
+ * Vocabulary is closed: the three migrated keys plus ``streaming``. */
+const SUPPORTED_PARAMETER_ORDER = [
+  "tool_calling",
+  "reasoning",
+  "structured_output",
   "streaming",
 ] as const;
 
@@ -140,8 +147,8 @@ function toPublicModelEndpoint(model: ModelEndpoint): PublicModelEndpoint {
     free: model.free === true,
   };
   if (model.pricing != null) out.pricing = model.pricing;
-  if (Array.isArray(model.supported_features) && model.supported_features.length > 0) {
-    out.supported_features = model.supported_features.filter(
+  if (Array.isArray(model.supported_parameters) && model.supported_parameters.length > 0) {
+    out.supported_parameters = model.supported_parameters.filter(
       (f): f is string => typeof f === "string",
     );
   }
@@ -169,27 +176,27 @@ export function toPublicModel(
     }
   }
 
-  // Supported features are endpoint-scoped facts. The model-level
+  // Supported parameters are endpoint-scoped facts. The model-level
   // array is the ORDERED UNION across every endpoint serving this
-  // model (stable SUPPORTED_FEATURE_ORDER sort, dedup) — used for
+  // model (stable SUPPORTED_PARAMETER_ORDER sort, dedup) — used for
   // list filtering and UI badges. Endpoint-level records stay
   // endpoint-scoped under ``endpoints[]``.
   const all = options.endpointsByModel?.get(model.model_id) ?? [model];
-  const featureSet = new Set<string>();
+  const parameterSet = new Set<string>();
   for (const e of all) {
-    if (Array.isArray(e.supported_features)) {
-      for (const f of e.supported_features) {
-        if (typeof f === "string") featureSet.add(f);
+    if (Array.isArray(e.supported_parameters)) {
+      for (const p of e.supported_parameters) {
+        if (typeof p === "string") parameterSet.add(p);
       }
     }
   }
-  const orderedFeatures: readonly string[] = SUPPORTED_FEATURE_ORDER;
-  const features: string[] = [];
-  for (const key of orderedFeatures) {
-    if (featureSet.has(key)) features.push(key);
+  const orderedParameters: readonly string[] = SUPPORTED_PARAMETER_ORDER;
+  const parameters: string[] = [];
+  for (const key of orderedParameters) {
+    if (parameterSet.has(key)) parameters.push(key);
   }
-  for (const f of featureSet) {
-    if (!orderedFeatures.includes(f)) features.push(f);
+  for (const p of parameterSet) {
+    if (!orderedParameters.includes(p)) parameters.push(p);
   }
 
   const publicModel: PublicModel = {
@@ -210,7 +217,7 @@ export function toPublicModel(
   if (typeof model.context_length === "number") publicModel.context_length = model.context_length;
   if (model.lab) publicModel.lab = model.lab;
   if (model.source_url) publicModel.source_url = model.source_url;
-  if (features.length > 0) publicModel.supported_features = features;
+  if (parameters.length > 0) publicModel.supported_parameters = parameters;
 
   // Nested endpoints — every provider record TFI has for this model.
   // Default to the single endpoint when no index is passed, so detail
@@ -714,11 +721,12 @@ export const PUBLIC_CAPABILITY_VOCABULARY: ReadonlyArray<string> = [
   ...CAPABILITY_ORDER,
 ] as ReadonlyArray<string>;
 
-/** Documented vocabulary for the ``supported_features`` field
- *  (docs/tfi_add_supported_features.md §3.2). Same fixed-vocabulary
- *  contract as capabilities; initially just ``streaming``. */
-export const PUBLIC_SUPPORTED_FEATURE_VOCABULARY: ReadonlyArray<string> = [
-  ...SUPPORTED_FEATURE_ORDER,
+/** Documented vocabulary for the ``supported_parameters`` field
+ *  (docs/tfi_add_supported_parameters.md §3.2). Same fixed-vocabulary
+ *  contract as capabilities: the three migrated interface keys plus
+ *  ``streaming``. */
+export const PUBLIC_SUPPORTED_PARAMETER_VOCABULARY: ReadonlyArray<string> = [
+  ...SUPPORTED_PARAMETER_ORDER,
 ] as ReadonlyArray<string>;
 
 /** Documented vocabulary for ``architecture.{input,output}``

@@ -24,6 +24,15 @@ from data.models.schema import ModelEndpoint
 # exact key set. Adding a new capability = add a key here + handle it
 # in `normalize_capabilities()` below. Everything else (nvidia/HF/AMD
 # provider code, web matcher, tag chips) then sees the same shape.
+#
+# MIGRATION (user directive, 2026-10-19): ``tool_calling`` /
+# ``reasoning`` / ``structured_output`` moved from capabilities to
+# ``CANONICAL_SUPPORTED_PARAMETER_KEYS`` — they are interface/runtime
+# parameters, not model-task capabilities. Their detection rules live
+# in :func:`normalize_capability_signals` and the resulting booleans
+# are stamped onto ``supported_parameters`` by
+# :func:`normalize_supported_parameters`. Filters and the Browse UI
+# keep exposing all three (gray styling preserved).
 # ---------------------------------------------------------------------------
 CANONICAL_CAPABILITY_KEYS: tuple[str, ...] = (
     "chat",              # text conversation output
@@ -31,24 +40,29 @@ CANONICAL_CAPABILITY_KEYS: tuple[str, ...] = (
     "speech",            # accepts or produces audio
     "embedding",         # produces embedding vectors
     "translation",       # accepts or produces text translation
-    "tool_calling",      # tool / function calling
-    "structured_output", # JSON / schema-constrained output
-    "reasoning",         # reasoning / chain-of-thought
     "decision",          # decision-task / decision-output models
 )
 
 
-def normalize_capabilities(
+def normalize_capability_signals(
     data_source: str,
     raw_metadata: dict[str, Any] | None,
     architecture: dict[str, Any] | None,
     cross_source_signals: list[dict[str, Any]] | None = None,
 ) -> dict[str, bool]:
-    """Provider-specific raw signals → canonical 7-key boolean flags.
+    """Provider-specific raw signals → every canonical boolean axis.
 
-    The returned dict always contains all ``CANONICAL_CAPABILITY_KEYS``
-    keys (True or False) so consumer-side code can read ``ep.capabilities[
-    key]`` without worrying about missing keys.
+    Internal: computes ALL nine signals — the six capability keys
+    (``CANONICAL_CAPABILITY_KEYS``) plus the three interface/runtime
+    parameter keys migrated to ``supported_parameters`` on 2026-10-19
+    (``tool_calling`` / ``reasoning`` / ``structured_output``).
+    Detection rules for every key live HERE so provider branches
+    stay in one place; the public
+    :func:`normalize_capabilities` / :func:`normalize_supported_parameters`
+    split this result into their respective fields.
+
+    The returned dict always contains all nine keys (True or False)
+    so consumers never see a missing key.
 
     Provider raw signals:
 
@@ -61,7 +75,9 @@ def normalize_capabilities(
       router API surfaces modalities here).
     * **amd** — read ``raw_metadata["use_case"]`` (single string
       emitted by TFI's own ``derive_use_case`` helper) plus the
-      architecture block for vision fallback.
+      architecture block for vision fallback, and the
+      ``v1_tools`` / ``v1_reasoning`` / ``v1_structured_output``
+      raw booleans from the authenticated v1 API.
 
     Cross-source enrichment (option A in
     docs/tfi_provenance_enrichment_architecture.md): when ``data_source``
@@ -79,6 +95,8 @@ def normalize_capabilities(
     with the same shape; no other code needs to change.
     """
     out: dict[str, bool] = {k: False for k in CANONICAL_CAPABILITY_KEYS}
+    for migrated in MIGRATED_PARAMETER_KEYS:
+        out[migrated] = False
     # Architecture may be a malformed value (legacy RSC payloads,
     # fixture inputs, etc.) — ``data.process.normalize`` already
     # rejects non-dict architectures before they get here, but the
@@ -203,13 +221,14 @@ def normalize_capabilities(
                     out["tool_calling"] = True
 
     elif data_source == "huggingface":
-        # All HF capability signals come from the architecture block —
-        # the legacy chat-only / tool-only boolean flags that the HF
-        # provider used to emit are folded into the architecture
-        # derivation above. New HF providers that surface structured
-        # output / reasoning should set the corresponding boolean
-        # here when their API exposes those signals.
-        pass
+        # HF capability signals come from the architecture block.
+        # The per-provider interface booleans (``supports_tools`` /
+        # ``supports_structured_output``, stamped by the HF adapter
+        # from the router's ``providers[]`` entries) map to the
+        # MIGRATED parameter keys — they live in
+        # ``supported_parameters`` now, not capabilities.
+        out["tool_calling"] = bool(attrs.get("supports_tools"))
+        out["structured_output"] = bool(attrs.get("supports_structured_output"))
 
     elif data_source == "amd":
         # AMD's TFI-authored ``derive_use_case`` returns one of:
@@ -217,7 +236,7 @@ def normalize_capabilities(
         # "decision" — a single string that we map to the canonical
         # bool axis. ``decision`` is set only when AMD's
         # ``token_factory.capability.key`` explicitly declared it
-        # (docs/tfi_add_supported_features.md §3.1 — never inferred
+        # (docs/tfi_add_supported_parameters.md §3.1 — never inferred
         # from the model id).
         use_case = attrs.get("use_case") if isinstance(attrs, dict) else None
         if use_case == "chat":
@@ -254,50 +273,130 @@ def normalize_capabilities(
         elif cs_reasoning_default_enabled or cs_reasoning_mandatory:
             out["reasoning"] = True
 
-    # structured_output: no provider currently emits raw signals for
-    # this. Future providers can extend normalize() with detection
-    # rules. Default-False here is the safe answer for the consumer —
-    # the matcher reads ep.capabilities.structured_output and only
-    # filters when the user explicitly asked for it.
+    # structured_output: explicit token in the cross-source
+    # ``supported_parameters`` list (OpenRouter uses
+    # ``structured_outputs``, models.dev / AMD v1 use
+    # ``response_format``). Explicit signals only — never inferred.
+    if not out.get("structured_output"):
+        if "structured_outputs" in cs_params or "response_format" in cs_params:
+            out["structured_output"] = True
 
     return out
 
-# ---------------------------------------------------------------------------
-# Canonical supported_features vocabulary — the single source of truth
-# across all data sources (docs/tfi_add_supported_features.md §3.2).
-# Mirrors CANONICAL_CAPABILITY_KEYS: the web-side projection and Browse
-# filter read this exact vocabulary. Adding a new feature = add a key
-# here + a detection rule in normalize_supported_features().
-# ---------------------------------------------------------------------------
-CANONICAL_SUPPORTED_FEATURE_KEYS: tuple[str, ...] = (
-    "streaming",  # endpoint streams tokens incrementally
-)
 
-
-def normalize_supported_features(
+def normalize_capabilities(
     data_source: str,
     raw_metadata: dict[str, Any] | None,
+    architecture: dict[str, Any] | None,
+    cross_source_signals: list[dict[str, Any]] | None = None,
+) -> dict[str, bool]:
+    """Public capabilities projection — the six ``CANONICAL_CAPABILITY_KEYS``
+    booleans only.
+
+    The three interface/runtime parameter booleans (``tool_calling`` /
+    ``reasoning`` / ``structured_output``) are computed by the same
+    signal pass but are surfaced through
+    :func:`normalize_supported_parameters` instead (migration of
+    2026-10-19) — reading them from ``capabilities`` is a bug.
+    """
+    signals = normalize_capability_signals(
+        data_source, raw_metadata, architecture, cross_source_signals
+    )
+    return {k: signals[k] for k in CANONICAL_CAPABILITY_KEYS}
+
+# ---------------------------------------------------------------------------
+# Canonical supported_parameters vocabulary — the single source of truth
+# across all data sources. Mirrors ``CANONICAL_CAPABILITY_KEYS``: the
+# web-side projection and Browse filter read this exact vocabulary.
+# Adding a new parameter = add a key here + a detection rule in
+# normalize_supported_parameters().
+#
+# MIGRATION (user directive, 2026-10-19): the field is named
+# ``supported_parameters`` to match the upstream sources (AMD v1 /
+# OpenRouter / HF router all use this exact name). The values are
+# TFI-canonical tokens, not raw upstream tokens: ``tool_calling`` /
+# ``reasoning`` / ``structured_output`` moved here from
+# ``CANONICAL_CAPABILITY_KEYS`` — they describe the endpoint's
+# interface, not the model's task capabilities. The Browse UI keeps
+# all of them as filter chips (gray styling) and model-row badges.
+# ---------------------------------------------------------------------------
+CANONICAL_SUPPORTED_PARAMETER_KEYS: tuple[str, ...] = (
+    "tool_calling",      # tool / function calling interface
+    "reasoning",         # reasoning / chain-of-thought interface
+    "structured_output", # JSON / schema-constrained output interface
+    "streaming",         # endpoint streams tokens incrementally
+)
+
+# The three keys migrated from capabilities on 2026-10-19.
+MIGRATED_PARAMETER_KEYS: tuple[str, ...] = (
+    "tool_calling",
+    "reasoning",
+    "structured_output",
+)
+
+# Raw upstream parameter tokens → canonical tokens. OpenRouter uses
+# ``tools`` / ``tool_choice`` / ``structured_outputs`` / ``reasoning``
+# / ``stream``; AMD v1 uses the same list with ``response_format``
+# for structured output. These token rules apply ONLY to explicit
+# ``supported_parameters`` lists — presence of the parameter means
+# the endpoint implements the interface.
+RAW_PARAMETER_TOKENS: dict[str, tuple[str, ...]] = {
+    "tool_calling": ("tools", "tool_choice"),
+    "reasoning": ("reasoning",),
+    "structured_output": ("structured_outputs", "response_format"),
+    "streaming": ("stream",),
+}
+
+
+def normalize_supported_parameters(
+    data_source: str,
+    raw_metadata: dict[str, Any] | None,
+    architecture: dict[str, Any] | None = None,
     cross_source_signals: list[dict[str, Any]] | None = None,
 ) -> list[str]:
-    """Provider raw signals → canonical supported-feature strings.
+    """Provider raw signals → canonical supported-parameter tokens.
 
     Source-mapping rules (explicit signals ONLY — missing/ambiguous
     data never becomes confirmed support):
 
-    * **amd** — ``raw_metadata["streaming"]`` boolean, stamped by the
-      AMD adapter from ``model.provider_pricing[0].streaming``.
-    * **cross-source** (OpenRouter / models.dev / Kilo) — an explicit
-      ``"stream"`` entry in ``metadata.supported_parameters``. Applied
-      only when the primary source emitted no streaming signal, same
-      primary-source-wins semantics as capability promotion.
+    * **tool_calling / reasoning / structured_output** — computed by
+      :func:`normalize_capability_signals` (provider v1 booleans,
+      HF ``supports_tools`` / ``supports_structured_output``,
+      NVIDIA legacy attributes, cross-source parameter tokens,
+      OpenRouter ``reasoning`` flags). Migrated from capabilities
+      on 2026-10-19; detection rules unchanged.
+    * **streaming** — explicit signals ONLY:
 
-    The AMD v1 ``supported_parameters`` list (which contains
-    ``"stream"`` for live endpoints) reaches this function through
-    ``metadata.supported_parameters`` when present, so AMD models
-    also benefit from the parameter-list rule.
+      * **amd** — ``raw_metadata["streaming"]`` boolean, stamped by
+        the AMD adapter from ``model.provider_pricing[0].streaming``.
+      * **cross-source** (OpenRouter / models.dev / Kilo) — an
+        explicit ``"stream"`` token in
+        ``metadata.supported_parameters``. Applied only when the
+        primary source emitted no streaming signal, same
+        primary-source-wins semantics as capability promotion.
+
+    The primary source's own ``supported_parameters`` token list
+    (AMD v1 emits it for live endpoints) is consulted for streaming
+    when the adapter passed no explicit streaming boolean.
     """
     out: list[str] = []
     raw_meta = raw_metadata if isinstance(raw_metadata, dict) else {}
+
+    # Migrated interface parameters — reuse the exact same detection
+    # pass that used to fill capabilities, so no signal is lost or
+    # reinterpreted during the migration.
+    signals = normalize_capability_signals(
+        data_source, raw_metadata, architecture, cross_source_signals
+    )
+    # The guard/safety id heuristic runs later at the
+    # normalize_endpoints level (it needs the full endpoint record for
+    # the model_id) and is purely additive, so explicit signals are
+    # emitted here — real source data (HF
+    # ``supports_structured_output``, AMD v1 ``structured_output``,
+    # OR ``structured_outputs`` tokens) never gets dropped.
+    for migrated in MIGRATED_PARAMETER_KEYS:
+        if signals.get(migrated):
+            out.append(migrated)
 
     primary_streaming = raw_meta.get("streaming")
     primary_params = raw_meta.get("supported_parameters")
@@ -306,12 +405,14 @@ def normalize_supported_features(
     if primary_decided:
         if primary_streaming is True:
             out.append("streaming")
-    elif isinstance(primary_params, list) and "stream" in primary_params:
+    elif isinstance(primary_params, list) and any(
+        tok in primary_params for tok in RAW_PARAMETER_TOKENS["streaming"]
+    ):
         out.append("streaming")
 
-    # Cross-source fallback — only when the primary source gave no
-    # streaming signal at all.
-    if not out and not primary_decided:
+    # Cross-source fallback for streaming — only when the primary
+    # source gave no streaming signal at all.
+    if "streaming" not in out and not primary_decided:
         if not isinstance(cross_source_signals, list):
             cross_source_signals = []
         for cs in cross_source_signals:
@@ -319,12 +420,18 @@ def normalize_supported_features(
                 continue
             cs_meta = cs.get("metadata") if isinstance(cs.get("metadata"), dict) else {}
             params = cs_meta.get("supported_parameters") if isinstance(cs_meta, dict) else None
-            if isinstance(params, list) and "stream" in params:
+            if isinstance(params, list) and any(
+                tok in params for tok in RAW_PARAMETER_TOKENS["streaming"]
+            ):
                 out.append("streaming")
                 break
 
-    # Dedup while preserving order.
-    return list(dict.fromkeys(out))
+    # Dedup while preserving the canonical vocabulary order.
+    ordered: list[str] = []
+    for key in CANONICAL_SUPPORTED_PARAMETER_KEYS:
+        if key in out:
+            ordered.append(key)
+    return ordered
 
 
 def normalize_endpoints(
@@ -457,7 +564,7 @@ def normalize_endpoints(
         # Lift capabilities — single canonical shape for the whole
         # catalog. Provider-specific raw signals live in ``metadata`` and
         # ``architecture``; this call fuses them with cross-source
-        # OpenRouter / models.dev signals (if any) into the 7-key
+        # OpenRouter / models.dev signals (if any) into the 6-key
         # canonical bool dict. See normalize_capabilities() above.
         object.__setattr__(
             ep,
@@ -469,18 +576,9 @@ def normalize_endpoints(
                 cross_source_signals=cross_source_signals_for_endpoint,
             ),
         )
-
-        # Safety/guardrail models emit JSON-schema-constrained verdicts
-        # by design (e.g. ``meta/llama-guard-4-12b``,
-        # ``nvidia/nemotron-3.5-content-safety``,
-        # ``nvidia/llama-3.1-nemotron-safety-guard-8b-v3``). No upstream
-        # provider (NVIDIA labels / OpenRouter supported_parameters /
-        # models.dev) currently exposes an explicit ``structured_output``
-        # signal for them, so we infer it from the model id keyword.
-        # MVP heuristic — replace with a real signal when a provider
-        # starts surfacing one.
-        apply_guard_safety_structured_output(ep)
-
+        # (The guard/safety structured-output heuristic runs after the
+        # supported_parameters lift below — it stamps
+        # ``supported_parameters`` now, not capabilities.)
         # Lift context_length: prefer metadata (where AMD/HF put it),
         # fall back to top-level (where future providers might emit it).
         # ``ModelEndpoint.context_length`` defaults to None, so we only
@@ -555,22 +653,32 @@ def normalize_endpoints(
         if isinstance(pricing, dict) and pricing:
             object.__setattr__(ep, "pricing", pricing)
 
-        # Lift supported_features — endpoint-level interface/runtime
-        # features (docs/tfi_add_supported_features.md §3.2/§4.1).
+        # Lift supported_parameters — endpoint-level interface/runtime
+        # parameters (docs/tfi_add_supported_parameters.md §3.2/§4.1).
         # Populated ONLY from explicit source signals; missing data
         # stays ``[]``. Cross-source observations may contribute the
-        # explicit ``stream`` parameter, but only when the primary
+        # explicit ``stream`` token, but only when the primary
         # source didn't already decide the value — same
         # primary-source-wins semantics as capability promotion.
         object.__setattr__(
             ep,
-            "supported_features",
-            normalize_supported_features(
+            "supported_parameters",
+            normalize_supported_parameters(
                 ep.data_source,
                 ep.metadata,
+                item.get("architecture"),
                 cross_source_signals=cross_source_signals_for_endpoint,
             ),
         )
+        # Safety/guardrail models emit JSON-schema-constrained verdicts
+        # by design (e.g. ``meta/llama-guard-4-12b``,
+        # ``nvidia/nemotron-3.5-content-safety``). No upstream provider
+        # currently exposes an explicit ``structured_output`` signal for
+        # them, so the parameter is inferred from the model id keyword
+        # and stamped onto ``supported_parameters``. MVP heuristic —
+        # replace with a real signal when a provider starts surfacing
+        # one. Additive: never removes a confirmed parameter.
+        apply_guard_safety_structured_output(ep)
 
         endpoints.append(ep)
     return endpoints
@@ -616,11 +724,13 @@ def apply_guard_safety_structured_output(endpoint: ModelEndpoint) -> None:
     model_id = (endpoint.model_id or "").lower()
     if not any(k in model_id for k in GUARD_SAFETY_KEYWORDS):
         return
-    if endpoint.capabilities.get("structured_output"):
+    params = list(endpoint.supported_parameters or [])
+    if "structured_output" in params:
         return
-    inferred_caps = dict(endpoint.capabilities)
-    inferred_caps["structured_output"] = True
-    object.__setattr__(endpoint, "capabilities", inferred_caps)
+    params.append("structured_output")
+    # Keep the canonical vocabulary order.
+    ordered = [k for k in CANONICAL_SUPPORTED_PARAMETER_KEYS if k in params]
+    object.__setattr__(endpoint, "supported_parameters", ordered)
 
 
 def endpoint_to_dict(endpoint: ModelEndpoint) -> dict[str, Any]:

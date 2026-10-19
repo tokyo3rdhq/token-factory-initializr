@@ -35,6 +35,7 @@ function ep(overrides: Partial<ModelEndpoint>): ModelEndpoint {
   return {
     provider: overrides.provider ?? "nvidia",
     data_source: overrides.data_source ?? "nvidia",
+    supported_parameters: overrides.supported_parameters ?? undefined,
     model_id: overrides.model_id ?? "x/y",
     name: overrides.name ?? null,
     description: null,
@@ -50,7 +51,7 @@ function ep(overrides: Partial<ModelEndpoint>): ModelEndpoint {
 }
 
 const sample: ModelEndpoint[] = [
-  ep({ model_id: "nvidia/deepseek-v4", name: "DeepSeek V4", free: true, capabilities: { chat: true, tool_calling: true }, context_length: 131_072 }),
+  ep({ model_id: "nvidia/deepseek-v4", name: "DeepSeek V4", free: true, capabilities: { chat: true }, supported_parameters: ["tool_calling"], context_length: 131_072 }),
   ep({ model_id: "huggingface/kimi-k3", data_source: "huggingface", provider: "cohere", free: true, capabilities: { chat: true }, context_length: 65_536 }),
   ep({ model_id: "nvidia/cosmos-vision", name: "Cosmos Vision", free: true, architecture: { input: ["text", "image"], output: ["text"] }, context_length: 32_768 }),
   ep({ model_id: "amd/paid-model", data_source: "amd", provider: "amd", free: false, capabilities: { chat: true } }),

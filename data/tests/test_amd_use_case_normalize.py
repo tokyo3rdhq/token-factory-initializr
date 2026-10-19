@@ -51,12 +51,13 @@ def test_amd_chat_use_case_normalizes_to_canonical_chat():
     cap = eps[0].capabilities
     # Canonical shape — chat is True, others are False.
     assert cap["chat"] is True
-    assert cap["tool_calling"] is False
     assert cap["vision"] is False
+    # tool_calling now lives in supported_parameters (migrated
+    # 2026-10-19) — absent, not False.
+    assert eps[0].supported_parameters == []
     # Every key present.
     assert set(cap.keys()) == {
         "chat", "vision", "speech", "embedding",
-        "tool_calling", "structured_output", "reasoning",
         "translation", "decision",
     }
 
@@ -99,7 +100,6 @@ def test_amd_no_use_case_metadata_yields_all_false_canonical():
     eps = normalize_endpoints([ep])
     assert set(eps[0].capabilities.keys()) == {
         "chat", "vision", "speech", "embedding",
-        "tool_calling", "structured_output", "reasoning",
         "translation", "decision",
     }
     # Every key is False — no chat (no text modality), no vision /

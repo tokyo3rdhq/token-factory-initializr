@@ -37,7 +37,7 @@
     },
     "capabilities": {
       "type": "object",
-      "description": "Model capability flags (chat, tool_calling, vision, speech, embedding, etc.)"
+      "description": "Model capability flags (chat, vision, speech, embedding, translation, decision). Interface/runtime parameters (tool_calling, reasoning, structured_output, streaming) live in supported_parameters since 2026-10-19."
     },
     "architecture": {
       "type": ["object", "null"],
@@ -56,10 +56,10 @@
       },
       "additionalProperties": false
     },
-    "supported_features": {
+    "supported_parameters": {
       "type": "array",
-      "items": {"type": "string"},
-      "description": "Endpoint-level interface/runtime features (initially: streaming). Populated only from explicit source signals; empty array means no confirmed features. Distinct from capabilities (what the model can do) and architecture (data modalities)."
+      "items": {"type": "string", "enum": ["tool_calling", "reasoning", "structured_output", "streaming"]},
+      "description": "Endpoint-level interface/runtime parameters. Named to match upstream sources (AMD v1 / OpenRouter / HF router). Values are TFI-canonical tokens from a closed vocabulary. tool_calling / reasoning / structured_output migrated from capabilities on 2026-10-19. Populated only from explicit source signals; empty array means no confirmed support. Distinct from capabilities (what the model can do) and architecture (data modalities)."
     },
     "lab": {
       "type": ["string", "null"],

@@ -32,6 +32,7 @@ export type TagId =
   | "structured_output"
   | "translation"
   | "embedding"
+  | "decision"
   | "streaming"
   | "free"
   | "longCtx";
@@ -43,37 +44,45 @@ interface TagDef {
 }
 
 export const TAGS: TagDef[] = [
-  // Output modalities (blue accent) — what data the model handles
+  // Capabilities (blue accent) — what the model does. Interface/runtime
+  // parameters (tools / reasoning / structured output) migrated to
+  // supported_parameters on 2026-10-19 but stay as filter chips.
   { id: "chat",              variant: "accent"  },
   { id: "vision",            variant: "accent"  },
   { id: "speech",            variant: "accent"  },
   { id: "translation",       variant: "accent"  },
   { id: "embedding",         variant: "accent"  },
-  // Processing capabilities (grey neutral) — how the model thinks/acts
-  { id: "tools",             variant: "accent"  },
-  { id: "reasoning",         variant: "accent"  },
-    { id: "structured_output", variant: "neutral"  },
-  // Supported features (grey neutral) — endpoint-level interface
-  // features, after capabilities per docs/tfi_add_supported_features.md §6.2
-  { id: "streaming",         variant: "neutral"  },
+  { id: "decision",          variant: "accent"  },
+  // Interface/runtime parameters (grey neutral) — endpoint-level
+  // supported_parameters (docs/tfi_add_supported_parameters.md §6.2).
+  { id: "tools",             variant: "neutral" },
+  { id: "reasoning",         variant: "neutral" },
+  { id: "structured_output", variant: "neutral" },
+  { id: "streaming",         variant: "neutral" },
   // Pricing / scale
   { id: "free",              variant: "success" },
   { id: "longCtx",           variant: "warning" },
 ];
 
 /** Pure predicate — given an endpoint and a tag id, return whether
- *  the endpoint has the tag. Centralized so the filter UI and the
- *  per-row badge rendering stay in sync (single source of truth). */
+ * the endpoint has the tag. Centralized so the filter UI and the
+ * per-row badge rendering stay in sync (single source of truth).
+ *
+ * tools / reasoning / structured_output / streaming read
+ * ``supported_parameters`` (migrated from capabilities on
+ * 2026-10-19). Tolerates records without the field (older
+ * snapshots). */
 function hasTag(ep: ModelEndpoint, tag: TagId): boolean {
+  const params = Array.isArray(ep.supported_parameters) ? ep.supported_parameters : [];
   switch (tag) {
     case "chat":
       return !!ep.capabilities?.chat;
     case "vision":
       return hasVision(ep);
     case "tools":
-      return !!ep.capabilities?.tool_calling;
+      return params.includes("tool_calling");
     case "reasoning":
-      return !!ep.capabilities?.reasoning;
+      return params.includes("reasoning");
     case "speech": {
       if (ep.capabilities?.speech === true) return true;
       // Forward-compat: a provider whose adapter omits the speech
@@ -86,9 +95,11 @@ function hasTag(ep: ModelEndpoint, tag: TagId): boolean {
       return false;
     }
     case "structured_output":
-      return !!ep.capabilities?.structured_output;
+      return params.includes("structured_output");
     case "translation":
       return !!ep.capabilities?.translation;
+    case "decision":
+      return !!ep.capabilities?.decision;
     case "free":
       return ep.free === true;
     case "longCtx":
@@ -96,10 +107,9 @@ function hasTag(ep: ModelEndpoint, tag: TagId): boolean {
     case "embedding":
       return !!ep.capabilities?.embedding;
     case "streaming":
-      // Explicit endpoint-level supported_features only — never
-      // inferred (docs/tfi_add_supported_features.md §3.2).
-      // Tolerates records without the field (older snapshots).
-      return Array.isArray(ep.supported_features) && ep.supported_features.includes("streaming");
+      // Explicit endpoint-level supported_parameters only — never
+      // inferred (docs/tfi_add_supported_parameters.md §3.2).
+      return params.includes("streaming");
   }
 }
 
@@ -177,7 +187,7 @@ export function BrowsePage() {
   const tagCounts = useMemo(
     () => {
       const counts: Record<string, number> = {};
-      for (const tag of ["chat", "vision", "speech", "translation", "embedding", "tools", "reasoning", "structured_output", "free", "longCtx"] as TagId[]) {
+      for (const tag of ["chat", "vision", "speech", "translation", "embedding", "decision", "tools", "reasoning", "structured_output", "streaming", "free", "longCtx"] as TagId[]) {
         counts[tag] = models.filter((m) => hasTag(m, tag)).length;
       }
       return counts;
@@ -369,6 +379,7 @@ export function BrowsePage() {
                       structured_output: "Structured output",
                       translation: "Translation",
                       embedding: "Embedding",
+                      decision: "Decision",
                       streaming: "Streaming",
                       free: "Free",
                       longCtx: "128K+",
@@ -531,7 +542,6 @@ function ModelRow({
 }) {
   const { dict } = useI18n();
   const ctx = fmtContext(endpoint.context_length);
-  const hasTools = !!endpoint.capabilities?.tool_calling;
   const hasVisionCap = hasVision(endpoint);
   const [copied, setCopied] = useState<"copy" | null>(null);
   const onCopy = async (text: string) => {
@@ -551,13 +561,13 @@ function ModelRow({
   const hasChat = !!endpoint.capabilities?.chat;
   const hasSpeech = !!endpoint.capabilities?.speech;
   const hasEmbedding = !!endpoint.capabilities?.embedding;
-  const hasReasoningBadge = !!endpoint.capabilities?.reasoning;
-  const hasStructuredOutputBadge = !!endpoint.capabilities?.structured_output;
+  const hasDecision = !!endpoint.capabilities?.decision;
   const hasTranslation = !!endpoint.capabilities?.translation;
-  // Endpoint-level supported feature — explicit source signal only,
-  // after the capability badges per docs/tfi_add_supported_features.md §6.2.
-  const hasStreaming = Array.isArray(endpoint.supported_features)
-    && endpoint.supported_features.includes("streaming");
+  const params = Array.isArray(endpoint.supported_parameters) ? endpoint.supported_parameters : [];
+  const hasTools = params.includes("tool_calling");
+  const hasReasoningBadge = params.includes("reasoning");
+  const hasStructuredOutputBadge = params.includes("structured_output");
+  const hasStreaming = params.includes("streaming");
   return (
     <label className={`tfi-model-row${selected ? " selected" : ""}`}>
       <Checkbox
@@ -616,12 +626,13 @@ function ModelRow({
         {ctx && <Badge variant="warning">{ctx}</Badge>}
         {hasChat && <Badge variant="accent">Chat</Badge>}
         {hasVisionCap && <Badge variant="accent">Vision</Badge>}
-        {hasTools && <Badge variant="neutral">Tools</Badge>}
         {hasSpeech && <Badge variant="accent">Speech</Badge>}
-        {hasReasoningBadge && <Badge variant="neutral">Reasoning</Badge>}
-        {hasStructuredOutputBadge && <Badge variant="neutral">Structured output</Badge>}
         {hasTranslation && <Badge variant="accent">Translation</Badge>}
         {hasEmbedding && <Badge variant="accent">Embedding</Badge>}
+        {hasDecision && <Badge variant="accent">Decision</Badge>}
+        {hasTools && <Badge variant="neutral">Tools</Badge>}
+        {hasReasoningBadge && <Badge variant="neutral">Reasoning</Badge>}
+        {hasStructuredOutputBadge && <Badge variant="neutral">Structured output</Badge>}
         {hasStreaming && <Badge variant="neutral">Streaming</Badge>}
         {endpoint.free && <Badge variant="success" dot>Free</Badge>}
       </span>

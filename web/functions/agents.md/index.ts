@@ -68,14 +68,14 @@ most important rule to internalize before issuing queries:
 | \`?data_source=nvidia,amd\` | \`data_source IN ["nvidia", "amd"]\` |
 | \`?provider=groq,together\` | \`provider IN ["groq", "together"]\` |
 | \`?capabilities=chat,vision\` | \`capabilities ⊇ ["chat", "vision"]\` (i.e. both) |
-| \`?supported_features=streaming\` | \`supported_features ∋ "streaming"\` |
+| \`?supported_parameters=streaming\` | \`supported_parameters ∋ "streaming"\` |
 | \`?data_source=nvidia&capabilities=chat\` | \`(data_source == "nvidia") AND (capabilities contains "chat")\` |
 
 ### Combined Filters
 
 \`\`\`
 GET /api/v1/models?data_source=huggingface&capabilities=vision,reasoning
-GET /api/v1/models?data_source=amd&supported_features=streaming
+GET /api/v1/models?data_source=amd&supported_parameters=streaming
 \`\`\`
 
 ## Model Details
@@ -119,13 +119,18 @@ Each model includes:
   \`tool_calling\`, \`structured_output\`, \`decision\`). An **empty array** means
   TFI doesn't currently have capability data for that model — it
   is NOT a statement that the model has no capabilities.
-- \`supported_features\` — endpoint-level interface/runtime features
-  (\`streaming\`). **Optional** — omitted when no feature is confirmed.
-  Populated ONLY from explicit source signals (e.g. AMD's
-  \`provider_pricing[0].streaming\`, or an explicit \`stream\` entry in a
-  provider's \`supported_parameters\`). Absence is never confirmed
-  support. Endpoint-scoped: the model-level array is the union of
-  features confirmed on ANY of its endpoints (for filtering); the
+- \`supported_parameters\` — endpoint-level interface/runtime
+  parameters (\`tool_calling\`, \`reasoning\`, \`structured_output\`,
+  \`streaming\` — named to match upstream sources; the first three
+  migrated from capabilities on 2026-10-19). **Optional** — omitted
+  when no parameter is confirmed. Populated ONLY from explicit
+  source signals (e.g. AMD's \`providers[0].tools\` /
+  \`provider_pricing[0].streaming\`, HF's \`supports_tools\` /
+  \`supports_structured_output\`, or explicit \`tools\` / \`reasoning\` /
+  \`structured_outputs\` / \`stream\` tokens in a provider's
+  \`supported_parameters\`). Absence is never confirmed support.
+  Endpoint-scoped: the model-level array is the union of parameters
+  confirmed on ANY of its endpoints (for filtering); the
   per-endpoint array under \`endpoints[]\` stays endpoint-scoped.
 
 Optional detail fields (model detail response, may be omitted):
