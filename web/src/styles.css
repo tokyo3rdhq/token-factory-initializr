@@ -547,12 +547,12 @@ body {
   font-size: var(--magi-font-size-small);
   color: var(--magi-text-secondary);
   line-height: 1.4;
-  /* Clamp to two lines: keeps the description compact so the adjacent
-   * meta column (which may wrap to 2-3 badge rows) doesn't stretch the
-   * row tall. Overflow is ellipsized (matches the row's compactness). */
+  /* Clamp to three lines: keeps the description compact so the
+   * adjacent meta column (which may wrap to 2-3 badge rows) doesn't
+   * stretch the row tall. Overflow is ellipsized. */
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 720px;
