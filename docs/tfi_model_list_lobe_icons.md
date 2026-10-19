@@ -19,6 +19,98 @@ Official references:
 
 Do not assume API names, component props, package exports, or supported model IDs without checking the installed package and its official documentation.
 
+## Icon Identity and Mapping Policy
+
+### 1. Preserve TFI's identity semantics
+
+Before implementing icons, inspect the actual catalog schema and representative records from NVIDIA, AMD, Hugging Face, OpenRouter, and Kilo.
+
+Keep these concepts distinct:
+
+- `model_id`: the model identifier used by the relevant catalog or service.
+- `owned_by`: the model publisher/developer attribution, when available.
+- `provider`: the provider identifier recorded by the source and normalized by TFI. Its precise semantics may vary by source.
+- `data_source`: where TFI discovered or collected the model.
+- `endpoint`: the concrete API access point, including its actual `base_url`.
+
+Do not assume that `provider` always identifies the model creator or the operator of the client-facing API endpoint.
+
+For example, a Hugging Face record may have `provider=together` while its client-facing endpoint uses `https://router.huggingface.co/v1`. Do not display a Together icon in a way that implies the client connects directly to Together's native API.
+
+Do not change the public API schema or introduce new required model fields solely to support icons.
+
+### 2. Choose one primary icon per model row
+
+The purpose of icons is to improve scanning and recognition, not to decorate every row with multiple logos.
+
+Use the following resolution policy:
+
+1. Display a model-specific icon when the installed Lobe Icons package provides a reliable match for the actual model identifier.
+2. Otherwise, display a provider icon only when the provider identity and its intended visual meaning are sufficiently clear.
+3. If neither mapping is reliable, use the existing neutral fallback or render no icon.
+
+Do not render model, provider, publisher, and data-source icons side by side.
+
+Prefer one icon per row. Preserve the model name and existing provider text as the primary textual information.
+
+A model-specific icon is an optional enhancement, not a requirement for every model.
+
+### 3. Build mappings from the actual TFI catalog
+
+Inspect the current production catalog before creating the mapping table.
+
+Determine:
+
+- The most frequently occurring provider identifiers.
+- The most common `owned_by` values.
+- Which identities have corresponding official Lobe Icons components.
+- Which model IDs can be reliably matched by the documented model-icon functionality.
+- Where provider, publisher, and endpoint identities differ.
+
+Prioritize mappings that improve recognition across the actual catalog. Do not hard-code a predetermined list of popular brands without checking current data.
+
+Use explicit, deterministic mappings where needed. Do not infer identity from arbitrary substring matches.
+
+Follow the official Lobe Icons agent instructions and installed-package documentation. Verify all component exports and package compatibility before implementation.
+
+### 4. Endpoint-aware presentation
+
+Icons must not imply that two records are the same callable service simply because they share a model ID or model icon.
+
+In particular:
+
+- A model offered by OpenRouter and Kilo may have the same `model_id` but must remain two independently selectable records.
+- The icon layer must not merge records, change model identity, or modify endpoint selection.
+- A provider icon must not override or conceal the actual endpoint identity.
+- Do not introduce a data-source icon as a substitute for a provider or model icon.
+
+If the UI already displays provider and endpoint details, keep those textual labels authoritative.
+
+### 5. Preserve compact layout and behavior
+
+Keep the current compact MAGI Design System model-list layout.
+
+- Use a consistent icon size appropriate to the existing row height, typically around 20–24 px.
+- Avoid extra icon containers unless needed for contrast.
+- Preserve text alignment, truncation, badges, pricing indicators, selection controls, and actions.
+- Do not change sorting, filtering, Select All Visible, selection state, or configuration generation.
+- Ensure missing icon mappings never prevent a row from rendering.
+- Keep imports tree-shakable and verify dependency compatibility and bundle impact.
+
+### 6. Acceptance tests
+
+In addition to the existing tests, verify:
+
+- A model with a verified model-specific icon.
+- A model with a verified provider icon.
+- An unsupported provider and model ID.
+- A record where `provider` differs from `data_source`.
+- A record where `provider` does not identify the client-facing endpoint operator.
+- Two records with the same `model_id` from OpenRouter and Kilo remain distinct and independently selectable.
+- Missing icons do not affect filters, selection, sorting, or generated configuration.
+
+Do not claim that all catalog records have unique model icons. Report actual mapping coverage and remaining gaps.
+
 ## 1. Inspect the repository before making changes
 
 Inspect the existing implementation before editing anything.
