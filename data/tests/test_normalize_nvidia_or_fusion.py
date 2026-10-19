@@ -134,19 +134,24 @@ def test_or_embedding_output_promotes_embedding():
     assert ep.capabilities.get("chat", False) is False
 
 
-def test_or_tools_param_promotes_tool_calling():
+def test_or_tools_param_promotes_supported_parameters():
+    """tool_calling is a supported_parameter, not a capability.
+
+    The cross-source applier must NOT stamp the migrated key into
+    ``capabilities``; NormalizeStage lifts it onto ``supported_parameters``
+    (see test_nvidia_nemotron_token_subset_lookup_finds_or_observation).
+    """
     ep = _apply_cross_source_signals_to_nvidia_endpoint(
         _make_nvidia_ep(), [_or_obs()],
     )
-    assert ep.capabilities["tool_calling"] is True
+    assert "tool_calling" not in ep.capabilities
 
 
 def test_or_reasoning_supported_parameter_promotes_reasoning():
     ep = _apply_cross_source_signals_to_nvidia_endpoint(
         _make_nvidia_ep(), [_or_obs()],
     )
-    assert ep.capabilities["reasoning"] is True
-
+    assert "reasoning" not in ep.capabilities
 
 def test_existing_native_capability_preserved():
     """If NVIDIA already set chat (from legacy attributes), cross-source
@@ -156,9 +161,11 @@ def test_existing_native_capability_preserved():
         [_or_obs()],
     )
     assert ep.capabilities["chat"] is True
-    assert ep.capabilities["tool_calling"] is True
     assert ep.capabilities["vision"] is True
-    assert ep.capabilities["reasoning"] is True
+    # tool_calling was set by the input endpoint and is preserved;
+    # the applier NEVER removes keys nor adds migrated keys itself.
+    assert ep.capabilities["tool_calling"] is True
+    assert "reasoning" not in ep.capabilities  # not in input, not added here
 
 
 # ---------------------------------------------------------------------------
@@ -180,8 +187,8 @@ def test_models_dev_fills_via_slug_fallback():
     )
     assert ep.architecture == {"input": ["text"], "output": ["text"]}
     assert ep.capabilities["chat"] is True  # text output implies chat
-    assert ep.capabilities["tool_calling"] is True
-    assert ep.capabilities["reasoning"] is True
+    assert "tool_calling" not in ep.capabilities
+    assert "reasoning" not in ep.capabilities
 
 
 def test_multiple_sources_union_modalities():

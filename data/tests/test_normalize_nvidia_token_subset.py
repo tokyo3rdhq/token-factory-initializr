@@ -65,9 +65,12 @@ def test_nvidia_nemotron_token_subset_lookup_finds_or_observation():
     NormalizeStage().execute(ctx)
 
     ep = ctx.data["endpoints"][0]
-    assert ep.capabilities["chat"] is True
-    assert ep.capabilities["tool_calling"] is True
-    assert ep.capabilities["reasoning"] is True
+    # Migrated keys now land in supported_parameters, not capabilities.
+    # OR obs declares ["reasoning","tools","tool_choice"] → both tokens.
+    assert sorted(ep.supported_parameters) == ["reasoning", "tool_calling"]
+    assert "tool_calling" not in ep.capabilities
+    assert "reasoning" not in ep.capabilities
+
 
 
 def test_nvidia_endpoint_no_cross_source_match_unchanged():

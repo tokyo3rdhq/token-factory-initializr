@@ -28,8 +28,10 @@ from data.models.schema import ModelEndpoint
 from data.pipeline.context import PipelineContext
 from data.pipeline.stage import Stage
 from data.process.normalize import (
+    CANONICAL_CAPABILITY_KEYS,
     apply_guard_safety_structured_output,
     normalize_endpoints,
+    normalize_supported_parameters,
 )
 
 logger = logging.getLogger(__name__)
@@ -162,16 +164,6 @@ def _apply_cross_source_signals_to_nvidia_endpoint(
     if "text" in merged_output and "embedding" not in merged_output:
         caps["chat"] = True
 
-    if not caps.get("tool_calling"):
-        if "tools" in cs_params or "tool_choice" in cs_params:
-            caps["tool_calling"] = True
-
-    if not caps.get("reasoning"):
-        if "reasoning" in cs_params:
-            caps["reasoning"] = True
-        elif or_reasoning_default_enabled or or_reasoning_mandatory:
-            caps["reasoning"] = True
-
     object.__setattr__(ep, "capabilities", caps)
     return ep
 
@@ -244,6 +236,40 @@ class NormalizeStage(Stage):
                                 best_observations = observations
                     if best_observations:
                         _apply_cross_source_signals_to_nvidia_endpoint(ep, best_observations)
+                    # Lift the cross-source interface parameters into
+                    # ``supported_parameters`` — the NVIDIA path bypasses
+                    # normalize_endpoints (which does this lift for AMD/HF
+                    # at process/normalize.py:663), so it must run here.
+                    # Uses the same signal pass; migrated keys
+                    # (tool_calling/reasoning/structured_output) land in
+                    # supported_parameters, never capabilities.
+                    object.__setattr__(
+                        ep,
+                        "supported_parameters",
+                        normalize_supported_parameters(
+                            ep.data_source,
+                            ep.metadata,
+                            ep.architecture,
+                            cross_source_signals=best_observations,
+                        ),
+                    )
+                    # Project to the closed 6-key capability vocabulary.
+                    # The NVIDIA path bypasses normalize_endpoints (which
+                    # does this projection for AMD/HF), and the NVIDIA
+                    # provider itself stamps the migrated key
+                    # ``tool_calling`` into its raw capabilities dict
+                    # (providers/nvidia.py, ``attributes.TOOL_CALLING``).
+                    # Without this projection those migrated keys would
+                    # leak into the public ``capabilities`` field.
+                    object.__setattr__(
+                        ep,
+                        "capabilities",
+                        {
+                            k: v
+                            for k, v in (ep.capabilities or {}).items()
+                            if k in CANONICAL_CAPABILITY_KEYS
+                        },
+                    )
                     # Guard/safety models: infer structured_output from
                     # the model id (see
                     # apply_guard_safety_structured_output docstring —
