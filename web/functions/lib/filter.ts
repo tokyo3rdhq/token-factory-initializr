@@ -45,6 +45,13 @@ export interface ModelFilters {
   provider?: string[];
   capabilities?: string[];
   supported_parameters?: string[];
+  /**
+   * Inclusive minimum ``context_length`` (in tokens). Parsed from the
+   * ``context_length_min`` query param. Endpoints whose
+   * ``context_length`` is null/absent are excluded when this filter is
+   * set — unknown is not "at least N".
+   */
+  context_length_min?: number;
 }
 
 /** Sentinel returned by ``parseFilters`` when a 400 is warranted. */
@@ -109,7 +116,13 @@ export function parseFilters(
     }
     filters.capabilities = caps;
   }
-
+  const clMin = params.get("context_length_min");
+  if (clMin) {
+    const clMinNum = Number(clMin);
+    if (Number.isFinite(clMinNum)) {
+      filters.context_length_min = clMinNum;
+    }
+  }
   const paramList = splitCsv(params.get("supported_parameters"));
   if (paramList.length > 0) {
     const unknown = paramList.filter((p) => !KNOWN_SUPPORTED_PARAMETERS.includes(p));
@@ -156,6 +169,11 @@ export function filterEndpoints(
         }
       }
     }
+    if (filters.context_length_min !== undefined) {
+      const cl = typeof ep.context_length === "number" ? ep.context_length : null;
+      if (!cl || cl < filters.context_length_min) return false;
+    }
+
     return true;
   });
 }
@@ -188,6 +206,11 @@ export function filterPublicModels(
         }
       }
     }
+    if (filters.context_length_min !== undefined) {
+      const cl = typeof m.context_length === "number" ? m.context_length : null;
+      if (!cl || cl < filters.context_length_min) return false;
+    }
+
     return true;
   });
 }
