@@ -423,7 +423,7 @@ body {
 }
 .tfi-model-row {
   display: grid;
-  grid-template-columns: 24px auto 1fr minmax(120px, 260px);
+  grid-template-columns: 24px auto 1fr minmax(220px, 340px);
   align-items: start;
   gap: var(--magi-space-4);
   padding: var(--magi-space-4) var(--magi-space-5);

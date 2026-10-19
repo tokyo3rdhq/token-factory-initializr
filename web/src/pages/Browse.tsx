@@ -44,6 +44,10 @@ interface TagDef {
 }
 
 export const TAGS: TagDef[] = [
+  // Pricing / scale first (green → orange): the two badges that most
+  // often decide a pick are surfaced before the capability list.
+  { id: "free",              variant: "success" },
+  { id: "longCtx",           variant: "warning" },
   // Capabilities (blue accent) — what the model does. Interface/runtime
   // parameters (tools / reasoning / structured output) migrated to
   // supported_parameters on 2026-10-19 but stay as filter chips.
@@ -59,9 +63,6 @@ export const TAGS: TagDef[] = [
   { id: "reasoning",         variant: "neutral" },
   { id: "structured_output", variant: "neutral" },
   { id: "streaming",         variant: "neutral" },
-  // Pricing / scale
-  { id: "free",              variant: "success" },
-  { id: "longCtx",           variant: "warning" },
 ];
 
 /** Pure predicate — given an endpoint and a tag id, return whether
@@ -623,6 +624,7 @@ function ModelRow({
         )}
       </span>
       <span className="tfi-model-meta">
+        {endpoint.free && <Badge variant="success" dot>Free</Badge>}
         {ctx && <Badge variant="warning">{ctx}</Badge>}
         {hasChat && <Badge variant="accent">Chat</Badge>}
         {hasVisionCap && <Badge variant="accent">Vision</Badge>}
