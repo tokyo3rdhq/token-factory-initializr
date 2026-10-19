@@ -32,6 +32,7 @@ export type TagId =
   | "structured_output"
   | "translation"
   | "embedding"
+  | "streaming"
   | "free"
   | "longCtx";
 
@@ -52,6 +53,9 @@ export const TAGS: TagDef[] = [
   { id: "tools",             variant: "accent"  },
   { id: "reasoning",         variant: "accent"  },
     { id: "structured_output", variant: "neutral"  },
+  // Supported features (grey neutral) — endpoint-level interface
+  // features, after capabilities per docs/tfi_add_supported_features.md §6.2
+  { id: "streaming",         variant: "neutral"  },
   // Pricing / scale
   { id: "free",              variant: "success" },
   { id: "longCtx",           variant: "warning" },
@@ -91,6 +95,11 @@ function hasTag(ep: ModelEndpoint, tag: TagId): boolean {
       return (ep.context_length ?? 0) >= 128_000;
     case "embedding":
       return !!ep.capabilities?.embedding;
+    case "streaming":
+      // Explicit endpoint-level supported_features only — never
+      // inferred (docs/tfi_add_supported_features.md §3.2).
+      // Tolerates records without the field (older snapshots).
+      return Array.isArray(ep.supported_features) && ep.supported_features.includes("streaming");
   }
 }
 
@@ -360,6 +369,7 @@ export function BrowsePage() {
                       structured_output: "Structured output",
                       translation: "Translation",
                       embedding: "Embedding",
+                      streaming: "Streaming",
                       free: "Free",
                       longCtx: "128K+",
                     };
@@ -544,6 +554,10 @@ function ModelRow({
   const hasReasoningBadge = !!endpoint.capabilities?.reasoning;
   const hasStructuredOutputBadge = !!endpoint.capabilities?.structured_output;
   const hasTranslation = !!endpoint.capabilities?.translation;
+  // Endpoint-level supported feature — explicit source signal only,
+  // after the capability badges per docs/tfi_add_supported_features.md §6.2.
+  const hasStreaming = Array.isArray(endpoint.supported_features)
+    && endpoint.supported_features.includes("streaming");
   return (
     <label className={`tfi-model-row${selected ? " selected" : ""}`}>
       <Checkbox
@@ -608,6 +622,7 @@ function ModelRow({
         {hasStructuredOutputBadge && <Badge variant="neutral">Structured output</Badge>}
         {hasTranslation && <Badge variant="accent">Translation</Badge>}
         {hasEmbedding && <Badge variant="accent">Embedding</Badge>}
+        {hasStreaming && <Badge variant="neutral">Streaming</Badge>}
         {endpoint.free && <Badge variant="success" dot>Free</Badge>}
       </span>
     </label>

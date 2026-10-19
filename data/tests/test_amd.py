@@ -815,3 +815,137 @@ def test_build_endpoint_dict_uses_amd_catalog_level_source_url():
     }
     out = build_endpoint_dict(detail)
     assert out["source_url"] == "https://developer.amd.com.cn/radeon/tokenfactory"
+
+
+# ---------------------------------------------------------------------------
+# supported_features: streaming (docs/tfi_add_supported_features.md §3.2)
+# ---------------------------------------------------------------------------
+
+
+def test_build_endpoint_dict_stamps_explicit_streaming_true():
+    """provider_pricing[0].streaming === true → metadata.streaming True."""
+    with open(str(FIXTURES / "amd_detail_ragdoll.json"), encoding="utf-8") as f:
+        detail = json.load(f)
+    result = build_endpoint_dict(detail)
+    assert result["metadata"]["streaming"] is True
+
+
+def test_build_endpoint_dict_preserves_explicit_streaming_false():
+    """Explicit streaming === false stays False — never flipped, never
+    fabricated from absence. MinerU2.5 live fixture carries the
+    explicit ``"streaming": false`` flag."""
+    with open(str(FIXTURES / "amd_detail_MinerU2.5-Pro_live.json"), encoding="utf-8") as f:
+        detail = json.load(f)
+    result = build_endpoint_dict(detail)
+    assert result["metadata"]["streaming"] is False
+
+
+def test_build_endpoint_dict_missing_streaming_flag_stays_none():
+    """No streaming flag upstream → metadata.streaming is None (unknown),
+    not False — the normalize stage may still consult cross-source
+    signals for an explicit ``stream`` parameter."""
+    detail = {
+        "model": {
+            "id": "Bare-Model",
+            "label": "Bare-Model",
+            "token_factory": {
+                "status": {"key": "free_endpoint"},
+                "publisher": {"name": "X"},
+            },
+            "output": ["text"],
+            "provider_pricing": [{}],
+        }
+    }
+    out = build_endpoint_dict(detail)
+    assert out["metadata"]["streaming"] is None
+
+
+def test_normalize_endpoints_maps_streaming_metadata_to_feature():
+    """End-to-end: AMD endpoint dict with metadata.streaming True
+    normalizes into supported_features == ["streaming"] on the
+    canonical ModelEndpoint."""
+    from data.process.normalize import normalize_endpoints
+
+    with open(str(FIXTURES / "amd_detail_ragdoll.json"), encoding="utf-8") as f:
+        detail = json.load(f)
+    raw = build_endpoint_dict(detail)
+    eps = normalize_endpoints([raw])
+    assert eps[0].supported_features == ["streaming"]
+
+
+def test_normalize_endpoints_explicit_false_streaming_stays_empty():
+    """Explicit False → empty supported_features (unknown ≠ supported)."""
+    from data.process.normalize import normalize_endpoints
+
+    with open(str(FIXTURES / "amd_detail_MinerU2.5-Pro_live.json"), encoding="utf-8") as f:
+        detail = json.load(f)
+    raw = build_endpoint_dict(detail)
+    eps = normalize_endpoints([raw])
+    assert eps[0].supported_features == []
+
+
+def test_normalize_endpoints_missing_signal_never_fabricates_streaming():
+    """No streaming signal anywhere (NVIDIA-style endpoint with empty
+    metadata) → supported_features stays empty. Missing ≠ true."""
+    from data.process.normalize import normalize_endpoints
+
+    eps = normalize_endpoints([{"provider": "nvidia", "model_id": "x/y"}])
+    assert eps[0].supported_features == []
+
+
+def test_normalize_supported_features_cross_source_stream_parameter():
+    """Cross-source observation with an explicit ``stream`` in
+    supported_parameters promotes streaming when the primary source
+    emitted no signal."""
+    from data.process.normalize import normalize_supported_features
+
+    assert normalize_supported_features(
+        "nvidia",
+        {},
+        [{"metadata": {"supported_parameters": ["stream", "tools"]}}],
+    ) == ["streaming"]
+
+
+def test_normalize_supported_features_primary_source_wins():
+    """Primary source's explicit False blocks cross-source promotion —
+    same primary-source-wins semantics as capability promotion."""
+    from data.process.normalize import normalize_supported_features
+
+    assert normalize_supported_features(
+        "amd",
+        {"streaming": False},
+        [{"metadata": {"supported_parameters": ["stream"]}}],
+    ) == []
+
+
+# ---------------------------------------------------------------------------
+# decision capability (docs/tfi_add_supported_features.md §3.1)
+# ---------------------------------------------------------------------------
+
+
+def test_derive_use_case_decision_capability():
+    """token_factory.capability.key == "decision" → use_case "decision"."""
+    assert derive_use_case(_model(capability="decision")) == "decision"
+
+
+def test_normalize_endpoints_maps_decision_use_case_to_capability():
+    """AMD use_case "decision" → canonical capabilities.decision True."""
+    from data.process.normalize import normalize_endpoints
+
+    raw = [{
+        "provider": "amd",
+        "data_source": "amd",
+        "model_id": "DecisionModel",
+        "metadata": {"use_case": "decision"},
+    }]
+    eps = normalize_endpoints(raw)
+    assert eps[0].capabilities["decision"] is True
+
+
+def test_normalize_endpoints_decision_defaults_false():
+    """Endpoints without a decision signal keep decision False — never
+    inferred from model names."""
+    from data.process.normalize import normalize_endpoints
+
+    eps = normalize_endpoints([{"provider": "amd", "model_id": "x"}])
+    assert eps[0].capabilities["decision"] is False

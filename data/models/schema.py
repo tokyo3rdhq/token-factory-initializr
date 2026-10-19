@@ -108,6 +108,19 @@ class ModelEndpoint:
     # empty.
     architecture: Optional[dict[str, list[str]]] = None
 
+    # ``supported_features`` — endpoint-level interface/runtime features
+    # (docs/tfi_add_supported_features.md). Distinct from
+    # ``capabilities`` (what the model can do) and from
+    # ``architecture`` (input/output data modalities). Vocabulary is
+    # closed: initially just ``"streaming"``. Populated ONLY from
+    # explicit source signals — e.g. AMD's
+    # ``provider_pricing[0].streaming`` boolean or an explicit
+    # ``stream`` entry in ``supported_parameters``. Missing/ambiguous
+    # source data leaves the list empty; absence is never confirmed
+    # support. Endpoint-scoped: a feature observed on one endpoint is
+    # never promoted to sibling endpoints of the same model.
+    supported_features: list[str] = field(default_factory=list)
+
     # Lab / organization the model is attributed to (HF: ``owned_by``,
     # AMD: ``token_factory.publisher.name``, NVIDIA: empty). Kept as a
     # distinct field so consumers can group / filter by lab without

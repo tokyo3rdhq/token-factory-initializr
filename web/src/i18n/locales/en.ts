@@ -220,6 +220,11 @@ Do not expose or modify secrets. Preserve my existing configuration unless I exp
         label: "Embedding",
         description: "Models that produce dense vector representations (embeddings).",
       },
+      streaming: {
+        label: "Streaming",
+        description:
+          "Endpoints confirmed to stream tokens incrementally (SSE).",
+      },
       free: {
         label: "Free",
         description: "Endpoints with confirmed free pricing.",

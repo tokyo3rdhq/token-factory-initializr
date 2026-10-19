@@ -129,6 +129,12 @@ def derive_use_case(model: dict) -> str | None:
         return "speech"
     if cap in ("transcription", "asr"):
         return "transcription"
+    # AMD's token_factory.capability.key explicitly declares
+    # decision-oriented models (docs/tfi_add_supported_features.md §3.1
+    # — source-mapping rule: map only when the source data explicitly
+    # identifies a decision output; never infer from model id).
+    if cap in ("decision",):
+        return "decision"
 
     # Fallback to modalities
     if "embedding" in out:
@@ -210,7 +216,16 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
     # "input_cache_read": "2.8e-9"}``). The feature flags are read for
     # ``architecture.input``; the per-token prices are lifted to the
     # top-level ``pricing`` field.
+    # ``streaming`` boolean — explicit per-endpoint feature flag from
+    # the same ``provider_pricing[0]`` block. Consumed by
+    # ``data.process.normalize.normalize_supported_features`` to set
+    # the canonical ``supported_features: ["streaming"]``. ``None``
+    # (absent upstream) is preserved so the normalize stage can
+    # distinguish "explicitly not supported" from "no data" —
+    # missing never becomes confirmed support.
     pp = (m.get("provider_pricing") or [{}])[0]
+    raw_streaming = pp.get("streaming")
+    streaming_flag: bool | None = raw_streaming if isinstance(raw_streaming, bool) else None
     if pp.get("vision"):
         input_modalities.append("image")
     if pp.get("ocr"):
@@ -326,6 +341,11 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
             "v1_tools": v1_tools,
             "v1_reasoning": v1_reasoning,
             "v1_structured_output": v1_structured,
+            # Explicit streaming feature flag from
+            # ``provider_pricing[0].streaming`` — consumed by
+            # ``normalize_supported_features`` (never inferred).
+            # ``None`` when AMD's payload doesn't carry the flag.
+            "streaming": streaming_flag,
             "family": tf.get("publisher", {}).get("name") or m.get("family", "unknown"),
             "context_length": detail["model"].get("context_length", 0),
             "free_status": free_status,

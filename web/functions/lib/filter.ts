@@ -26,6 +26,14 @@ export const KNOWN_CAPABILITIES: ReadonlyArray<string> = [
   "reasoning",
   "tool_calling",
   "structured_output",
+  "decision",
+];
+
+/** Allowed supported_features vocabulary
+ *  (docs/tfi_add_supported_features.md §3.2). Fixed — an unknown
+ *  value is a client error, same contract as capabilities. */
+export const KNOWN_SUPPORTED_FEATURES: ReadonlyArray<string> = [
+  "streaming",
 ];
 
 /** Parsed, validated query filter. Always safe to apply. */
@@ -33,6 +41,7 @@ export interface ModelFilters {
   data_source?: string[];
   provider?: string[];
   capabilities?: string[];
+  supported_features?: string[];
 }
 
 /** Sentinel returned by ``parseFilters`` when a 400 is warranted. */
@@ -98,6 +107,22 @@ export function parseFilters(
     filters.capabilities = caps;
   }
 
+  const feats = splitCsv(params.get("supported_features"));
+  if (feats.length > 0) {
+    const unknown = feats.filter((f) => !KNOWN_SUPPORTED_FEATURES.includes(f));
+    if (unknown.length > 0) {
+      return {
+        error: {
+          message: `Unknown supported feature: ${unknown.join(", ")}. Allowed: ${KNOWN_SUPPORTED_FEATURES.join(", ")}.`,
+          type: "invalid_request_error",
+          param: "supported_features",
+          code: "invalid_supported_feature",
+        },
+      };
+    }
+    filters.supported_features = feats;
+  }
+
   return filters;
 }
 
@@ -116,6 +141,14 @@ export function filterEndpoints(
     if (filters.capabilities && filters.capabilities.length > 0) {
       for (const required of filters.capabilities) {
         if (!ep.capabilities || ep.capabilities[required] !== true) {
+          return false;
+        }
+      }
+    }
+    if (filters.supported_features && filters.supported_features.length > 0) {
+      const have = Array.isArray(ep.supported_features) ? ep.supported_features : [];
+      for (const required of filters.supported_features) {
+        if (!have.includes(required)) {
           return false;
         }
       }
@@ -140,6 +173,14 @@ export function filterPublicModels(
     if (filters.capabilities && filters.capabilities.length > 0) {
       for (const required of filters.capabilities) {
         if (!m.capabilities.includes(required)) {
+          return false;
+        }
+      }
+    }
+    if (filters.supported_features && filters.supported_features.length > 0) {
+      const have = Array.isArray(m.supported_features) ? m.supported_features : [];
+      for (const required of filters.supported_features) {
+        if (!have.includes(required)) {
           return false;
         }
       }

@@ -10,6 +10,7 @@ import {
   toPublicModels,
   PUBLIC_CAPABILITY_VOCABULARY,
   PUBLIC_MODALITY_VOCABULARY,
+  PUBLIC_SUPPORTED_FEATURE_VOCABULARY,
   type PublicModel,
 } from "../../functions/lib/projection.ts";
 import {
@@ -135,7 +136,118 @@ test("PUBLIC_CAPABILITY_VOCABULARY exposes the documented enum", () => {
     "reasoning",
     "tool_calling",
     "structured_output",
+    "decision",
   ]);
+});
+
+// ---------------------------------------------------------------------------
+// supported_features projection + decision capability
+// ---------------------------------------------------------------------------
+
+test("toPublicModel projects decision capability in stable order", () => {
+  const ep = makeEndpoint({
+    capabilities: { chat: true, decision: true },
+  });
+  const out = toPublicModel(ep);
+  assert.deepEqual(out.capabilities, ["chat", "decision"]);
+});
+
+test("toPublicModel omits supported_features when no endpoint confirms a feature", () => {
+  const ep = makeEndpoint({});
+  const out = toPublicModel(ep);
+  assert.equal(out.supported_features, undefined);
+});
+
+test("toPublicModel unions supported_features across endpoints (model-level aggregate)", () => {
+  const streaming = makeEndpoint({
+    model_id: "vendor/multi",
+    supported_features: ["streaming"],
+  });
+  const plain = makeEndpoint({
+    model_id: "vendor/multi",
+    data_source: "amd",
+    provider: "amd",
+  });
+  const byModel = new Map([["vendor/multi", [streaming, plain]]]);
+  const out = toPublicModel(streaming, { endpointsByModel: byModel });
+  assert.deepEqual(out.supported_features, ["streaming"]);
+});
+
+test("toPublicModelEndpoint keeps supported_features endpoint-scoped", () => {
+  // The model-level array is the documented UNION across the
+  // model's endpoints (for filtering) — but the nested
+  // ``endpoints[]`` records stay endpoint-scoped: a non-streaming
+  // sibling never inherits the feature.
+  const streaming = makeEndpoint({
+    model_id: "vendor/multi",
+    supported_features: ["streaming"],
+  });
+  const plain = makeEndpoint({
+    model_id: "vendor/multi",
+    data_source: "amd",
+    provider: "amd",
+  });
+  const byModel = new Map([["vendor/multi", [streaming, plain]]]);
+  const out = toPublicModel(plain, { endpointsByModel: byModel });
+  // Model-level aggregate = union (any endpoint confirming).
+  assert.deepEqual(out.supported_features, ["streaming"]);
+  // Endpoint-level records stay scoped.
+  const nestedStreaming = out.endpoints.find((e) => e.provider === "nvidia");
+  const nestedPlain = out.endpoints.find((e) => e.provider === "amd");
+  assert.deepEqual(nestedStreaming?.supported_features, ["streaming"]);
+  assert.equal(nestedPlain?.supported_features, undefined);
+});
+
+test("PUBLIC_SUPPORTED_FEATURE_VOCABULARY exposes the documented enum", () => {
+  assert.deepEqual([...PUBLIC_SUPPORTED_FEATURE_VOCABULARY], ["streaming"]);
+});
+
+test("parseFilters accepts decision as a capability filter", () => {
+  const out = parseFilters(new URLSearchParams("capabilities=decision"));
+  assert.deepEqual("error" in out ? out.error : out.capabilities, ["decision"]);
+});
+
+test("parseFilters accepts supported_features=streaming", () => {
+  const out = parseFilters(new URLSearchParams("supported_features=streaming"));
+  assert.deepEqual("error" in out ? out.error : out.supported_features, ["streaming"]);
+});
+
+test("parseFilters rejects unknown supported features with a 400 descriptor", () => {
+  const out = parseFilters(new URLSearchParams("supported_features=quantum"));
+  assert.ok("error" in out);
+  if ("error" in out) {
+    assert.equal(out.error.param, "supported_features");
+    assert.equal(out.error.code, "invalid_supported_feature");
+  }
+});
+
+test("filterEndpoints applies supported_features with AND-within-dimension semantics", () => {
+  const streaming = makeEndpoint({ model_id: "a/s", supported_features: ["streaming"] });
+  const plain = makeEndpoint({ model_id: "b/p" });
+  const out = filterEndpoints([streaming, plain], { supported_features: ["streaming"] });
+  assert.equal(out.length, 1);
+  assert.equal(out[0].model_id, "a/s");
+});
+
+test("filterEndpoints treats missing supported_features as empty (historical records)", () => {
+  const legacy = makeEndpoint({ model_id: "a/legacy" });
+  const out = filterEndpoints([legacy], { supported_features: ["streaming"] });
+  assert.equal(out.length, 0);
+});
+
+test("filterPublicModels applies supported_features to the model-level aggregate", () => {
+  const m: PublicModel = {
+    id: "vendor/test",
+    object: "model",
+    created: 0,
+    data_source: "nvidia",
+    provider: "nvidia",
+    capabilities: ["chat"],
+    supported_features: ["streaming"],
+    endpoints: [],
+  };
+  assert.equal(filterPublicModels([m], { supported_features: ["streaming"] }).length, 1);
+  assert.equal(filterPublicModels([m], { supported_features: [] }).length, 1);
 });
 
 test("PUBLIC_MODALITY_VOCABULARY exposes the documented enum", () => {

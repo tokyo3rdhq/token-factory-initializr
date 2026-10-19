@@ -56,6 +56,11 @@
       },
       "additionalProperties": false
     },
+    "supported_features": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Endpoint-level interface/runtime features (initially: streaming). Populated only from explicit source signals; empty array means no confirmed features. Distinct from capabilities (what the model can do) and architecture (data modalities)."
+    },
     "lab": {
       "type": ["string", "null"],
       "description": "Lab / organization the model is attributed to (HF: owned_by, AMD: token_factory.publisher.name)."

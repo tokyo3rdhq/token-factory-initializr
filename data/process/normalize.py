@@ -34,6 +34,7 @@ CANONICAL_CAPABILITY_KEYS: tuple[str, ...] = (
     "tool_calling",      # tool / function calling
     "structured_output", # JSON / schema-constrained output
     "reasoning",         # reasoning / chain-of-thought
+    "decision",          # decision-task / decision-output models
 )
 
 
@@ -212,8 +213,12 @@ def normalize_capabilities(
 
     elif data_source == "amd":
         # AMD's TFI-authored ``derive_use_case`` returns one of:
-        # "chat", "vision", "embedding", "speech", "transcription"
-        # — a single string that we map to the canonical bool axis.
+        # "chat", "vision", "embedding", "speech", "transcription",
+        # "decision" — a single string that we map to the canonical
+        # bool axis. ``decision`` is set only when AMD's
+        # ``token_factory.capability.key`` explicitly declared it
+        # (docs/tfi_add_supported_features.md §3.1 — never inferred
+        # from the model id).
         use_case = attrs.get("use_case") if isinstance(attrs, dict) else None
         if use_case == "chat":
             out["chat"] = True
@@ -225,6 +230,8 @@ def normalize_capabilities(
             out["speech"] = True
         elif use_case in ("transcription", "asr"):
             out["speech"] = True
+        elif use_case == "decision":
+            out["decision"] = True
 
         # Override/augment with authoritative raw boolean flags from the
         # authenticated v1/models API.
@@ -254,6 +261,70 @@ def normalize_capabilities(
     # filters when the user explicitly asked for it.
 
     return out
+
+# ---------------------------------------------------------------------------
+# Canonical supported_features vocabulary — the single source of truth
+# across all data sources (docs/tfi_add_supported_features.md §3.2).
+# Mirrors CANONICAL_CAPABILITY_KEYS: the web-side projection and Browse
+# filter read this exact vocabulary. Adding a new feature = add a key
+# here + a detection rule in normalize_supported_features().
+# ---------------------------------------------------------------------------
+CANONICAL_SUPPORTED_FEATURE_KEYS: tuple[str, ...] = (
+    "streaming",  # endpoint streams tokens incrementally
+)
+
+
+def normalize_supported_features(
+    data_source: str,
+    raw_metadata: dict[str, Any] | None,
+    cross_source_signals: list[dict[str, Any]] | None = None,
+) -> list[str]:
+    """Provider raw signals → canonical supported-feature strings.
+
+    Source-mapping rules (explicit signals ONLY — missing/ambiguous
+    data never becomes confirmed support):
+
+    * **amd** — ``raw_metadata["streaming"]`` boolean, stamped by the
+      AMD adapter from ``model.provider_pricing[0].streaming``.
+    * **cross-source** (OpenRouter / models.dev / Kilo) — an explicit
+      ``"stream"`` entry in ``metadata.supported_parameters``. Applied
+      only when the primary source emitted no streaming signal, same
+      primary-source-wins semantics as capability promotion.
+
+    The AMD v1 ``supported_parameters`` list (which contains
+    ``"stream"`` for live endpoints) reaches this function through
+    ``metadata.supported_parameters`` when present, so AMD models
+    also benefit from the parameter-list rule.
+    """
+    out: list[str] = []
+    raw_meta = raw_metadata if isinstance(raw_metadata, dict) else {}
+
+    primary_streaming = raw_meta.get("streaming")
+    primary_params = raw_meta.get("supported_parameters")
+    primary_decided = isinstance(primary_streaming, bool)
+
+    if primary_decided:
+        if primary_streaming is True:
+            out.append("streaming")
+    elif isinstance(primary_params, list) and "stream" in primary_params:
+        out.append("streaming")
+
+    # Cross-source fallback — only when the primary source gave no
+    # streaming signal at all.
+    if not out and not primary_decided:
+        if not isinstance(cross_source_signals, list):
+            cross_source_signals = []
+        for cs in cross_source_signals:
+            if not isinstance(cs, dict):
+                continue
+            cs_meta = cs.get("metadata") if isinstance(cs.get("metadata"), dict) else {}
+            params = cs_meta.get("supported_parameters") if isinstance(cs_meta, dict) else None
+            if isinstance(params, list) and "stream" in params:
+                out.append("streaming")
+                break
+
+    # Dedup while preserving order.
+    return list(dict.fromkeys(out))
 
 
 def normalize_endpoints(
@@ -483,6 +554,23 @@ def normalize_endpoints(
         pricing = item.get("pricing")
         if isinstance(pricing, dict) and pricing:
             object.__setattr__(ep, "pricing", pricing)
+
+        # Lift supported_features — endpoint-level interface/runtime
+        # features (docs/tfi_add_supported_features.md §3.2/§4.1).
+        # Populated ONLY from explicit source signals; missing data
+        # stays ``[]``. Cross-source observations may contribute the
+        # explicit ``stream`` parameter, but only when the primary
+        # source didn't already decide the value — same
+        # primary-source-wins semantics as capability promotion.
+        object.__setattr__(
+            ep,
+            "supported_features",
+            normalize_supported_features(
+                ep.data_source,
+                ep.metadata,
+                cross_source_signals=cross_source_signals_for_endpoint,
+            ),
+        )
 
         endpoints.append(ep)
     return endpoints

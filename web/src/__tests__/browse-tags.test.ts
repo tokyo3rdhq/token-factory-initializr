@@ -42,8 +42,60 @@ test("TAGS exposes the new reasoning / speech / structured_output ids", () => {
   assert.ok(ids.includes("reasoning"), "TAGS must include 'reasoning'");
   assert.ok(ids.includes("speech"), "TAGS must include 'speech'");
   assert.ok(ids.includes("structured_output"), "TAGS must include 'structured_output'");
-  // Tag count: 10 total (9 legacy + embedding).
-  assert.equal(ids.length, 10, "TAGS array must have 10 entries (9 legacy + embedding)");
+  // Tag count: 11 total (9 legacy + embedding + streaming).
+  assert.equal(ids.length, 11, "TAGS array must have 11 entries (9 legacy + embedding + streaming)");
+});
+
+// ---------------------------------------------------------------------------
+// hasTag predicates — supported_features axis (streaming)
+// ---------------------------------------------------------------------------
+
+test("hasTag streaming is true when supported_features contains streaming", () => {
+  const ep = makeEndpoint({ supported_features: ["streaming"] });
+  assert.equal(hasTag(ep, "streaming"), true);
+});
+
+test("hasTag streaming is false when supported_features is missing (historical records)", () => {
+  const ep = makeEndpoint({});
+  assert.equal(hasTag(ep, "streaming"), false);
+});
+
+test("hasTag streaming is false when supported_features is empty or lists other features", () => {
+  assert.equal(hasTag(makeEndpoint({ supported_features: [] }), "streaming"), false);
+  assert.equal(hasTag(makeEndpoint({ supported_features: ["other"] }), "streaming"), false);
+});
+
+test("hasTag streaming never infers from metadata or capability flags", () => {
+  const ep = makeEndpoint({
+    capabilities: { chat: true, reasoning: true },
+    metadata: { streaming: true },
+  });
+  assert.equal(hasTag(ep, "streaming"), false);
+});
+
+test("streaming tag is positioned after capability tags and before pricing tags", () => {
+  const ids = TAGS.map((t) => t.id);
+  const streamingIdx = ids.indexOf("streaming");
+  const structuredIdx = ids.indexOf("structured_output");
+  const freeIdx = ids.indexOf("free");
+  assert.ok(streamingIdx > structuredIdx, "streaming must come after the last capability tag");
+  assert.ok(streamingIdx < freeIdx, "streaming must come before the free/pricing tags");
+});
+
+test("streaming tag uses the neutral (gray) variant", () => {
+  const streaming = TAGS.find((t) => t.id === "streaming");
+  assert.ok(streaming, "TAGS must include 'streaming'");
+  assert.equal(streaming?.variant, "neutral");
+});
+
+test("applyFilters filters by the streaming tag", () => {
+  const eps = [
+    makeEndpoint({ model_id: "a/streaming-model", supported_features: ["streaming"] }),
+    makeEndpoint({ model_id: "b/plain-model" }),
+  ];
+  const out = applyFilters(eps, "", new Set(["streaming"]));
+  assert.equal(out.length, 1);
+  assert.equal(out[0].model_id, "a/streaming-model");
 });
 
 // ---------------------------------------------------------------------------

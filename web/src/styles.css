@@ -28,6 +28,8 @@
  * long model ids) without breaking the sticky topbar: `clip` does
  * not create a scroll container the way `hidden` does. */
 body {
+  margin: 0;
+  padding: 0;
   overflow-x: clip;
 }
 :root {
@@ -816,7 +818,9 @@ body {
 .tfi-tag-chip-structured_output .tfi-tag-chip-dot,
 .tfi-tag-chip-structured_output.active .tfi-tag-chip-dot,
 .tfi-tag-chip-reasoning .tfi-tag-chip-dot,
-.tfi-tag-chip-reasoning.active .tfi-tag-chip-dot {
+.tfi-tag-chip-reasoning.active .tfi-tag-chip-dot,
+.tfi-tag-chip-streaming .tfi-tag-chip-dot,
+.tfi-tag-chip-streaming.active .tfi-tag-chip-dot {
   background: var(--magi-text-tertiary);
 }
 .tfi-tag-chip-free .tfi-tag-chip-dot,

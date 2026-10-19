@@ -46,6 +46,9 @@ joined with **AND**.
 ?capabilities=chat,vision
    → capabilities contains "chat" AND "vision"
 
+?supported_features=streaming
+   → supported_features contains "streaming"
+
 ?data_source=nvidia&capabilities=vision
    → (data_source == "nvidia") AND (capabilities contains "vision")
 \`\`\`

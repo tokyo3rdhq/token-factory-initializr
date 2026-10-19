@@ -47,6 +47,15 @@ export interface ModelEndpoint {
    * may not carry this field — readers must tolerate absence.
    */
   source_url?: string | null;
+  /**
+   * Endpoint-level interface/runtime features (docs/tfi_add_supported_features.md).
+   * Vocabulary: ``"streaming"``. Populated only from explicit source
+   * signals (AMD provider_pricing[0].streaming; cross-source
+   * supported_parameters containing ``stream``). Empty/absent means
+   * no confirmed features — absence is never confirmed support.
+   * Older KV records lack this field — readers must tolerate absence.
+   */
+  supported_features?: string[];
 }
 
 export interface ProviderSnapshot {

@@ -39,6 +39,7 @@ export interface ModelEndpoint {
     tool_calling?: boolean;
     structured_output?: boolean;
     reasoning?: boolean;
+    decision?: boolean;
   };
 
   /** Input / output modalities — null when upstream doesn't expose them. */
@@ -65,6 +66,12 @@ export interface ModelEndpoint {
 
   /** Optional per-token pricing. */
   pricing?: Record<string, unknown> | null;
+
+  /** Endpoint-level interface/runtime features
+   *  (docs/tfi_add_supported_features.md). Vocabulary: ``streaming``.
+   *  Populated only from explicit source signals — absence is never
+   *  confirmed support. Optional: older KV records lack the field. */
+  supported_features?: string[];
 }
 
 export interface ProviderSnapshot {

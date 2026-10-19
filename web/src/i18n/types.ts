@@ -222,6 +222,7 @@ export interface TranslationTree {
       longCtx: { label: string; description: string };
       translation: { label: string; description: string };
       embedding: { label: string; description: string };
+      streaming: { label: string; description: string };
     };
     /** Filter row strings. */
     filters: {
