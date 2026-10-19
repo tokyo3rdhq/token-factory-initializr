@@ -144,10 +144,12 @@ suite("en locale: Agent/Human tab switcher keys (§5 / §6)", () => {
 });
 
 suite("en locale: step headings and CTA (§6)", () => {
-  checkContains("step1Title present", EN_HOME?.step1Title ?? "", "Define");
-  checkContains("step2Title present", EN_HOME?.step2Title ?? "", "Browse");
+  // Copy follows docs/tfi_homepage_redesign_for_human_and_agent.md:
+  // the panel is a three-step walkthrough ending in a single CTA.
+  checkContains("step1Title present", EN_HOME?.step1Title ?? "", "Browse");
+  checkContains("step2Title present", EN_HOME?.step2Title ?? "", "Select");
   checkContains("step3Title present", EN_HOME?.step3Title ?? "", "Generate");
-  checkContains("browseModelsButton present", EN_HOME?.browseModelsButton ?? "", "Start");
+  checkContains("browseModelsButton present", EN_HOME?.browseModelsButton ?? "", "Browse");
 });
 
 suite("en locale: documentation link label (§8)", () => {

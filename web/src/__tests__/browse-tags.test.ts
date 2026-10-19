@@ -71,13 +71,17 @@ test("hasTag streaming never infers from metadata or capability flags", () => {
   assert.equal(hasTag(ep, "streaming"), false);
 });
 
-test("streaming tag is positioned after capability tags and before pricing tags", () => {
+test("streaming tag is positioned after capability tags and after free/longCtx", () => {
   const ids = TAGS.map((t) => t.id);
   const streamingIdx = ids.indexOf("streaming");
   const structuredIdx = ids.indexOf("structured_output");
   const freeIdx = ids.indexOf("free");
+  const longCtxIdx = ids.indexOf("longCtx");
+  // Badge order: Free → longCtx → capabilities → supported_parameters,
+  // so streaming lands at the very end, after free/longCtx/capabilities.
   assert.ok(streamingIdx > structuredIdx, "streaming must come after the last capability tag");
-  assert.ok(streamingIdx < freeIdx, "streaming must come before the free/pricing tags");
+  assert.ok(streamingIdx > freeIdx, "streaming must come after free");
+  assert.ok(streamingIdx > longCtxIdx, "streaming must come after longCtx");
 });
 
 test("streaming tag uses the neutral (gray) variant", () => {
