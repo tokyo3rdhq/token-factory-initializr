@@ -69,6 +69,7 @@ most important rule to internalize before issuing queries:
 | \`?provider=groq,together\` | \`provider IN ["groq", "together"]\` |
 | \`?capabilities=chat,vision\` | \`capabilities ⊇ ["chat", "vision"]\` (i.e. both) |
 | \`?supported_parameters=streaming\` | \`supported_parameters ∋ "streaming"\` |
+| \`?context_length_min=131072\` | \`context_length >= 131072\` (inclusive; models with unknown/null \`context_length\` are excluded) |
 | \`?data_source=nvidia&capabilities=chat\` | \`(data_source == "nvidia") AND (capabilities contains "chat")\` |
 
 ### Combined Filters
@@ -76,7 +77,7 @@ most important rule to internalize before issuing queries:
 \`\`\`
 GET /api/v1/models?data_source=huggingface&capabilities=vision,reasoning
 GET /api/v1/models?data_source=amd&supported_parameters=streaming
-\`\`\`
+GET /api/v1/models?data_source=nvidia&supported_parameters=reasoning&context_length_min=131072
 
 ## Model Details
 
@@ -115,8 +116,8 @@ Each model includes:
 - \`provider\` — which provider within the data source exposes the
   endpoint (\`nvidia\`, \`together\`, \`novita\`, …).
 - \`capabilities\` — canonical normalized capability flags
-  (\`chat\`, \`vision\`, \`speech\`, \`embedding\`, \`reasoning\`,
-  \`tool_calling\`, \`structured_output\`, \`decision\`). An **empty array** means
+  (\`chat\`, \`vision\`, \`speech\`, \`embedding\`, \`translation\`,
+  \`decision\`). An **empty array** means
   TFI doesn't currently have capability data for that model — it
   is NOT a statement that the model has no capabilities.
 - \`supported_parameters\` — endpoint-level interface/runtime
