@@ -160,7 +160,7 @@ Requirements:
 
 Do not document fields as available in an endpoint unless the implementation actually exposes them.
 
-If API filtering by capability already exists, ensure `decision` is accepted. Expose `?supported_parameters=` filtering consistent with the existing API filtering architecture; document the supported query syntax and test it.
+If API filtering by capability already exists, ensure `decision` is accepted. Expose `?supported_parameters=` filtering consistent with the existing API filtering architecture; document the supported query syntax and test it. Expose `?context_length_min=` filtering to exclude models with smaller context windows.
 
 ## 6. Browse UI Integration
 
