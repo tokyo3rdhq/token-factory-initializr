@@ -16,7 +16,10 @@ build/
 .coverage
 htmlcov/
 
-# Cloudflare / Wrangler local cache (deploy artifacts, account metadata)
+
+# uv-generated lockfile — not used by this repo (CI installs via pip).
+# Committing lockfiles across lockers causes churn; leave to local dev only.
+uv.lock
 .wrangler/
 
 # IDE / editor

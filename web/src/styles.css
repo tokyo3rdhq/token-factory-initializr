@@ -424,8 +424,8 @@ body {
 .tfi-model-row {
   display: grid;
   grid-template-columns: 24px auto 1fr minmax(180px, 300px);
+  gap: var(--magi-space-2);
   align-items: start;
-  gap: var(--magi-space-4);
   padding: var(--magi-space-4) var(--magi-space-5);
   border-bottom: 1px solid var(--magi-border);
   border-left: 3px solid transparent;
