@@ -577,66 +577,64 @@ function ModelRow({
         aria-label={`Select ${endpoint.model_id}`}
       />
       <Badge variant="neutral">{endpoint.provider}</Badge>
-      <div className="tfi-model-content">
-        <span className="tfi-model-name-row">
-          <span className="tfi-model-name">{endpoint.model_id}</span>
-          {endpoint.source_url && (
-            <a
-              className="tfi-model-source-link"
-              href={endpoint.source_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-              aria-label={dict.browse.viewSourceLabel(endpoint.model_id)}
-              title={dict.browse.viewSourceLabel(endpoint.model_id)}
-            >
-              <ExternalLink size={12} aria-hidden="true" />
-            </a>
-          )}
-          <button
-            className={`tfi-model-copy-btn${copied ? " copied" : ""}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onCopy(endpoint.model_id);
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            aria-label={copied ? dict.browse.copyCopied : dict.browse.copy}
-            title={copied ? dict.browse.copyCopied : dict.browse.copy}
-          >
-            {copied ? <Check size={12} strokeWidth={2.5} aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
-          </button>
+      <div className="tfi-model-name-row">
+        <span className="tfi-model-name">{endpoint.model_id}</span>
+        {endpoint.source_url && (
           <a
-            className="tfi-model-copy-btn"
-            href={`https://start.magi.website/api/v1/models/${endpoint.model_id}`}
+            className="tfi-model-source-link"
+            href={endpoint.source_url}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
-            aria-label={`API specification for ${endpoint.model_id}`}
-            title={`API specification for ${endpoint.model_id}`}
+            aria-label={dict.browse.viewSourceLabel(endpoint.model_id)}
+            title={dict.browse.viewSourceLabel(endpoint.model_id)}
           >
-            <Code size={12} aria-hidden="true" />
+            <ExternalLink size={12} aria-hidden="true" />
           </a>
-        </span>
-        {endpoint.description && (
-          <div className="tfi-model-desc">{endpoint.description}</div>
         )}
-        <span className="tfi-model-meta">
-          {endpoint.free && <Badge variant="success" dot>Free</Badge>}
-          {ctx && <Badge variant="warning">{ctx}</Badge>}
-          {hasChat && <Badge variant="accent">Chat</Badge>}
-          {hasVisionCap && <Badge variant="accent">Vision</Badge>}
-          {hasSpeech && <Badge variant="accent">Speech</Badge>}
-          {hasTranslation && <Badge variant="accent">Translation</Badge>}
-          {hasEmbedding && <Badge variant="accent">Embedding</Badge>}
-          {hasDecision && <Badge variant="accent">Decision</Badge>}
-          {hasTools && <Badge variant="neutral">Tools</Badge>}
-          {hasReasoningBadge && <Badge variant="neutral">Reasoning</Badge>}
-          {hasStructuredOutputBadge && <Badge variant="neutral">Structured output</Badge>}
-          {hasStreaming && <Badge variant="neutral">Streaming</Badge>}
-        </span>
+        <button
+          className={`tfi-model-copy-btn${copied ? " copied" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onCopy(endpoint.model_id);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          aria-label={copied ? dict.browse.copyCopied : dict.browse.copy}
+          title={copied ? dict.browse.copyCopied : dict.browse.copy}
+        >
+          {copied ? <Check size={12} strokeWidth={2.5} aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
+        </button>
+        <a
+          className="tfi-model-copy-btn"
+          href={`https://start.magi.website/api/v1/models/${endpoint.model_id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+          aria-label={`API specification for ${endpoint.model_id}`}
+          title={`API specification for ${endpoint.model_id}`}
+        >
+          <Code size={12} aria-hidden="true" />
+        </a>
       </div>
+      {endpoint.description && (
+        <div className="tfi-model-desc">{endpoint.description}</div>
+      )}
+      <span className="tfi-model-meta">
+        {endpoint.free && <Badge variant="success" dot>Free</Badge>}
+        {ctx && <Badge variant="warning">{ctx}</Badge>}
+        {hasChat && <Badge variant="accent">Chat</Badge>}
+        {hasVisionCap && <Badge variant="accent">Vision</Badge>}
+        {hasSpeech && <Badge variant="accent">Speech</Badge>}
+        {hasTranslation && <Badge variant="accent">Translation</Badge>}
+        {hasEmbedding && <Badge variant="accent">Embedding</Badge>}
+        {hasDecision && <Badge variant="accent">Decision</Badge>}
+        {hasTools && <Badge variant="neutral">Tools</Badge>}
+        {hasReasoningBadge && <Badge variant="neutral">Reasoning</Badge>}
+        {hasStructuredOutputBadge && <Badge variant="neutral">Structured output</Badge>}
+        {hasStreaming && <Badge variant="neutral">Streaming</Badge>}
+      </span>
     </label>
   );
 }

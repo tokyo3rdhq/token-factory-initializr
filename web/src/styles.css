@@ -423,7 +423,7 @@ body {
 }
 .tfi-model-row {
   display: grid;
-  grid-template-columns: 24px auto 1fr;
+  grid-template-columns: 24px auto 1fr auto;
   align-items: start;
   gap: var(--magi-space-4);
   padding: var(--magi-space-4) var(--magi-space-5);
@@ -434,16 +434,19 @@ body {
               border-left-color var(--magi-duration-fast, 150ms) ease;
 }
 
-/* Content column: name row, description, meta badges stack in order.
- * min-width:0 keeps long model_ids truncatable instead of blowing out
- * the grid track. */
-.tfi-model-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--magi-space-1);
-  min-width: 0;
+.tfi-model-name-row {
+  grid-column: 3 / span 2;
 }
-.tfi-model-row:last-child { border-bottom: 0; }
+
+.tfi-model-desc {
+  grid-column: 3;
+}
+
+.tfi-model-meta {
+  grid-column: 4;
+  justify-content: flex-end;
+  text-align: right;
+}
 .tfi-model-row:hover { background: var(--magi-surface-elevated); }
 /* §16 — selected state must be visually obvious without relying
  * only on color. We pair the soft accent tint with a left-edge
