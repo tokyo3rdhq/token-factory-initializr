@@ -636,7 +636,7 @@ function ModelRow({
         {hasReasoningBadge && <Badge variant="neutral">Reasoning</Badge>}
         {hasStructuredOutputBadge && <Badge variant="neutral">Structured output</Badge>}
         {hasStreaming && <Badge variant="neutral">Streaming</Badge>}
-        {endpoint.free && <Badge variant="success" dot>Free</Badge>}
+
       </span>
     </label>
   );

@@ -810,7 +810,9 @@ body {
 .tfi-tag-chip-translation .tfi-tag-chip-dot,
 .tfi-tag-chip-translation.active .tfi-tag-chip-dot,
 .tfi-tag-chip-embedding .tfi-tag-chip-dot,
-.tfi-tag-chip-embedding.active .tfi-tag-chip-dot {
+.tfi-tag-chip-embedding.active .tfi-tag-chip-dot,
+.tfi-tag-chip-decision .tfi-tag-chip-dot,
+.tfi-tag-chip-decision.active .tfi-tag-chip-dot {
   background: var(--magi-accent);
 }
 .tfi-tag-chip-tools .tfi-tag-chip-dot,
