@@ -423,7 +423,7 @@ body {
 }
 .tfi-model-row {
   display: grid;
-  grid-template-columns: 24px auto 1fr auto;
+  grid-template-columns: 24px auto 1fr minmax(180px, 300px);
   align-items: start;
   gap: var(--magi-space-4);
   padding: var(--magi-space-4) var(--magi-space-5);
@@ -440,6 +440,7 @@ body {
 
 .tfi-model-desc {
   grid-column: 3;
+  min-width: 0;
 }
 
 .tfi-model-meta {
@@ -546,7 +547,12 @@ body {
   font-size: var(--magi-font-size-small);
   color: var(--magi-text-secondary);
   line-height: 1.4;
-  white-space: normal;
+  /* Clamp to two lines: keeps the description compact so the adjacent
+   * meta column (which may wrap to 2-3 badge rows) doesn't stretch the
+   * row tall. Overflow is ellipsized (matches the row's compactness). */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 720px;
