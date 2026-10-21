@@ -401,6 +401,7 @@ const DATA_SOURCE_BASE_URLS: Readonly<Record<string, string>> = {
   openrouter: "https://openrouter.ai/api/v1",
   groq: "https://api.groq.com/openai/v1",
   kilo: "https://api.kilo.ai/api/gateway",
+  ollama: "https://ollama.com/",
 };
 
 /** Single source of truth for the per-provider display name +
@@ -514,6 +515,12 @@ const PROVIDER_METADATA: Readonly<Record<string, ProviderMetadata>> = {
     protocols: ["openai-compatible"],
     nativeBaseUrl: "https://api.kilo.ai/api/gateway",
     documentationUrl: "https://kilo.ai/docs/gateway",
+  },
+  ollama: {
+    displayName: "Ollama Cloud",
+    protocols: ["openai-compatible"],
+    nativeBaseUrl: "https://ollama.com/",
+    documentationUrl: "https://github.com/ollama/ollama/blob/main/docs/api.md",
   },
 };
 
