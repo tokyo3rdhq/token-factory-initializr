@@ -520,7 +520,7 @@ const PROVIDER_METADATA: Readonly<Record<string, ProviderMetadata>> = {
     displayName: "Ollama Cloud",
     protocols: ["openai-compatible"],
     nativeBaseUrl: "https://ollama.com/",
-    documentationUrl: "https://github.com/ollama/ollama/blob/main/docs/api.md",
+    documentationUrl: "https://docs.ollama.com/cloud",
   },
 };
 
