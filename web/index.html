@@ -18,7 +18,7 @@
     <title>Token Factory Initializr — AI Model Configuration Generator</title>
     <meta
       name="description"
-      content="Discover free AI model endpoints from NVIDIA, AMD, and Hugging Face. Select the ones that fit your project and generate ready-to-use configurations for LiteLLM, NewAPI, and Bifrost."
+      content="Discover free AI model endpoints from NVIDIA, AMD, and Hugging Face. Generate LiteLLM, NewAPI, and Bifrost configurations."
     />
     <meta name="robots" content="index, follow" />
     <meta name="theme-color" content="#0a0a0a" />
@@ -50,20 +50,20 @@
       See docs/tfi_seo_optimization.md §12.
     -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "Token Factory Initializr",
-      "description": "Discover free AI model endpoints from NVIDIA, AMD, and Hugging Face. Select the ones that fit your project and generate ready-to-use configurations for LiteLLM, NewAPI, and Bifrost.",
-      "url": "https://start.magi.website/",
-      "applicationCategory": "DeveloperApplication",
-      "operatingSystem": "Any",
-      "publisher": {
-        "@type": "Organization",
-        "name": "MAGI",
-        "url": "https://magi.website"
-      }
-    }
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Token Factory Initializr",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Cloud",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock"
+  },
+  "description": "Discover free AI model endpoints from NVIDIA, AMD, and Hugging Face. Generate LiteLLM, NewAPI, and Bifrost configurations."
+}
     </script>
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -81,9 +81,15 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', 'G-WD0P96NZFD');
     </script>
+
+    <!-- VibeLoft Web Telemetry -->
+    <script defer
+      src="https://vibeloft.ai/telemetry/v1.js"
+      data-vl-product-id="af8b5373-65cf-4252-9e34-372e8a9aa860"
+      data-vl-auth-key="vl_web.1CdEeJQmhp7uMj8V8If8EkVl3QNIihzRNjb2bNWgU_8"
+    ></script>
 
     <!--
       FOUC prevention: runs before paint so the active locale + theme
@@ -105,22 +111,21 @@
           }
           document.documentElement.lang = saved === 'zh' ? 'zh-CN' : 'en';
           document.documentElement.setAttribute('data-tfi-locale', saved);
-        } catch (e) { /* localStorage may be blocked */ }
+        } catch (_) {
+          document.documentElement.lang = 'en';
+          document.documentElement.setAttribute('data-tfi-locale', 'en');
+        }
 
-        // Theme: localStorage mode → resolved palette
+        // Theme: localStorage → prefers-color-scheme → dark
         try {
-          var mode = localStorage.getItem('tfi:theme');
-          if (mode !== 'system' && mode !== 'dark' && mode !== 'light') mode = 'system';
-          var resolved = mode;
-          if (mode === 'system') {
-            try {
-              resolved = window.matchMedia('(prefers-color-scheme: dark)').matches
-                ? 'dark' : 'light';
-            } catch (e) { resolved = 'dark'; }
+          var theme = localStorage.getItem('tfi:theme');
+          if (theme !== 'dark' && theme !== 'light') {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
           }
-          document.documentElement.dataset.magiThemeMode = mode;
-          document.documentElement.setAttribute('data-magi-theme', resolved);
-        } catch (e) { /* ignore */ }
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (_) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
       })();
     </script>
   </head>
