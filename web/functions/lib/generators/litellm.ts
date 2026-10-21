@@ -20,7 +20,7 @@ import type { ModelEndpoint } from "../kv";
 import { GeneratorError, type GenerationContext, type GeneratedConfig, type TokenFactoryGenerator, type TokenFactoryMeta } from "./types";
 
 /** API key env var name keyed by data source (not provider — the
- *  same data source may host multiple inference providers under one
+ *  the same data source may host multiple inference providers under one
  *  gateway, e.g. Hugging Face routing to together, openrouter, etc.). */
 const API_KEY_ENV: Record<string, string> = {
   nvidia: "NVIDIA_API_KEY",
@@ -28,6 +28,7 @@ const API_KEY_ENV: Record<string, string> = {
   huggingface: "HUGGING_FACE_API_KEY",
   kilo: "KILO_API_KEY",
   openrouter: "OPENROUTER_API_KEY",
+  ollama: "OLLAMA_API_KEY",
 };
 /** LiteLLM model-field prefix keyed by data source (docs §1 Rule 2). */
 const DATA_SOURCE_PREFIX: Record<string, string> = {
@@ -36,6 +37,7 @@ const DATA_SOURCE_PREFIX: Record<string, string> = {
   huggingface: "huggingface",
   kilo: "openai",
   openrouter: "openrouter",
+  ollama: "ollama_chat",
 };
 /** LiteLLM adapter prefix for decision models (docs §1 Rule 1). */
 const DECISION_PREFIX = "hosted_vllm";

@@ -108,7 +108,7 @@ export function formatProviderTimestamps(
   const providers = manifest.providers || {};
   // Stable, human-familiar order — primary providers first, then the
   // cross-source enrichers. Anything not in this list falls to the end.
-  const ORDER = ["nvidia", "amd", "huggingface", "openrouter", "kilo", "models_dev"];
+  const ORDER = ["nvidia", "amd", "huggingface", "ollama", "openrouter", "kilo", "models_dev"];
   const seen = new Set<string>();
   const ordered: string[] = [];
   for (const k of ORDER) {

@@ -60,6 +60,7 @@ test("formatProviderTimestamps emits canonical order then alphabetical", () => {
       nvidia: { generated_at: "2026-10-05T01:24:19+00:00" },
       amd: { generated_at: "2026-10-05T01:24:17+00:00" },
       huggingface: { generated_at: "2026-10-05T01:24:18+00:00" },
+      ollama: { generated_at: "2026-10-05T01:24:20+00:00" },
       // An unknown ds — should land at the end, alphabetically.
       some_future_ds: { generated_at: "2026-10-05T02:00:00+00:00" },
     },
@@ -67,7 +68,7 @@ test("formatProviderTimestamps emits canonical order then alphabetical", () => {
   const out = formatProviderTimestamps(m, "en-US", "UTC");
   assert.deepEqual(
     out.map((e: { provider: string }) => e.provider),
-    ["nvidia", "amd", "huggingface", "models_dev", "some_future_ds"],
+    ["nvidia", "amd", "huggingface", "ollama", "models_dev", "some_future_ds"],
   );
 });
 

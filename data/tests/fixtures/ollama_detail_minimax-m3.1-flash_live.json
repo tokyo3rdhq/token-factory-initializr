@@ -1,0 +1,23 @@
+{
+  "capabilities": [
+    "completion",
+    "tools",
+    "thinking",
+    "vision"
+  ],
+  "details": {
+    "parent_model": "minimax-m3.1-flash",
+    "format": "",
+    "family": "minimax-m3",
+    "families": null,
+    "parameter_size": "428000000000",
+    "quantization_level": ""
+  },
+  "model_info": {
+    "general.architecture": "minimax-m3",
+    "general.parameter_count": 428000000000,
+    "minimax-m3.context_length": 1000000,
+    "minimax-m3.embedding_length": 0
+  },
+  "modified_at": "2026-10-19T09:00:00-07:00"
+}

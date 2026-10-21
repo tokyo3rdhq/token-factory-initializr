@@ -326,6 +326,7 @@ If the model does not declare \`decision\` in its output modalities, apply the f
 | \`kilo\` | \`openai/\${model_id}\` |
 | \`openrouter\` | \`openrouter/\${model_id}\` |
 | \`huggingface\` | \`huggingface/\${provider}/\${model_id}\` |
+| \`ollama\` | \`ollama_chat/\${model_id}\` |
 
 Where:
 

@@ -200,14 +200,14 @@ class NormalizeStage(Stage):
 
         matcher = DefaultIdentityMatcher()
         for provider, items in parsed.items():
-            if provider == "nvidia":
-                # NVIDIA provider yields ModelEndpoint objects directly,
+            if provider in ("nvidia", "ollama"):
+                # NVIDIA and Ollama providers yield ModelEndpoint objects directly,
                 # bypassing normalize_endpoints. We still need
                 # cross-source architecture + supported_parameters to
                 # feed the canonical 7-key capabilities shape, so walk
                 # the cross-source index via the matcher (token-subset
                 # fallback) instead of a literal normalized-key dict
-                # lookup — owner-prefixed NVIDIA ids like
+                # lookup — owner-prefixed ids like
                 # ``nvidia/nemotron-3.5-lightning-30b-a3b`` only
                 # collide with OR's shorter base slug via the matcher.
                 for ep in items:
@@ -237,7 +237,7 @@ class NormalizeStage(Stage):
                     if best_observations:
                         _apply_cross_source_signals_to_nvidia_endpoint(ep, best_observations)
                     # Lift the cross-source interface parameters into
-                    # ``supported_parameters`` — the NVIDIA path bypasses
+                    # ``supported_parameters`` — these paths bypass
                     # normalize_endpoints (which does this lift for AMD/HF
                     # at process/normalize.py:663), so it must run here.
                     # Uses the same signal pass; migrated keys
@@ -254,13 +254,12 @@ class NormalizeStage(Stage):
                         ),
                     )
                     # Project to the closed 6-key capability vocabulary.
-                    # The NVIDIA path bypasses normalize_endpoints (which
-                    # does this projection for AMD/HF), and the NVIDIA
-                    # provider itself stamps the migrated key
-                    # ``tool_calling`` into its raw capabilities dict
-                    # (providers/nvidia.py, ``attributes.TOOL_CALLING``).
-                    # Without this projection those migrated keys would
-                    # leak into the public ``capabilities`` field.
+                    # These paths bypass normalize_endpoints (which
+                    # does this projection for AMD/HF), and the providers
+                    # themselves may stamp migrated keys (e.g. ``tool_calling``)
+                    # into their raw capabilities dict. Without this projection
+                    # those migrated keys would leak into the public
+                    # ``capabilities`` field.
                     object.__setattr__(
                         ep,
                         "capabilities",

@@ -30,8 +30,8 @@ providers by registering them in :data:`PROVIDER_FREE_FILTERS`.
 from __future__ import annotations
 
 from typing import Any, Callable, Dict, List
-
 from data.models.schema import ModelEndpoint
+from data.providers.ollama import filter_ollama_free
 
 
 # ---------------------------------------------------------------------------
@@ -148,6 +148,7 @@ PROVIDER_FREE_FILTERS: Dict[str, Callable[[List[Any]], List[Any]]] = {
     "huggingface": filter_huggingface_free,
     "kilo": filter_kilo_free,
     "openrouter": filter_openrouter_free,
+    "ollama": filter_ollama_free,
 }
 
 

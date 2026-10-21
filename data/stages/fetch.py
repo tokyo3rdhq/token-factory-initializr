@@ -44,6 +44,7 @@ def _build_default_registry() -> List[Tuple[str, Callable[[], List[dict]]]]:
     from data.providers.nvidia import fetch_catalog_page
     from data.providers.openrouter import fetch_openrouter_models
     from data.providers.kilo import fetch_kilo_models
+    from data.providers.ollama import fetch_ollama_models
 
     return [
         ("nvidia", fetch_catalog_page),
@@ -52,6 +53,7 @@ def _build_default_registry() -> List[Tuple[str, Callable[[], List[dict]]]]:
         ("openrouter", fetch_openrouter_models),
         ("models_dev", fetch_models_dev_models),
         ("kilo", fetch_kilo_models),
+        ("ollama", fetch_ollama_models),
     ]
 
 

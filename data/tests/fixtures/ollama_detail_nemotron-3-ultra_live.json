@@ -1,0 +1,26 @@
+{
+  "capabilities": [
+    "completion",
+    "thinking",
+    "tools"
+  ],
+  "details": {
+    "parent_model": "nemotron-3-ultra",
+    "format": "",
+    "family": "",
+    "families": null,
+    "parameter_size": "550000000000",
+    "quantization_level": ""
+  },
+  "model_info": {
+    ".context_length": 262144,
+    ".embedding_length": 4096,
+    "general.architecture": "",
+    "general.parameter_count": 550000000000
+  },
+  "modified_at": "2026-06-04T00:00:00Z",
+  "thinking": {
+    "values": [false, true],
+    "default": true
+  }
+}

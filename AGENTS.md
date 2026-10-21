@@ -9,6 +9,7 @@ Initial providers:
 - NVIDIA NIM
 - AMD Radeon AI Platform
 - Hugging Face Inference
+- Ollama Cloud
 
 The project should provide:
 
@@ -730,6 +731,10 @@ model_list:
     litellm_params:
       model: openrouter/deepseek/deepseek-r1
       api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: ollama-minimax-m3-1-flash
+    litellm_params:
+      model: ollama_chat/minimax-m3.1-flash
+      api_key: os.environ/OLLAMA_API_KEY
 ```
 
 Never store real API keys.
@@ -741,6 +746,7 @@ For example:
 ```text
 os.environ/NVIDIA_API_KEY
 os.environ/HF_TOKEN
+os.environ/OLLAMA_API_KEY
 ```
 
 Provider-specific authentication should be configurable later.
@@ -753,6 +759,7 @@ When generating LiteLLM configurations, each data source maps its `model_id` to 
 - **huggingface** → `huggingface/<provider>/<model_id>` (e.g., `huggingface/together/meta-llama/Llama-3.3-70B-Instruct`)
 - **kilo** → `openai/<model_id>` (e.g., `openai/kilo-auto/glm-5-3`)
 - **openrouter** → `openrouter/<model_id>` (e.g., `openrouter/deepseek/deepseek-r1`)
+- **ollama** → `ollama_chat/<model_id>` (e.g., `ollama_chat/minimax-m3.1-flash`)
 
 The prefix is followed by the raw `model_id` from the catalog. See `web/functions/lib/generators/litellm.ts:DATA_SOURCE_PREFIX` for the canonical implementation.
 
@@ -965,6 +972,7 @@ The MVP MUST include:
 - NVIDIA provider
 - AMD provider
 - Hugging Face provider
+- Ollama provider
 - Python provider abstraction
 - canonical model endpoint schema
 - normalization
@@ -1182,7 +1190,8 @@ token-factory-initializr/
 │   ├── providers/
 │   │   ├── nvidia.py
 │   │   ├── amd.py
-│   │   └── huggingface.py
+│   │   ├── huggingface.py
+│   │   └── ollama.py
 │   │
 │   ├── models/
 │   │   ├── schema.py
