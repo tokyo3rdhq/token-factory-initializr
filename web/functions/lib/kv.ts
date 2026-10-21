@@ -113,7 +113,11 @@ const TTL_SECONDS_DEFAULT = 300;
 // KNOWN_DATA_SOURCES so the manifest reader can enumerate every
 // pipeline source (including ones whose manifest has never been
 // written).
-const KNOWN_DATA_SOURCES = ["nvidia", "amd", "huggingface", "openrouter", "kilo"] as const;
+// Known data sources — kept in sync with data/storage/cloudflare_kv.py
+// KNOWN_DATA_SOURCES so the manifest reader can enumerate every
+// pipeline source (including ones whose manifest has never been
+// written).
+const KNOWN_DATA_SOURCES = ["nvidia", "amd", "huggingface", "openrouter", "kilo", "ollama"] as const;
 
 // ---------------------------------------------------------------------------
 // Manifest / catalog readers — (data_source, provider) namespace

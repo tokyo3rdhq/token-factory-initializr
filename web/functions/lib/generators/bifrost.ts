@@ -106,6 +106,7 @@ export const PROVIDER_API_KEY_ENV: Record<string, string> = {
   amd: "AMD_API_KEY",
   nvidia: "NVIDIA_API_KEY",
   kilo: "KILO_API_KEY",
+  ollama: "OLLAMA_API_KEY",
 };
 
 /** Providers Bifrost has a built-in type for. Anything outside this
@@ -144,12 +145,16 @@ const CUSTOM_OPENAI_BASE_URLS: Record<string, string> = {
   // Kilo AI — OpenAI-compatible gateway (kilo.ai/docs/gateway),
   // same base URL used by the TFI public API (projection.ts).
   kilo: "https://api.kilo.ai/api/gateway",
+  // Ollama Cloud — OpenAI-compatible endpoint at ollama.com
+  // (data/providers/ollama.py BASE_URL + /v1/models discovery).
+  ollama: "https://ollama.com/v1",
 };
 
 const PROVIDER_ORDER = [
   "nvidia",
   "amd",
   "kilo",
+  "ollama",
   "huggingface",
   "groq",
   "openrouter",
