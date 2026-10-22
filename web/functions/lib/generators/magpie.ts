@@ -59,7 +59,7 @@ const MAGPIE_TEMPLATE = {
     icon: "kilo",
     preset: "kilo",
     website: "https://kilo.ai/docs/gateway",
-    keysUrl: "https://app.kilo.ai",
+    keysUrl: "https://app.kilo.ai/profile",
   },
   amd: {
     id: "amd",
