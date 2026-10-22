@@ -24,7 +24,7 @@ export interface SelectedModel extends ModelEndpoint {}
  * new factory = extend this union AND register a generator on
  * the server.
  */
-export type TokenFactoryId = "litellm" | "newapi" | "bifrost";
+export type TokenFactoryId = "litellm" | "newapi" | "bifrost" | "magpie";
 
 /**
  * The complete session state. ``tokenFactory === null`` means the user

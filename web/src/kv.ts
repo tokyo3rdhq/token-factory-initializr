@@ -79,6 +79,8 @@ export interface GenerateResponse {
   url: string;
   expires_at: number;
   yaml: string;
+  filename: string;
+  format: string;
   agent_prompt?: string;
 }
 

@@ -147,6 +147,7 @@ export interface InitializrTranslations {
     litellm: { name: string; description: string };
     newapi: { name: string; description: string };
     bifrost: { name: string; description: string };
+    magpie: { name: string; description: string };
   };
 }
 

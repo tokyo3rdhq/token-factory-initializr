@@ -118,9 +118,17 @@ export async function onRequestPost(context: {
   const publicBase = new URL(context.request.url).origin;
   const generatedUrl = `${publicBase}/generated/${id}`;
 
+  // Flatten all snapshots into a single catalog for generators that
+  // need the full provider catalog (e.g. Magpie's ``pickedFrom``).
+  const catalog = snapshots.flatMap((snap) => snap.models);
+
+
   let generated;
   try {
-    generated = generateWith(requestedFormat, resolved, { generatedUrl });
+    generated = generateWith(requestedFormat, resolved, {
+      generatedUrl,
+      catalog,
+    });
   } catch (e) {
     if (e instanceof GeneratorError) {
       return jsonError(e.status, e.message);
@@ -155,6 +163,7 @@ export async function onRequestPost(context: {
     expires_at: now + ttl * 1000,
     format: generated.format,
     yaml: generated.content,
+    filename: generated.filename,
     agent_prompt,
   });
 }

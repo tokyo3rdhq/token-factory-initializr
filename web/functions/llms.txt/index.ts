@@ -90,6 +90,25 @@ Useful filter:
    → every endpoint serving that model
 \`\`\`
 
+### Configuration Generation
+
+TFI generates short-lived configuration artifacts for AI gateways and
+tools from your model selection. Supported output formats:
+
+- **LiteLLM** — model_list: YAML fragment with litellm_params entries.
+- **NewAPI** — flat models[] array with { id, name } entries.
+- **Bifrost** — config.json with a providers map; each provider has a
+  keys[] array of { name, value, models, weight } entries.
+- **Magpie** — strict-JSON provider configuration (providers[]) with
+  per-provider key (intentionally empty; set by you in Magpie),
+  pickedFrom (full catalog per data source), models (your selection),
+  and chat (endpoint base URL). API key fields are intentionally left
+  empty and must be configured by you in Magpie.
+
+Generated artifacts live at https://start.magi.website/generated/{id} and
+expire after 5 minutes by design. Share the URL with an agent or paste it
+into your gateway configuration manually.
+
 ### Human Interface
 
 https://start.magi.website/browse

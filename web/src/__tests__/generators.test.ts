@@ -21,6 +21,7 @@ let failedLabels: string[] = [];
 import {
   litellmGenerator,
 } from "../../functions/lib/generators/litellm";
+import { magpieGenerator } from "../../functions/lib/generators/magpie";
 import { newapiGenerator } from "../../functions/lib/generators/newapi";
 import { generateWith } from "../../functions/lib/generators";
 import {
@@ -56,7 +57,6 @@ function checkThrows(label: string, fn: () => unknown, errorName: string): void 
     }
   }
 }
-
 const ep = (overrides: Partial<ModelEndpoint>): ModelEndpoint => ({
   provider: overrides.provider ?? "nvidia",
   data_source: overrides.data_source ?? "nvidia",
@@ -71,11 +71,11 @@ const ep = (overrides: Partial<ModelEndpoint>): ModelEndpoint => ({
   fetched_at: "2026-10-02T00:00:00Z",
   context_length: null,
   pricing: null,
+  endpoint_url: overrides.endpoint_url ?? "https://api.example.test/v1",
 });
-
 const sample: ModelEndpoint[] = [
-  ep({ provider: "nvidia", model_id: "deepseek-v4-1-flash", name: "deepseek-v4.1-flash" }),
-  ep({ provider: "huggingface", data_source: "huggingface", model_id: "kimi-k3", name: "kimi-k3" }),
+  ep({ provider: "nvidia", model_id: "deepseek-v4-1-flash", name: "deepseek-v4.1-flash", endpoint_url: "https://integrate.api.nvidia.com/v1" }),
+  ep({ provider: "huggingface", data_source: "huggingface", model_id: "kimi-k3", name: "kimi-k3", endpoint_url: "https://router.huggingface.co/v1" }),
 ];
 
 // ---------------------------------------------------------------------------
@@ -187,6 +187,48 @@ console.log("\nnewapi: empty models raise");
 checkThrows(
   "empty models → GeneratorError",
   () => newapiGenerator.generate([], { generatedUrl: "x" }),
+  "GeneratorError",
+);
+
+// ---------------------------------------------------------------------------
+// Magpie generator
+// ---------------------------------------------------------------------------
+
+console.log("\nmagpie: deterministic output");
+const magA = magpieGenerator.generate(sample, {
+  generatedUrl: "https://example.test/generated/abc",
+  catalog: sample,
+});
+const magB = magpieGenerator.generate(sample, {
+  generatedUrl: "https://example.test/generated/xyz",
+  catalog: sample,
+});
+check("same models → byte-identical config", magA.content === magB.content, true);
+check("format = 'magpie'", magA.format, "magpie");
+check("filename ends with .json", magA.filename.endsWith(".json"), true);
+
+console.log("\nmagpie: valid strict JSON");
+let magParsed: { providers: Array<{ id: string; total: number }> } | null = null;
+try {
+  magParsed = JSON.parse(magA.content);
+} catch (e) {
+  check("JSON.parse succeeds", false, true);
+}
+if (magParsed) {
+  check("providers is an array", Array.isArray(magParsed.providers), true);
+}
+
+console.log("\nmagpie: key is always empty");
+if (magParsed) {
+  for (const p of magParsed.providers) {
+    check(`provider ${p.id} key is ""`, p.key === "", true);
+  }
+}
+
+console.log("\nmagpie: empty models raise");
+checkThrows(
+  "empty models → GeneratorError",
+  () => magpieGenerator.generate([], { generatedUrl: "x", catalog: [] }),
   "GeneratorError",
 );
 

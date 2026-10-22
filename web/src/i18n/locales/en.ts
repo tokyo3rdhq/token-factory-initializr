@@ -304,6 +304,11 @@ Do not expose or modify secrets. Preserve my existing configuration unless I exp
         description:
           "A high-performance LLM gateway for routing and serving multiple model providers behind an OpenAI-compatible API.",
       },
+      magpie: {
+        name: "Magpie",
+        description:
+          "Magpie AI gateway — strict-JSON provider configuration with per-provider model catalogs and endpoint base URLs.",
+      },
     },
   },
 };

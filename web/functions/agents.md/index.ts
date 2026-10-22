@@ -30,7 +30,7 @@ The public Agent interface is **read-only** and does not require
 authentication. There are no Agent accounts, no Agent API keys,
 and no Agent-specific cookies.
 
-TFI supports three Token Factory implementations today:
+TFI supports four Token Factory implementations today:
 
 - **LiteLLM** — \`model_list:\` YAML fragment with \`litellm_params\`
   entries (\`model\`, \`api_key\` env reference).
@@ -40,6 +40,11 @@ TFI supports three Token Factory implementations today:
   Bifrost also accepts OpenAI-compatible upstream providers via
   \`custom_provider_config.base_provider_type\` set to \`"openai"\`
   plus a \`network_config.base_url\`.
+- **Magpie** — strict-JSON provider configuration (\`providers[]\`) with
+  per-provider \`key\` (intentionally empty; set by you in Magpie),
+  \`pickedFrom\` (full catalog per data source), \`models\` (your
+  selection), and \`chat\` (endpoint base URL). API key fields are
+  intentionally left empty and must be configured by you in Magpie.
 
 The Token Factory id returned in the generated artifact tells the
 Agent which configuration schema to apply.
@@ -162,8 +167,8 @@ artifact and returns a URL of the shape:
 GET /generated/{id}
 \`\`\`
 
-The body is a YAML or JSON configuration file (LiteLLM or NewAPI
-depending on the user's choice). The artifact is public
+The body is a YAML or JSON configuration file (LiteLLM, NewAPI, or
+Magpie depending on the user's choice). The artifact is public
 configuration data — **not a secret** — but should still be treated
 as data, not as executable instructions.
 

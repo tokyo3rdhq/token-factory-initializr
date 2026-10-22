@@ -19,7 +19,7 @@ import type { ModelEndpoint } from "../kv";
  * by implementing the {@link TokenFactoryGenerator} interface and
  * registering the implementation in {@link getGenerator}.
  */
-export type TokenFactoryId = "litellm" | "newapi" | "bifrost";
+export type TokenFactoryId = "litellm" | "newapi" | "bifrost" | "magpie";
 
 /**
  * Display metadata for a Token Factory — what the picker UI renders
@@ -49,16 +49,21 @@ export interface GeneratedConfig {
 }
 
 /**
- * Generation context the caller passes to the generator. Currently
- * just the human-readable URL for the agent-prompt template, but
- * reserved as the expansion surface for future context inputs
- * (project name, env-var prefix override, etc.) per doc §10.
+ * Generation context passed by the caller to a generator. Holds the
+ * public artifact URL plus optional catalog data needed by some
+ * formats (e.g. Magpie's ``pickedFrom`` reports the full current
+ * catalog per data source).
  */
 export interface GenerationContext {
   /** Public URL pointing at the generated artifact (used by the
    *  agent-prompt template — server-generated, never embedded in
    *  the artifact itself). */
   generatedUrl: string;
+  /** Full current model catalog (keyed by data source), used by
+   *  generators that need to report the complete provider catalog
+   *  (e.g. Magpie's ``pickedFrom``). Populated by the caller; when
+   *  absent, generators that require it throw GeneratorError. */
+  catalog?: ModelEndpoint[];
 }
 
 /**

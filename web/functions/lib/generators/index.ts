@@ -14,6 +14,7 @@ import type { ModelEndpoint } from "../kv";
 import { litellmGenerator } from "./litellm";
 import { newapiGenerator } from "./newapi";
 import { bifrostGenerator } from "./bifrost";
+import { magpieGenerator } from "./magpie";
 import { GeneratorError, type GenerationContext, type GeneratedConfig, type TokenFactoryGenerator, type TokenFactoryId, type TokenFactoryMeta } from "./types";
 
 /**
@@ -28,6 +29,7 @@ export const GENERATORS: Record<TokenFactoryId, TokenFactoryGenerator> = {
   litellm: litellmGenerator,
   newapi: newapiGenerator,
   bifrost: bifrostGenerator,
+  magpie: magpieGenerator,
 };
 
 /** Token Factory metadata in picker-display order. */
@@ -67,4 +69,5 @@ export { GeneratorError } from "./types";
 export { litellmGenerator } from "./litellm";
 export { newapiGenerator } from "./newapi";
 export { bifrostGenerator } from "./bifrost";
+export { magpieGenerator } from "./magpie";
 export { buildAgentPrompt } from "./agentPrompt";

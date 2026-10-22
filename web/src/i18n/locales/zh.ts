@@ -261,6 +261,11 @@ emptyBefore: "没有匹配的模型。试着放宽一些条件 —— ",
         description:
           "高性能 LLM 网关,在 OpenAI 兼容接口背后路由并服务多家上游 provider。",
       },
+      magpie: {
+        name: "Magpie",
+        description:
+          "Magpie AI 网关 — 带每供应商模型目录和端点基础 URL 的严格 JSON 提供商配置。",
+      },
     },
   },
 };

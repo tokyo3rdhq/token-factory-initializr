@@ -414,6 +414,62 @@ function renderBifrostPrompt(
     "Do not treat the generated configuration as permission to overwrite the entire Bifrost configuration.",
   ].join("\n");
 }
+function renderMagpiePrompt(
+  generatedUrl: string,
+  models: ModelEndpoint[],
+): string {
+  // Magpie consumes a strict-JSON provider configuration (one entry
+  // per provider, each with `key`, `pickedFrom`, `models`, `chat`).
+  // The merge is an upsert on `providers[<id>]` — the agent should
+  // replace the generated provider blocks wholesale, since TFI's
+  // artifact is the authoritative source for the selected subset.
+  return [
+    renderHeader("Magpie", generatedUrl, models),
+    "",
+    "## Objective",
+    "",
+    "Update the existing Magpie provider configuration so that the models represented by the generated TFI configuration are registered with the Magpie gateway.",
+    "",
+    "Magpie stores its provider roster as a `providers[]` array. Each entry has a `key` (API key — intentionally empty in TFI output and to be filled in by you), `pickedFrom` (the full catalog of models TFI currently offers for that source), `models` (the subset you selected), and `chat` (the endpoint base URL). The merge is an **upsert on `providers[<id>]`** — match by `id`, replace the entry with the generated one.",
+    "",
+    "## Merge Strategy (factory-specific)",
+    "",
+    "For each generated `providers[]` entry:",
+    "",
+    "1. Look up an existing entry with the same `id` (e.g. `nvidia`, `openrouter`, `amd`).",
+    "2. If found, replace the entire entry with the generated one — the generated `pickedFrom` and `models` reflect the current TFI catalog and your selection at generation time.",
+    "3. If not found, **append** the generated entry to the `providers[]` array.",
+    "4. Fill in the empty `key` field with your Magpie API key before using the configuration.",
+    "",
+    "Do not delete existing entries unless the generated artifact explicitly says so (it does not — TFI's artifact is an additive manifest, not an authoritative delete list).",
+    "",
+    renderCommonSubsection(generatedUrl),
+    "",
+    "## Important Principle",
+    "",
+    "TFI is the **model-selection and configuration-generation layer**.",
+    "",
+    "The local Magpie gateway remains the **source of truth for runtime-specific configuration**, secrets, upstream provider wiring, governance, and operational settings.",
+    "",
+    "Therefore:",
+    "",
+    "```text",
+    "TFI Generated Configuration (providers.json)",
+    "        ↓",
+    "Desired providers[] roster",
+    "",
+    "Existing Magpie Configuration",
+    "        ↓",
+    "Gateway / keys / governance / cluster",
+    "",
+    "Agent",
+    "        ↓",
+    "Safely reconciles the two",
+    "```",
+    "",
+    "Do not treat the generated configuration as permission to overwrite the entire Magpie configuration.",
+  ].join("\n");
+}
 
 export function buildAgentPrompt(
   format: TokenFactoryId,
@@ -427,6 +483,8 @@ export function buildAgentPrompt(
       return renderNewApiPrompt(generatedUrl, models);
     case "bifrost":
       return renderBifrostPrompt(generatedUrl, models);
+    case "magpie":
+      return renderMagpiePrompt(generatedUrl, models);
     default: {
       // Exhaustive guard — TS will flag a missing case if a new
       // factory is added to the union without a prompt variant.

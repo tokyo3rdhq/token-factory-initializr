@@ -112,11 +112,12 @@ export function GeneratePage() {
 
   const download = () => {
     if (!result) return;
-    const blob = new Blob([result.yaml], { type: "text/yaml" });
+    const mime = result.format === "magpie" ? "application/json" : "text/yaml";
+    const blob = new Blob([result.yaml], { type: mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "config.yaml";
+    a.download = result.filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -224,7 +225,7 @@ export function GeneratePage() {
                   </span>
                   <Button
                     variant="primary"
-                  onClick={handleInitializeClick}
+                    onClick={handleInitializeClick}
                     disabled={!initializr.readiness.ready || submitting}
                     loading={submitting}
                   >
@@ -257,7 +258,7 @@ export function GeneratePage() {
               <ResultPanel
                 yaml={result.yaml}
                 url={result.url}
-                id={result.id}
+                filename={result.filename}
                 agentPrompt={result.agent_prompt}
                 copied={copied}
                 onCopy={copy}
@@ -267,13 +268,13 @@ export function GeneratePage() {
             )}
           </Stack>
         )}
-
-        <div className="tfi-back-button-wrap">
-          <Button variant="secondary" onClick={() => navigate("/browse")}>
-            ← {ts("nav.browse")}
-          </Button>
-        </div>
       </Container>
+
+      <div className="tfi-back-button-wrap">
+        <Button variant="secondary" onClick={() => navigate("/browse")}>
+          ← {ts("nav.browse")}
+        </Button>
+      </div>
     </Section>
   );
 }
@@ -281,7 +282,7 @@ export function GeneratePage() {
 function ResultPanel({
   yaml,
   url,
-  id,
+  filename,
   agentPrompt,
   copied,
   onCopy,
@@ -290,7 +291,7 @@ function ResultPanel({
 }: {
   yaml: string;
   url: string;
-  id: string;
+  filename: string;
   agentPrompt?: string;
   copied: "yaml" | "url" | "prompt" | null;
   onCopy: (text: string, key: "yaml" | "url" | "prompt") => void;
@@ -301,7 +302,7 @@ function ResultPanel({
   return (
     <Stack gap="4">
       <div className="tfi-code-chrome">
-        <span className="tfi-code-filename">{id}.yaml</span>
+        <span className="tfi-code-filename">{filename}</span>
         <span className="magi-caption tfi-result-ready">
           {ts("generate.yamlReady")}
         </span>
