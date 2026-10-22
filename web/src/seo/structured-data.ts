@@ -49,7 +49,7 @@ export function buildSoftwareApplicationLD(): SoftwareApplicationLD {
     "@type": "SoftwareApplication",
     name: SITE.name,
     description:
-      "Discover free AI model endpoints from NVIDIA, AMD, and Hugging Face. Select the ones that fit your project and generate ready-to-use configurations for LiteLLM, NewAPI, and Bifrost.",
+      "Discover free AI model endpoints from NVIDIA, AMD, and Hugging Face. Select the ones that fit your project and generate ready-to-use configurations for LiteLLM, NewAPI, Bifrost, and Magpie.",
     url: `${SITE.url}/`,
     applicationCategory: "DeveloperApplication",
     operatingSystem: "Any",

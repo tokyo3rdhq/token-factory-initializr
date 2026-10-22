@@ -3,7 +3,7 @@
 > A lightweight **Token Factory Initializr** that discovers, normalizes,
 > stores, and exposes currently available free AI model endpoints from
 > multiple providers, then generates ready-to-use configurations for the
-> three most popular AI gateways.
+> most popular AI gateways and tools.
 
 [Token Factory Initializr · MAGI](https://start.magi.website/) · [GitHub](https://github.com/tokyo3rdhq/token-factory-initializr) · [Agents](https://start.magi.website/agents.md) · [llms.txt](https://start.magi.website/llms.txt)
 
@@ -30,7 +30,7 @@
 ## What it does
 
 Token Factory Initializr (TFI) is a model-discovery + Token-Factory-config generator for AI engineers.
-Browse and inventory the problems at `prod/operation/f` and select from a small set of free models from NVIDIA / AMD / Hugging Face / OpenRouter / models.dev, pick a Token Factory to target, and download a generated config that the agent can apply to your existing config:
+Browse and inventory the problems at `prod/operation/f` and select from a small set of free models from NVIDIA / AMD / Hugging Face / OpenRouter / Kilo / Ollama Cloud / models.dev, pick a Token Factory to target, and download a generated config that the agent can apply to your existing config:
 
 ```text
 Model Catalog
@@ -46,11 +46,12 @@ Generate Configuration
 Generated Artifact
 ```
 
-Three Token Factory implementations are supported:
+Four Token Factory implementations are supported:
 
 - **LiteLLM** — `model_list:` YAML fragment with `litellm_params` entries
 - **NewAPI** — flat `models[]` array with `{ id, name }` entries
-- **Bifrost** — `config.json` with a `providers` map; supports 17 OpenAI-compatible upstreams (NVIDIA NIM, AMD Radeon Cloud, Hugging Face router vendors — Together, DeepInfra, Cerebras, Novita, Cohere, Fireworks, Baseten, Scaleway, Nscale, OVHcloud, PublicAI, Featherless — plus native Bifrost providers: Hugging Face, Groq, OpenRouter)
+- **Bifrost** — `config.json` with a `providers` map; supports 18 OpenAI-compatible upstreams (NVIDIA NIM, AMD Radeon Cloud, Kilo Gateway, Ollama Cloud, Hugging Face router vendors — Together, DeepInfra, Cerebras, Novita, Cohere, Fireworks, Baseten, Scaleway, Nscale, OVHcloud, PublicAI, Featherless — plus native Bifrost providers: Hugging Face, Groq, OpenRouter)
+- **Magpie** — strict-JSON provider configuration (`providers[]`); each provider carries `key` (intentionally empty — set it in Magpie), `pickedFrom` (full catalog per data source), `models` (your selection), and `chat` (endpoint base URL)
 
 The full canonical model API lives at `https://start.magi.website/api/v1/models` (agent-compatible, OpenAI-shaped).
 Generated configuration artifacts are short-lived (5 min TTL) at `https://start.magi.website/generated/{id}`.
@@ -63,15 +64,16 @@ Single repository, **dual runtime**:
 
 ```
 ┌──────────────────────────┐     ┌──────────────────────────┐
-│   data/               │     │  (GitHub Actions cron)    │
-│   Python data pipeline  │ ──→ │  Cloudflare KV (magi-kv) │
-│   (fetch → normalize →  │     │                          │
-│   validate → enrich →  │     └──────────────────────────┘
-│   reconcile → publish)  │                  ↑
+│   data/                  │     │  (GitHub Actions cron)    │
+│   Python data pipeline   │ ──→ │  Cloudflare KV (magi-kv) │
+│   (fetch → normalize →   │     │                          │
+│   validate → enrich →    │     └──────────────────────────┘
+│   reconcile → publish)   │                  ↑
 └──────────────────────────┘                   │
         ↑                                       │ read
    free model APIs                            │
-   (NVIDIA / AMD / HF / OR / models.dev)      │
+   (NVIDIA/AMD/HF/OR/Kilo/                    │
+    Ollama/models.dev)                        │
                                                        │
 ┌──────────────────────────┐                   │
 │  web/                   │ ←────────────────────┘
@@ -98,6 +100,8 @@ token-factory-initializr/
 │   │   ├── amd.py                 AMD Radeon AI Platform
 │   │   ├── huggingface.py         HF inference router
 │   │   ├── openrouter.py          OpenRouter models.json
+│   │   ├── kilo.py                Kilo AI gateway
+│   │   ├── ollama.py              Ollama Cloud (v1/models + api/show + library HTML)
 │   │   ├── models_dev.py          Cross-source enrichment (descriptions, context_length)
 │   │   └── free_filter.py         Free-tier gating
 │   ├── stages/                    Pipeline stages (fetch → parse → normalize → validate
@@ -157,6 +161,7 @@ token-factory-initializr/
 │               ├── litellm.ts         LiteLLM model_list generator
 │               ├── newapi.ts          NewAPI models[] generator
 │               ├── bifrost.ts         Bifrost config.json generator
+│               ├── magpie.ts          Magpie providers[] JSON generator
 │               ├── agentPrompt.ts     Per-factory agent prompt builder
 │               ├── types.ts           TokenFactoryId + GeneratedConfig contract
 │               └── index.ts          GENERATORS registry + dispatch
@@ -168,19 +173,35 @@ token-factory-initializr/
 │
 ├── .github/
 │   └── workflows/
-│       ├── fetch-models.yml           Python pipeline cron (daily 02:00 UTC)
-│       └── pages-deploy.yml           Cloudflare Pages deploy on push to main
+│       ├── fetch-models.yml           Python pipeline cron (00:00 + 12:00 UTC)
+│       ├── data-ci.yml                Python test + lint workflow
+│       └── web-ci.yml                 TypeScript typecheck + test workflow
 │
 ├── docs/                              Project documentation (specs, audits, guides)
 │   ├── tfi_phase_1_initializr_core_workflow.md
 │   ├── tfi_provenance_enrichment_architecture.md
 │   ├── tfi_agent_friendly_model_catalog_api.md
+│   ├── tfi_provider_and_endpoint_intelligence_api.md
 │   ├── tfi_agent_prompt_template.md
+│   ├── tfi_litellm_configuration_generation_rules.md
+│   ├── tfi_add_support_for_magpie_configuration_generation.md
+│   ├── tfi_integration_with_ollama.md
+│   ├── tfi_kiloai_integration_and_openrouter_promotion_implementation.md
+│   ├── tfi_add_supported_parameters.md
+│   ├── tfi_model_and_endpoint_free_status_semantics.md
+│   ├── tfi_model_source_url.md
 │   ├── tfi_public_model_catalog_api_contract_fix.md
 │   ├── tfi_homepage_agent_access.md
+│   ├── tfi_homepage_redesign_for_human_and_agent.md
 │   ├── tfi_seo_optimization.md
+│   ├── tfi_seo_geo_implementation.md
+│   ├── tfi_responsive_design_implementation.md
+│   ├── tfi_footer_refactor.md
+│   ├── tfi_model_list_lobe_icons.md
 │   ├── tfi_docs_impl_assessment.md
 │   ├── tfi_docs_ux_audit_report.md
+│   ├── tfi_open_source_security_audit.md
+│   ├── tfi_open_source_security_audit_report.md
 │   ├── arch_models_intelligence_layer_evo.md
 │   ├── arch_pipeline_refactor.md
 │   ├── data_source_provider_refactor.md
@@ -255,7 +276,7 @@ $ pytest                              # 200+ unit tests
 ## Architecture Invariants
 
 - **Endpoint identity != model identity != quota identity.** The same model exposed by two providers produces two distinct endpoints in the catalog (NVIDIA NIM DeepSeek V4 Flash ≠ AMD Radeon Cloud DeepSeek V4 Flash), each with its own auth, latency, and rate limits.
-- **Model selection is independent from Token Factory.** The UI doesn't know which format LiteLLM / NewAPI / Bifrost uses; generators consume canonical `ModelEndpoint[]` and emit their own output.
+- **Model selection is independent from Token Factory.** The UI doesn't know which format LiteLLM / NewAPI / Bifrost / Magpie uses; generators consume canonical `ModelEndpoint[]` and emit their own output.
 - **Agents get the public surface only.** The `/api/v1/*` API is a strict projection of the canonical data — no provenance, no raw source payloads, no internal metadata.
 - **Public = read-only.** No Agent accounts, no Agent API keys, no Agent-specific cookies.
 - **Deterministic generators.** Same models + same context → same content. No silent value substitution, no model dropping, no fabrication when metadata is missing (`GeneratorError` is thrown instead).
@@ -268,12 +289,12 @@ $ pytest                              # 200+ unit tests
 |---|---|
 | Data ingestion | Python 3.11+ · httpx · pydantic · pytest · ruff · mypy |
 | Web frontend | React 18.3 · React Router 6.27 · TypeScript 5.6 (strict) · Vite 5.4 |
-| Design system | `@tokyo3rdhq/magi-design-system@^0.6` (shared with MAGI) |
+| Design system | `@tokyo3rdhq/magi-design-system@^0.8` (shared with MAGI) |
 | Icons | `lucide-react` |
 | Backend | Cloudflare Pages Functions (Workers runtime, Node compat) |
 | Cache + artifact store | Cloudflare KV (`magi-kv`) |
-| Tests | `tsx --test` (Node 22) + 8 test files · 250+ assertions |
-| CI | GitHub Actions — daily pipeline + Pages deploy on push |
+| Tests | `tsx --test` (Node 22) — 12 web test files · 145 assertions · 29 Python test modules |
+| CI | GitHub Actions — twice-daily pipeline + web/data CI on push |
 | Analytics | GA4 (gtag.js) |
 
 ---
@@ -281,7 +302,7 @@ $ pytest                              # 200+ unit tests
 ## Development workflow
 
 ```
-$. Python pipeline runs daily via GitHub Actions cron → KV writes
+$. Python pipeline runs twice daily via GitHub Actions cron → KV writes
 $                                           ↓
 $ Cloudflare Pages serves static assets + Pages Functions
 $                                           ↓
@@ -294,7 +315,7 @@ $                                           ↓
 $ User copies artifact URL or Agent Prompt → wires to embedded
 ```
 
-PRs to `main` automatically deploy via `.github/workflows/pages-deploy.yml`. The Python pipeline is decoupled — it only writes to KV, the web app reads from KV.
+PRs to `main` automatically deploy the web app (`.github/workflows/web-ci.yml` gates the build; `wrangler pages deploy` publishes it). The Python pipeline is decoupled — it only writes to KV, the web app reads from KV.
 
 ---
 
@@ -343,6 +364,6 @@ Do **not** open a public GitHub issue for security bugs.
 ## Acknowledgments
 
 - Built on top of [@tokyo3rdhq/magi-design-system](https://github.com/tokyo3rdhq/magi-design-system) — shared visual language with the MAGI product family.
-- Data sources: [NVIDIA NIM](https://build.nvidia.com/models), [AMD Radeon AI Platform](https://developer.amd.com.cn/radeon/modelapis), [Hugging Face](https://huggingface.co/), [OpenRouter](https://openrouter.ai/), [models.dev](https://models.dev/).
-- Generators target the official configuration schemas of [LiteLLM](https://docs.litellm.ai/), [NewAPI](https://github.com/songquanpeng/one-api) (one-api-compatible), and [Bifrost](https://docs.getbifrost.ai/).
+- Data sources: [NVIDIA NIM](https://build.nvidia.com/models), [AMD Radeon AI Platform](https://developer.amd.com.cn/radeon/modelapis), [Hugging Face](https://huggingface.co/), [OpenRouter](https://openrouter.ai/), [Kilo AI](https://kilo.ai/docs/gateway), [Ollama Cloud](https://docs.ollama.com/cloud), [models.dev](https://models.dev/).
+- Generators target the official configuration schemas of [LiteLLM](https://docs.litellm.ai/), [NewAPI](https://github.com/songquanpeng/one-api) (one-api-compatible), [Bifrost](https://docs.getbifrost.ai/), and [Magpie](https://magpie.website/).
 - TFI is part of the [MAGI Personal AI Lab](https://magi.website) product family.

@@ -9,6 +9,8 @@ Initial providers:
 - NVIDIA NIM
 - AMD Radeon AI Platform
 - Hugging Face Inference
+- OpenRouter
+- Kilo Gateway
 - Ollama Cloud
 
 The project should provide:
@@ -17,7 +19,7 @@ The project should provide:
 2. Provider-specific model/endpoint metadata
 3. A unified model catalog
 4. A web UI for browsing/selecting models
-5. LiteLLM configuration generation
+5. Multi-format configuration generation (LiteLLM / NewAPI / Bifrost / Magpie)
 6. Short-lived generated configuration URLs
 7. Agent-friendly prompts for importing generated configurations
 
@@ -36,7 +38,10 @@ token-factory-initializr/
 │   ├── providers/
 │   │   ├── nvidia.py
 │   │   ├── amd.py
-│   │   └── huggingface.py
+│   │   ├── huggingface.py
+│   │   ├── openrouter.py
+│   │   ├── kilo.py
+│   │   └── ollama.py
 │   │
 │   ├── models/
 │   │   ├── schema.py
@@ -540,12 +545,13 @@ Never overwrite a valid `latest` snapshot with an empty or invalid result.
 
 The initial data update mechanism is GitHub Actions.
 
-Run once per day:
+Run twice per day (00:00 and 12:00 UTC):
 
 ```yaml
 on:
   schedule:
-    - cron: "0 2 * * *"
+    - cron: "0 0 * * *"
+    - cron: "0 12 * * *"
 
   workflow_dispatch:
 ```
@@ -705,10 +711,13 @@ class ConfigGenerator(Protocol):
         ...
 ```
 
-The first implementation:
+The implemented generators (see `web/functions/lib/generators/`):
 
 ```text
-LiteLLMGenerator
+LiteLLMGenerator   — model_list: YAML
+NewAPIGenerator    — models[] JSON
+BifrostGenerator   — config.json providers map
+MagpieGenerator    — providers[] JSON (key / pickedFrom / models / chat)
 ```
 
 ---
@@ -972,6 +981,8 @@ The MVP MUST include:
 - NVIDIA provider
 - AMD provider
 - Hugging Face provider
+- OpenRouter provider
+- Kilo provider
 - Ollama provider
 - Python provider abstraction
 - canonical model endpoint schema
@@ -984,7 +995,7 @@ The MVP MUST include:
 - Cloudflare Pages
 - model browsing
 - model selection
-- LiteLLM generation
+- LiteLLM / NewAPI / Bifrost / Magpie generation
 - short-lived generated URL
 - agent prompt generation
 
@@ -1037,6 +1048,9 @@ and additional generators:
 
 ```text
 LiteLLM
+NewAPI
+Bifrost
+Magpie
 asrv
 OpenAI-compatible proxy
 Other gateway formats
@@ -1191,6 +1205,8 @@ token-factory-initializr/
 │   │   ├── nvidia.py
 │   │   ├── amd.py
 │   │   ├── huggingface.py
+│   │   ├── openrouter.py
+│   │   ├── kilo.py
 │   │   └── ollama.py
 │   │
 │   ├── models/

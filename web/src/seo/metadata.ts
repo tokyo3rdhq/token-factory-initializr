@@ -71,12 +71,12 @@ export interface RouteMeta {
 export const HOME_META: RouteMeta = {
   title: "Token Factory Initializr — AI Model Configuration Generator",
   description:
-    "Discover free AI model endpoints from NVIDIA, AMD, and Hugging Face. Select the ones that fit your project and generate ready-to-use configurations for LiteLLM, NewAPI, and Bifrost.",
+    "Discover free AI model endpoints from NVIDIA, AMD, and Hugging Face. Select the ones that fit your project and generate ready-to-use configurations for LiteLLM, NewAPI, Bifrost, and Magpie.",
   canonical: `${SITE.url}/`,
   ogUrl: `${SITE.url}/`,
   ogTitle: "Token Factory Initializr — AI Model Configuration Generator",
   ogDescription:
-    "Discover free AI model endpoints. Generate LiteLLM, NewAPI, and Bifrost configurations.",
+    "Discover free AI model endpoints. Generate LiteLLM, NewAPI, Bifrost, and Magpie configurations.",
   ogImage: `${SITE.url}/og-image.png`,
 };
 
@@ -94,7 +94,7 @@ export const BROWSE_META: RouteMeta = {
 export const GENERATE_META: RouteMeta = {
   title: "Generate Token Factory Configuration — TFI",
   description:
-    "Generate ready-to-use LiteLLM, NewAPI, or Bifrost configurations from your selected models.",
+    "Generate ready-to-use LiteLLM, NewAPI, Bifrost, or Magpie configurations from your selected models.",
   canonical: `${SITE.url}/generate`,
   ogUrl: `${SITE.url}/generate`,
   ogImage: `${SITE.url}/og-image.png`,
