@@ -22,6 +22,7 @@
 // (per doc §8).
 
 import type { ModelEndpoint } from "../kv";
+import { resolveBaseUrl } from "../projection";
 import {
   GeneratorError,
   type GenerationContext,
@@ -151,23 +152,6 @@ const META: TokenFactoryMeta = {
   formatLabel: "Magpie providers[]",
 };
 
-/** Normalize + require a usable endpoint base URL. */
-function requireBaseUrl(
-  modelId: string,
-  dataSource: string,
-  baseUrl: string | null | undefined,
-): string {
-  const url = (baseUrl ?? "").trim().replace(/\/+$/, "");
-  if (!url) {
-    throw new GeneratorError(
-      `Magpie: no usable endpoint base URL for ${dataSource}/${modelId}. ` +
-        `Select a model whose endpoint exposes a base URL, or exclude it from the selection.`,
-      400,
-    );
-  }
-  return url;
-}
-
 /** Stable, readable JSON output (2-space indent, trailing newline). */
 function stableJson(obj: unknown): string {
   return JSON.stringify(obj, null, 2) + "\n";
@@ -238,17 +222,21 @@ export const magpieGenerator: TokenFactoryGenerator = {
       // conflicts explicitly (doc §2.4 §6).
       let chat: string | null = null;
       for (const ep of selected) {
-        const baseUrl = requireBaseUrl(
-          ep.model_id,
-          ep.data_source,
-          ep.endpoint_url,
-        );
+        const baseUrl = resolveBaseUrl(ep.data_source, ep.provider);
+        if (!baseUrl) {
+          throw new GeneratorError(
+            `Magpie: no usable endpoint base URL for ${ep.data_source}/${ep.model_id}. ` +
+              `Select a model whose data source exposes a base URL, or exclude it from the selection.`,
+            400,
+          );
+        }
+        const normalizedUrl = baseUrl.trim().replace(/\/+$/, "");
         if (chat === null) {
-          chat = baseUrl;
-        } else if (chat !== baseUrl) {
+          chat = normalizedUrl;
+        } else if (chat !== normalizedUrl) {
           throw new GeneratorError(
             `Magpie: conflicting endpoint base URLs for provider ${magpieProviderId} ` +
-              `(${chat} vs ${baseUrl}). Select models served by a single endpoint base URL.`,
+              `(${chat} vs ${normalizedUrl}). Select models served by a single endpoint base URL.`,
             400,
           );
         }
