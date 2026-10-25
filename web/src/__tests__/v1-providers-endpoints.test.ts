@@ -461,7 +461,7 @@ test("toPublicModels groups by model_id and nests all endpoints", () => {
 // rule by keying the public base_url on the data_source first.
 // ---------------------------------------------------------------------------
 
-const { resolveBaseUrl } = await import("../../functions/lib/projection.ts");
+const { resolveBaseUrl } = await import("../../functions/lib/dataSources.ts");
 
 test("resolveBaseUrl: HF-fanout providers point at the HF router", () => {
   // The exact case the user reported: data_source=huggingface,

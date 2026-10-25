@@ -273,7 +273,7 @@ export const DATA_SOURCE_REGISTRY: Record<string, {
 // PROVIDER REGISTRY — Upstream provider details (for HF router fanout, etc.)
 // ============================================================================
 
-interface ProviderConfig {
+export interface ProviderConfig {
   displayName: string;
   protocols: Protocol[];
   nativeBaseUrl?: string;
@@ -799,4 +799,19 @@ export function getKnownDataSources(): string[] {
   return Object.keys(DATA_SOURCE_REGISTRY).filter((k) => k !== "models_dev");
 }
 
-// All exports are inline via `export const`/`export function`/`export type` above.
+/** Stable sort order for protocols. Keeps response output deterministic. */
+export function stableProtocols(protocols: readonly string[]): string[] {
+  const order: Readonly<Record<string, number>> = {
+    "openai-compatible": 0,
+    "anthropic": 1,
+    "native": 2,
+    "huggingface": 3,
+    "nim": 4,
+  };
+  return [...protocols].sort(
+    (a, b) => (order[a] ?? 99) - (order[b] ?? 99),
+  );
+}
+
+
+

@@ -22,7 +22,7 @@
 // (per doc §8).
 
 import type { ModelEndpoint } from "../kv";
-import { resolveBaseUrl } from "../projection";
+import { resolveBaseUrl } from "../dataSources";
 import {
   GeneratorError,
   type GenerationContext,
