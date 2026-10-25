@@ -82,6 +82,8 @@ export interface PublicModelEndpoint {
   /** Endpoint-specific pricing, when the canonical record carries
    *  it. Omitted rather than invented. */
   pricing?: Record<string, unknown> | null;
+  /** Canonical pricing/access classification: "free", "paid", or "unknown". */
+  pricing_status?: "free" | "paid" | "unknown";
   /** Endpoint-specific rate / quota limits, when known. Omitted
    *  rather than invented. */
   limits?: Record<string, unknown> | null;
@@ -149,6 +151,7 @@ function toPublicModelEndpoint(model: ModelEndpoint): PublicModelEndpoint {
     provider: model.provider,
     model_id: model.model_id,
     free: model.free === true,
+    pricing_status: model.pricing_status ?? (model.free === true ? "free" : "unknown"),
   };
   if (model.pricing != null) out.pricing = model.pricing;
   if (Array.isArray(model.supported_parameters) && model.supported_parameters.length > 0) {

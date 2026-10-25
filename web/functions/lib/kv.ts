@@ -39,8 +39,9 @@ export interface ModelEndpoint {
   metadata: Record<string, unknown>;
   fetched_at: string;
   context_length?: number | null;
-  pricing?: Record<string, unknown> | null;
-  endpoint_url?: string | null;
+    pricing?: Record<string, unknown> | null;
+    pricing_status?: "free" | "paid" | "unknown";
+    endpoint_url?: string | null;
   /**
    * Optional human-readable source page for the model
    * (e.g. https://build.nvidia.com/<owner>/<model>). Surfaces

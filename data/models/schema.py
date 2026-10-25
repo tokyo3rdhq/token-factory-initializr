@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional
+from typing import Literal
 
 
 @dataclass(frozen=True)
@@ -153,6 +154,7 @@ class ModelEndpoint:
     # signal of cost — a non-None ``pricing`` field does NOT imply
     # the endpoint is paid.
     pricing: Optional[dict] = None
+    pricing_status: Optional[str] = None
     endpoint_url: Optional[str] = None
     region: Optional[str] = None
     # Optional human-readable source page associated with this model,

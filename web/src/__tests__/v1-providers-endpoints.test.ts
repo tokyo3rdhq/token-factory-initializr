@@ -404,6 +404,7 @@ test("toPublicModel nests the endpoint record by default", () => {
       model_id: "m1",
       free: true,
       pricing: { input: 0 },
+      pricing_status: "free",
     },
   ]);
 });

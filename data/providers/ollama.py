@@ -403,8 +403,58 @@ def build_model_endpoint(
 
 
 def filter_ollama_free(endpoints: List[ModelEndpoint]) -> List[ModelEndpoint]:
-    """Keep only Ollama endpoints with valid free_until."""
-    kept = [ep for ep in endpoints if ep.metadata.get("free_until") is not None]
+    """Keep only Ollama endpoints with valid free_until; set pricing_status."""
+    kept = []
+    for ep in endpoints:
+        free_until = ep.metadata.get("free_until")
+        if free_until:
+            # Create new endpoint with pricing_status="free" (dataclass is frozen)
+            kept.append(ModelEndpoint(
+                provider=ep.provider,
+                model_id=ep.model_id,
+                free=True,
+                fetched_at=ep.fetched_at,
+                name=ep.name,
+                description=ep.description,
+                capabilities=ep.capabilities,
+                architecture=ep.architecture,
+                lab=ep.lab,
+                metadata=ep.metadata,
+                context_length=ep.context_length,
+                pricing=ep.pricing,
+                pricing_status="free",
+                endpoint_url=ep.endpoint_url,
+                region=ep.region,
+                source_url=ep.source_url,
+                status=ep.status,
+                limits=ep.limits,
+                score=ep.score,
+                provenance=ep.provenance,
+            ))
+        else:
+            # For non-free endpoints, also create new instance with pricing_status
+            kept.append(ModelEndpoint(
+                provider=ep.provider,
+                model_id=ep.model_id,
+                free=False,
+                fetched_at=ep.fetched_at,
+                name=ep.name,
+                description=ep.description,
+                capabilities=ep.capabilities,
+                architecture=ep.architecture,
+                lab=ep.lab,
+                metadata=ep.metadata,
+                context_length=ep.context_length,
+                pricing=ep.pricing,
+                pricing_status="unknown",
+                endpoint_url=ep.endpoint_url,
+                region=ep.region,
+                source_url=ep.source_url,
+                status=ep.status,
+                limits=ep.limits,
+                score=ep.score,
+                provenance=ep.provenance,
+            ))
     dropped = len(endpoints) - len(kept)
     if dropped:
         logger.info("filter_free[ollama]: dropped %d endpoints without free_until", dropped)
