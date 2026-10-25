@@ -470,7 +470,7 @@ def test_known_data_sources_lists_pipeline_sources():
     """KNOWN_DATA_SOURCES lists every data source the pipeline emits."""
     from data.storage.cloudflare_kv import KNOWN_DATA_SOURCES
 
-    assert KNOWN_DATA_SOURCES == ("nvidia", "amd", "huggingface", "openrouter", "kilo")
+    assert KNOWN_DATA_SOURCES == ("nvidia", "amd", "huggingface", "openrouter", "kilo", "ollama")
 
 
 def test_put_provider_models_writes_under_namespace_key():
