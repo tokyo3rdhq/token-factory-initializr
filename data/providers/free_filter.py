@@ -68,20 +68,26 @@ def classify_pricing(endpoint: Any) -> str:
 def _ensure_pricing_status(endpoint: Any) -> Any:
     """Ensure ``pricing_status`` is set on endpoint (dict or ModelEndpoint).
 
-    For dict: sets in place and returns the same dict.
-    For ModelEndpoint (frozen dataclass): returns a NEW ModelEndpoint with
-    pricing_status set, or the original if already set.
+    Consistency rule (docs/tfi_model_endpoint_support_paid_model.md §3.1):
+    - If the source already classified the endpoint as ``"free"`` or
+      ``"paid"``, keep that classification.
+    - Otherwise (``None`` or ``"unknown"``), re-derive from the ``pricing``
+      field so ``pricing_status`` never contradicts ``pricing``:
+        * All pricing values zero  → ``"free"``
+        * Any non-zero value       → ``"paid"``
+        * Missing / empty pricing  → ``"unknown"``
     """
-    # Already has pricing_status?
+    # Read current pricing_status
     if hasattr(endpoint, "get"):
         current = endpoint.get("pricing_status")
     else:
         current = getattr(endpoint, "pricing_status", None)
 
-    if current is not None:
+    # Source already classified as free or paid — trust the source.
+    if current in ("free", "paid"):
         return endpoint
 
-    # Compute pricing_status
+    # current is None or "unknown" — re-derive from the pricing field.
     new_status = classify_pricing(endpoint)
 
     if hasattr(endpoint, "get"):
@@ -89,8 +95,7 @@ def _ensure_pricing_status(endpoint: Any) -> Any:
         endpoint["pricing_status"] = new_status
         return endpoint
     else:
-        # ModelEndpoint: create new instance with pricing_status
-        # ModelEndpoint is frozen, so we must reconstruct
+        # ModelEndpoint: frozen dataclass — reconstruct with new status.
         return ModelEndpoint(
             provider=endpoint.provider,
             model_id=endpoint.model_id,
@@ -113,7 +118,6 @@ def _ensure_pricing_status(endpoint: Any) -> Any:
             score=endpoint.score,
             provenance=endpoint.provenance,
         )
-
 
 # ---------------------------------------------------------------------------
 # Per-provider qualification + classification
