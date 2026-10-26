@@ -250,16 +250,7 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
         pricing = None
 
     free_status = tf.get("status", {}).get("key")
-    if free_status == "free_endpoint":
-        pricing_status: str = "free"
-    elif free_status == "paid":
-        pricing_status = "paid"
-    else:
-        # Missing/unrecognized status → unknown, never infer free.
-        pricing_status = "unknown"
-
     is_free = free_status == "free_endpoint"
-
     raw_id = m["id"]
     clean_id = _strip_gateway_prefix(raw_id)
 
@@ -292,7 +283,6 @@ def build_endpoint_dict(detail: dict) -> dict[str, Any]:
         "provider": "amd",
         "model_id": clean_id,
         "free": is_free,
-        "pricing_status": pricing_status,
 
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "name": m.get("label") or m.get("model") or clean_id,

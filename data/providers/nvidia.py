@@ -331,27 +331,22 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
     # CHAT_MODALITY / TOOL_CALLING signals in older RSC payloads. Modern
     # labels-driven payloads don't carry it. Stored under metadata
     # unchanged for back-compat with consumers that read metadata
-    # directly.
+    labels_dict = _labels_to_dict(labels)
 
-    # Free/paid/unknown detection from ``nimType`` label values.
-    # "Free Endpoint" → confirmed free. A known non-empty nimType set
-    # without "Free Endpoint" (e.g. "Run Anywhere" partner endpoints)
-    # → confirmed paid. Empty/absent → unknown (never infer free from
-    # missing data).
+    # --- Free detection from ``nimType`` label values ---
+    # "Free Endpoint" in nimType.values → free=True.
+    # This determines the ``free`` boolean field on the endpoint.
     nim_values: List[str] = labels_dict.get("nimType", {}).get("values", []) or []
     free = "Free Endpoint" in nim_values
-    if free:
-        pricing_status: str = "free"
-    elif nim_values:
-        pricing_status = "paid"
-    else:
-        pricing_status = "unknown"
 
+    # Read the legacy ``attributes`` block once
+    attrs = obj.get("attributes", {})
 
-    # Capability detection from the legacy ``attributes`` shape
-    # (``CHAT_MODALITY`` / ``TOOL_CALLING``). Live RSC has stopped
-    # carrying these — see the label-driven architecture derivation
-    # below for the current path.
+    # Read the legacy ``attributes`` block once — it's the source of
+    # CHAT_MODALITY / TOOL_CALLING signals in older RSC payloads. Modern
+    # labels-driven payloads don't carry it. Stored under metadata
+    # unchanged for back-compat with consumers that read metadata
+    # directly.
     attrs = obj.get("attributes", {})
     capabilities = {}
     if isinstance(attrs, dict):
@@ -422,8 +417,6 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         provider="nvidia",
         model_id=model_id,
         free=free,
-        pricing_status=pricing_status,
-
         # AMD/HF providers stamp fetched_at when they build the endpoint dict;
         # NVIDIA yields ModelEndpoint objects directly from parse_html, so
         # we set it here. Without this, ValidateStage rejects every NVIDIA

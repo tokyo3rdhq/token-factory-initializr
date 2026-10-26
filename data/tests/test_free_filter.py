@@ -22,7 +22,6 @@ if str(_HERE.parents[1]) not in sys.path:
 
 from data.models.schema import ModelEndpoint
 from data.providers.free_filter import (
-    classify_pricing,
     filter_free,
     qualify_amd,
     qualify_huggingface,
@@ -39,8 +38,21 @@ def _ep(
     free: bool,
     pricing_status: str | None = None,
     model_id: str = "x/1",
+    metadata: dict | None = None,
 ) -> ModelEndpoint:
     """Build a minimal NVIDIA-style ModelEndpoint for filter tests."""
+    return ModelEndpoint(
+        provider=provider,
+        model_id=model_id,
+        free=free,
+        pricing_status=pricing_status,
+        fetched_at=datetime.now(timezone.utc),
+        name=model_id.split("/")[-1],
+        description="",
+        capabilities={},
+        architecture=None,
+        metadata=metadata or {},
+    )
     return ModelEndpoint(
         provider=provider,
         model_id=model_id,
@@ -55,29 +67,33 @@ def _ep(
     )
 
 
-def _amd_ep(pricing_status: str | None = None, model_id: str = "x/1") -> dict:
+def _amd_ep(free_status: str | None = None, pricing: dict | None = None, model_id: str = "x/1") -> dict:
     """Build a minimal AMD-style dict endpoint."""
     return {
+        "data_source": "amd",
         "provider": "amd",
         "model_id": model_id,
-        "free": pricing_status == "free",
+        "free": free_status == "free_endpoint",
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "name": model_id,
         "description": None,
         "capabilities": {},
         "architecture": {"input": ["text"], "output": ["text"]},
         "lab": "test",
-        "metadata": {},
-        "pricing_status": pricing_status,
+        "metadata": {
+            "free_status": free_status,
+        },
+        "pricing": pricing,
     }
 
 
-def _hf_ep(pricing_status: str | None = None, model_id: str = "x/1") -> dict:
+def _hf_ep(status: str = "live", pricing: dict | None = None, model_id: str = "x/1") -> dict:
     """Build a minimal HF-style dict endpoint."""
     return {
+        "data_source": "huggingface",
         "provider": "huggingface",
         "model_id": model_id,
-        "free": pricing_status == "free",
+        "free": False,  # will be overridden by qualify
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "name": model_id.split("/")[-1],
         "description": None,
@@ -85,29 +101,9 @@ def _hf_ep(pricing_status: str | None = None, model_id: str = "x/1") -> dict:
         "architecture": {"input": ["text"], "output": ["text"]},
         "lab": "test",
         "metadata": {},
-        "pricing_status": pricing_status,
+        "status": status,
+        "pricing": pricing,
     }
-
-
-# ---------------------------------------------------------------------------
-# classify_pricing
-# ---------------------------------------------------------------------------
-
-
-def test_classify_pricing_missing_is_unknown():
-    assert classify_pricing({}) == "unknown"
-    assert classify_pricing({"pricing": {}}) == "unknown"
-    assert classify_pricing({"pricing": None}) == "unknown"
-
-
-def test_classify_pricing_all_zero_is_free():
-    assert classify_pricing({"pricing": {"input": 0, "output": 0}}) == "free"
-    assert classify_pricing({"pricing": {"input": "0", "output": "0.0"}}) == "free"
-
-
-def test_classify_pricing_non_zero_is_paid():
-    assert classify_pricing({"pricing": {"input": "1.4e-7", "output": "2.8e-7"}}) == "paid"
-    assert classify_pricing({"pricing": {"input": 0, "output": 1}}) == "paid"
 
 
 # ---------------------------------------------------------------------------
@@ -115,15 +111,20 @@ def test_classify_pricing_non_zero_is_paid():
 # ---------------------------------------------------------------------------
 
 
-def test_qualify_nvidia_keeps_all_endpoints():
-    """NVIDIA qualify keeps free + paid + unknown (pricing_status set by parser)."""
+def test_qualify_nvidia_classifies_by_nimtype():
+    """NVIDIA qualify classifies by metadata.labels.nimType.values."""
     endpoints = [
-        _ep("nvidia", free=True, pricing_status="free", model_id="free/a"),
-        _ep("nvidia", free=False, pricing_status="paid", model_id="paid/b"),
-        _ep("nvidia", free=False, pricing_status="unknown", model_id="unknown/c"),
+        _ep("nvidia", free=True, model_id="free/a",
+            metadata={"labels": {"nimType": {"values": ["Free Endpoint"]}}}),
+        _ep("nvidia", free=False, model_id="paid/b",
+            metadata={"labels": {"nimType": {"values": ["Run Anywhere"]}}}),
+        _ep("nvidia", free=False, model_id="unknown/c",
+            metadata={"labels": {}}),
     ]
     out = qualify_nvidia(endpoints)
     assert [ep.model_id for ep in out] == ["free/a", "paid/b", "unknown/c"]
+    statuses = {ep.model_id: ep.pricing_status for ep in out}
+    assert statuses == {"free/a": "free", "paid/b": "paid", "unknown/c": "unknown"}
 
 
 def test_qualify_nvidia_empty_input():
@@ -135,16 +136,17 @@ def test_qualify_nvidia_empty_input():
 # ---------------------------------------------------------------------------
 
 
-def test_qualify_amd_keeps_all_and_classifies_missing():
-    """AMD qualify keeps all endpoints; missing pricing_status → classified."""
+def test_qualify_amd_classifies_by_free_status():
+    """AMD qualify classifies by metadata.free_status."""
     endpoints = [
-        _amd_ep(pricing_status="free", model_id="MiMo"),
-        _amd_ep(pricing_status="paid", model_id="DeepSeek"),
-        {**_amd_ep(pricing_status=None)},  # no pricing key → unknown
+        _amd_ep(free_status="free_endpoint", model_id="MiMo"),
+        _amd_ep(free_status="paid", model_id="DeepSeek"),
+        _amd_ep(free_status=None),  # default model_id "x/1"
     ]
     out = qualify_amd(endpoints)
     assert [ep["model_id"] for ep in out] == ["MiMo", "DeepSeek", "x/1"]
-    assert out[2]["pricing_status"] == "unknown"
+    statuses = {ep["model_id"]: ep["pricing_status"] for ep in out}
+    assert statuses == {"MiMo": "free", "DeepSeek": "paid", "x/1": "unknown"}
 
 
 def test_qualify_amd_empty_input():
@@ -156,16 +158,18 @@ def test_qualify_amd_empty_input():
 # ---------------------------------------------------------------------------
 
 
-def test_qualify_huggingface_keeps_all_and_classifies():
-    """HF qualify keeps all endpoints; classifies missing pricing_status."""
+def test_qualify_huggingface_classifies_by_status_and_pricing():
+    """HF qualify classifies by status + pricing."""
     endpoints = [
-        _hf_ep(pricing_status="free", model_id="m1"),
-        _hf_ep(pricing_status="paid", model_id="m2"),
-        {**_hf_ep(pricing_status=None, model_id="m3"), "pricing": {"input": 0, "output": 0}},
+        _hf_ep(status="live", pricing={"input": 0, "output": 0}, model_id="m1"),
+        _hf_ep(status="live", pricing={"input": "1.4e-7", "output": "2.8e-7"}, model_id="m2"),
+        _hf_ep(status="offline", pricing={"input": 0, "output": 0}, model_id="m3"),
+        _hf_ep(status="live", pricing=None, model_id="m4"),
     ]
     out = qualify_huggingface(endpoints)
-    assert [ep["model_id"] for ep in out] == ["m1", "m2", "m3"]
-    assert out[2]["pricing_status"] == "free"
+    assert [ep["model_id"] for ep in out] == ["m1", "m2", "m3", "m4"]
+    statuses = {ep["model_id"]: ep["pricing_status"] for ep in out}
+    assert statuses == {"m1": "free", "m2": "paid", "m3": "unknown", "m4": "unknown"}
 
 
 def test_qualify_huggingface_empty_input():
@@ -177,7 +181,7 @@ def test_qualify_huggingface_empty_input():
 # ---------------------------------------------------------------------------
 
 
-def test_qualify_openrouter_classifies_missing_as_unknown():
+def test_qualify_openrouter_classifies_by_pricing():
     endpoints = [
         {"provider": "openrouter", "model_id": "m1", "free": True,
          "fetched_at": datetime.now(timezone.utc).isoformat()},  # no pricing → unknown
@@ -193,7 +197,7 @@ def test_qualify_openrouter_classifies_missing_as_unknown():
     assert statuses == {"m1": "unknown", "m2": "free", "m3": "paid"}
 
 
-def test_qualify_kilo_classifies_missing_as_unknown():
+def test_qualify_kilo_classifies_by_pricing():
     endpoints = [
         {"provider": "kilo", "model_id": "m1", "free": True,
          "fetched_at": datetime.now(timezone.utc).isoformat()},  # no pricing → unknown
@@ -226,9 +230,10 @@ def test_qualify_ollama_keeps_all():
 
 
 def test_filter_free_dispatches_by_provider():
-    hf = [_hf_ep(pricing_status="free")]
+    hf = [_hf_ep(status="live", pricing={"input": 0, "output": 0})]
     assert [ep["model_id"] for ep in filter_free(hf, "huggingface")] == ["x/1"]
-    nvidia = [_ep("nvidia", free=True, pricing_status="free")]
+    nvidia = [_ep("nvidia", free=True, model_id="x/1",
+                  metadata={"labels": {"nimType": {"values": ["Free Endpoint"]}}})]
     assert [ep.model_id for ep in filter_free(nvidia, "nvidia")] == ["x/1"]
 
 
@@ -238,12 +243,11 @@ def test_filter_free_unknown_provider_passthrough():
     assert out is endpoints or out == endpoints
 
 
-def test_provider_free_filters_registry():
+    hf = [_hf_ep(status="live", pricing={"input": 0, "output": 0})]
     assert set(PROVIDER_FREE_FILTERS) == {
         "nvidia",
         "amd",
         "huggingface",
-        "models_dev",
         "openrouter",
         "kilo",
         "ollama",

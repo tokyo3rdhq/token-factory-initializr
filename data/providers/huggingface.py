@@ -253,12 +253,10 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
                 if isinstance(v, (str, int, float))
             } or None
 
-        # Pricing/access classification: free only when status==live AND
-        # pricing.input==0 AND pricing.output==0; paid when live with
-        # non-zero prices; unknown when pricing is missing/malformed or
-        # status != live. Never infer free from missing pricing.
-        pricing_status = _provider_pricing_status(p)
-        free = pricing_status == "free"
+        # Compute ``free`` directly from the provider's pricing status.
+        # ``pricing_status`` itself is not set here — that is the
+        # responsibility of the qualify stage (free_filter.qualify_huggingface).
+        free = _provider_pricing_status(p) == "free"
 
 
         # Hugging Face model page URL. Namespaced model ids
@@ -278,7 +276,6 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
             "provider": provider_name,
             "model_id": model_id,
             "free": free,
-            "pricing_status": pricing_status,
 
             "fetched_at": datetime.now(timezone.utc).isoformat(),
             "name": name,

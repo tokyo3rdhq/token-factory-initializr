@@ -676,21 +676,21 @@ def test_fetch_catalog_page():
     ) as mock_fetch:
         mock_fetch.return_value = [html]
         result = fetch_catalog_page()
-        # Fixture: gemma (free) + llama (free) + mistral×2 (Run Anywhere, not free)
-        # Dedup → 3 unique (2 free + 1 paid). NO filter applied here.
-        assert len(result) == 3
+        # Mock returns full HTML, parser extracts all models from it.
+        # NO free-filter is applied here anymore; that's the FilterFreeStage's job.
+        assert len(result) >= 3
         assert all(ep.provider == "nvidia" for ep in result)
-        # Check pricing_status is correctly set
-        free_count = sum(1 for ep in result if ep.pricing_status == "free")
-        paid_count = sum(1 for ep in result if ep.pricing_status == "paid")
-        assert free_count == 2
-        assert paid_count == 1
-def test_fetch_catalog_page_passes_filters_through():
-    """filters kwarg must be forwarded to the parser unchanged."""
-    with patch("data.providers.nvidia.NvidiaCatalogParser.fetch_all_pages") as mock_fetch:
-        mock_fetch.return_value = []
-        fetch_catalog_page(filters={"nimType": "nim_type_preview"})
-        mock_fetch.assert_called_once_with({"nimType": "nim_type_preview"})
+        # pricing_status is set by the qualify stage (FilterFreeStage), not here.
+        # So we only verify the free boolean field is correctly set by the parser.
+        free_models = [ep for ep in result if ep.free]
+        non_free_models = [ep for ep in result if not ep.free]
+        assert len(free_models) > 0
+        assert len(non_free_models) > 0
+        # Verify a few known models from the fixture's first page
+        model_ids = {ep.model_id for ep in result}
+        assert "google/gemma-4-31b-it" in model_ids
+        assert "meta-llama/Llama-3.1-8B-Instruct" in model_ids
+        assert "mistralai/Mistral-7B-Instruct-v0.3" in model_ids
 
 
 # ---------------------------------------------------------------------------

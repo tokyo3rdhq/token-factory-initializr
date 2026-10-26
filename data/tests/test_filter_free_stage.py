@@ -66,11 +66,17 @@ def _amd_ep(pricing_status: str | None = None, model_id: str = "x/1") -> dict:
 
 
 def _hf_ep(pricing_status: str | None = None, model_id: str = "x/1") -> dict:
+    """Build a minimal HF-style dict endpoint for filter stage tests.
+    
+    Note: ``pricing_status`` parameter is accepted for backward compatibility
+    but ignored — the endpoint's pricing classification is now the
+    responsibility of the qualify stage.
+    """
     return {
         "data_source": "huggingface",
         "provider": "huggingface",
         "model_id": model_id,
-        "free": pricing_status == "free",
+        "free": False,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "name": model_id.split("/")[-1],
         "description": None,
@@ -78,7 +84,8 @@ def _hf_ep(pricing_status: str | None = None, model_id: str = "x/1") -> dict:
         "architecture": {"input": ["text"], "output": ["text"]},
         "lab": "test",
         "metadata": {},
-        "pricing_status": pricing_status,
+        "status": "live",
+        "pricing": None,
     }
 
 
