@@ -157,6 +157,13 @@ class FetchStage(Stage):
 
     def execute(self, context: PipelineContext) -> PipelineContext:
         fetched, errors = asyncio.run(_fetch_all_async(self.providers))
+        import logging
+        logger = logging.getLogger(__name__)
+        for name, models in fetched.items():
+            if models:
+                first = models[0]
+                logger.info("FetchStage: provider=%s count=%d first type=%s data_source=%s provider=%s",
+                           name, len(models), type(first).__name__, getattr(first, "data_source", None), getattr(first, "provider", None))
         context.data["fetched"] = fetched
         context.state["fetch_errors"] = errors
         # Also expose cross-source observations for downstream enrichment.
