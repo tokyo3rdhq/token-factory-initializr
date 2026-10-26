@@ -661,12 +661,12 @@ def test_fetch_with_cooldown_passes_base_url_and_params():
 
 
 def test_fetch_catalog_page():
-    """fetch_catalog_page composes fetch → parse → free-filter.
+    """fetch_catalog_page composes fetch → parse (no free-filter).
 
     Mocks fetch_all_pages to return raw HTML and asserts the full
     convenience pipeline: parse all endpoints (4 fixture entries →
-    3 unique after dedup), then drop the "Run Anywhere" mistral row
-    via ``filter_nvidia_free`` → 2 free endpoints.
+    3 unique after dedup). NO free-filter is applied here anymore;
+    that's the FilterFreeStage's job.
     """
     with open(str(FIXTURES / "nvidia_html.html"), encoding="utf-8") as f:
         html = f.read()
@@ -677,12 +677,14 @@ def test_fetch_catalog_page():
         mock_fetch.return_value = [html]
         result = fetch_catalog_page()
         # Fixture: gemma (free) + llama (free) + mistral×2 (Run Anywhere, not free)
-        # Dedup → 3 unique → filter → 2 free endpoints.
-        assert len(result) == 2
+        # Dedup → 3 unique (2 free + 1 paid). NO filter applied here.
+        assert len(result) == 3
         assert all(ep.provider == "nvidia" for ep in result)
-        assert all(ep.free for ep in result)
-
-
+        # Check pricing_status is correctly set
+        free_count = sum(1 for ep in result if ep.pricing_status == "free")
+        paid_count = sum(1 for ep in result if ep.pricing_status == "paid")
+        assert free_count == 2
+        assert paid_count == 1
 def test_fetch_catalog_page_passes_filters_through():
     """filters kwarg must be forwarded to the parser unchanged."""
     with patch("data.providers.nvidia.NvidiaCatalogParser.fetch_all_pages") as mock_fetch:
