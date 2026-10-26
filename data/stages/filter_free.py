@@ -9,8 +9,9 @@ longer drops paid/unknown-pricing endpoints. This stage now performs
   (when the parser did not already stamp it) and keeps every eligible
   endpoint — free, paid, and unknown.
 * Rejects only *malformed* records: endpoints missing a required
-  identity field (``provider``, ``model_id``, ``data_source``,
-  ``fetched_at``).
+  identity field (``provider``, ``model_id``, ``data_source``).
+  ``fetched_at`` is intentionally NOT required here — it is filled in by
+  the normalize stage which runs AFTER this stage.
 * Writes ``context.data["filtered"]`` and mirrors it into
   ``context.data["parsed"]`` so downstream readers (NormalizeStage,
   legacy code) see the post-qualification data.
@@ -37,7 +38,13 @@ logger = logging.getLogger(__name__)
 
 # Required identity fields an endpoint must carry to be eligible for the
 # catalog. Missing any of these ⇒ malformed ⇒ rejected.
-_REQUIRED_IDENTITY_FIELDS = ("provider", "model_id", "data_source", "fetched_at")
+#
+# NOTE: ``fetched_at`` is intentionally NOT required here — it is filled
+# in by the normalize stage (``normalize_endpoints``), which runs AFTER
+# FilterFreeStage. Requiring it here would wrongly reject every
+# dict-shaped endpoint (Kilo, OpenRouter, models_dev, …) that hasn't
+# been normalized yet.
+_REQUIRED_IDENTITY_FIELDS = ("provider", "model_id", "data_source")
 
 
 def _is_malformed(endpoint: Any) -> bool:
