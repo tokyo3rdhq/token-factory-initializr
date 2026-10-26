@@ -53,7 +53,7 @@ class ModelEndpoint:
     fetched_at: datetime
 
     # The platform/source the endpoint was discovered through. Always
-    # set explicitly by the source adapter; never derived from
+
     # ``provider`` after the fact (e.g. ``data_source="huggingface"``
     # with ``provider="novita"``). Required so consumers can address
     # endpoints in the (data_source, provider) namespace.
@@ -154,7 +154,7 @@ class ModelEndpoint:
     # signal of cost — a non-None ``pricing`` field does NOT imply
     # the endpoint is paid.
     pricing: Optional[dict] = None
-    pricing_status: Optional[str] = None
+    pricing_status: Optional[Literal["free", "paid", "unknown"]] = None
     endpoint_url: Optional[str] = None
     region: Optional[str] = None
     # Optional human-readable source page associated with this model,
@@ -172,3 +172,13 @@ class ModelEndpoint:
     # Values are ``FieldProvenance`` objects with: source, source_id, source_field,
     # method (native|enriched|normalized|inferred|derived), confidence, observed_at.
     provenance: dict[str, FieldProvenance] = field(default_factory=dict)
+def legacy_free_compatible(pricing_status: Optional[str]) -> bool:
+    """Legacy ``free`` compatibility rule (docs/tfi_model_endpoint_support_paid_model.md §3.2).
+
+    ``free: true`` only when ``pricing_status == "free"``; otherwise
+    ``False`` for legacy clients. Never infers free from missing pricing.
+    """
+    return pricing_status == "free"
+
+
+__all__ = ["FieldProvenance", "ModelEndpoint", "legacy_free_compatible"]

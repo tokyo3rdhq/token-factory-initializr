@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from data.models.schema import ModelEndpoint
-
+from data.models.schema import legacy_free_compatible
 
 # ---------------------------------------------------------------------------
 # Canonical capabilities shape — the single source of truth across all
@@ -747,6 +747,16 @@ def endpoint_to_dict(endpoint: ModelEndpoint) -> dict[str, Any]:
       format datetime values.
     """
     data = asdict(endpoint)
+    # Legacy ``free`` compatibility rule (§3.2): backfill ``pricing_status``
+    # from the legacy ``free`` field when the record carries no explicit
+    # classification, then derive ``free`` from ``pricing_status`` so both
+    # fields stay consistent. Missing pricing is never treated as free for
+    # new records — those always carry an explicit ``pricing_status``.
+    pricing_status = data.get("pricing_status")
+    if pricing_status is None:
+        pricing_status = "free" if data.get("free") else "unknown"
+        data["pricing_status"] = pricing_status
+    data["free"] = legacy_free_compatible(pricing_status)
     data["fetched_at"] = data["fetched_at"].isoformat()
     prov = data.get("provenance")
     if isinstance(prov, dict):

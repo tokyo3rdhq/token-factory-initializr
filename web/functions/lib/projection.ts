@@ -146,12 +146,19 @@ function deriveOwner(modelId: string, lab: string | null | undefined): string | 
  *  ``ModelEndpoint``. Free / pricing / limits are endpoint-scoped;
  *  they are projected verbatim — never inferred, never collapsed. */
 function toPublicModelEndpoint(model: ModelEndpoint): PublicModelEndpoint {
+  // Legacy ``free`` compatibility rule (§3.2): backfill ``pricing_status``
+  // from the legacy ``free`` field when the record carries no explicit
+  // classification, then derive ``free`` from ``pricing_status`` so both
+  // fields stay consistent. New records always carry an explicit
+  // ``pricing_status``; missing pricing is never treated as free.
+  const derivedPricingStatus =
+    model.pricing_status ?? (model.free === true ? "free" : "unknown");
   const out: PublicModelEndpoint = {
     id: `${model.data_source}:${model.provider}`,
     provider: model.provider,
     model_id: model.model_id,
-    free: model.free === true,
-    pricing_status: model.pricing_status ?? (model.free === true ? "free" : "unknown"),
+    free: derivedPricingStatus === "free",
+    pricing_status: derivedPricingStatus,
   };
   if (model.pricing != null) out.pricing = model.pricing;
   if (Array.isArray(model.supported_parameters) && model.supported_parameters.length > 0) {

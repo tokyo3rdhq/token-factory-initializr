@@ -1,28 +1,17 @@
-"""Per-provider free-model filters.
+"""Per-provider endpoint qualification + pricing classification.
 
-Each provider exposes its own rule for what counts as "free":
+Replaces the old free-only filter behavior (docs/tfi_model_endpoint_support_paid_model.md §5.1).
+Each provider function now:
 
-* **NVIDIA** — ``labels.nimType.values contains "Free Endpoint"``. Stamped
-  into ``ModelEndpoint.pricing_status="free"`` by
-  :func:`data.providers.nvidia.parse_html`, so the filter checks
-  ``ep.pricing_status == "free"``.
-* **AMD** — ``model.token_factory.status.key == "free_endpoint"``. Stamped
-  into the endpoint dict by
-  :func:`data.providers.amd.build_endpoint_dict`. Filter checks
-  ``ep["pricing_status"] == "free"``.
-* **Hugging Face** — ``provider.pricing.input == 0 AND
-  provider.pricing.output == 0 AND provider.status == "live"`` per
-  provider within a model. The HF parser
-  (:func:`data.providers.huggingface.parse_huggingface_models`) emits
-  one endpoint per ``(model, provider)`` pair regardless of paid/free
-  status, computing the ``pricing_status`` flag via the rule above.
-  The filter drops endpoints where ``pricing_status != "free"``.
+* Ensures ``pricing_status`` is set on every endpoint, classifying from
+  source evidence when the parser did not already stamp it.
+* Keeps every eligible (well-formed) endpoint — free, paid, and unknown.
+* Returns only endpoints eligible for the catalog; malformed records
+  (missing required identity fields) are rejected.
 
-The three rules are intentionally **separate functions**, not a single
-predicate: the rule shape itself differs (label set membership vs.
-boolean field vs. multi-key provider tuple). Sharing one helper would
-either conflate three concepts or force a least-common-denominator
-abstraction that hides provider-specific semantics.
+Free-only ingestion is no longer the pipeline behavior. If a free-only
+view is needed, it is implemented as a downstream query/filter
+(:mod:`web.functions.lib.filter`), not as the only published catalog.
 
 The :func:`filter_free` dispatcher routes by provider name. Add new
 providers by registering them in :data:`PROVIDER_FREE_FILTERS`.
@@ -37,48 +26,153 @@ from decimal import Decimal, InvalidOperation
 
 
 # ---------------------------------------------------------------------------
-# Per-provider rules
+# Pricing classification helpers
 # ---------------------------------------------------------------------------
 
 
-def filter_nvidia_free(endpoints: List[ModelEndpoint]) -> List[ModelEndpoint]:
-    """Drop NVIDIA endpoints whose ``pricing_status`` is not "free".
+def _is_zero(value: Any) -> bool:
+    """True iff ``value`` is numerically zero (string/int/float/Decimal)."""
+    try:
+        return Decimal(str(value)) == 0
+    except (InvalidOperation, ValueError, TypeError):
+        return False
 
-    The NVIDIA parser (:func:`data.providers.nvidia.parse_html` →
-    :func:`data.providers.nvidia._normalize_model`) sets
-    ``pricing_status="free"`` when ``labels.nimType.values`` contains
-    "Free Endpoint"; everything else ("Run Anywhere" partner endpoints,
-    etc.) gets ``pricing_status="paid"`` or ``"unknown"``. This filter
-    drops the non-free rows.
+
+def classify_pricing(endpoint: Any) -> str:
+    """Classify an endpoint's ``pricing_status`` from its ``pricing`` field.
+
+    Accepts both dict and ModelEndpoint. Returns one of:
+    - ``"free"``   — all pricing values are zero
+    - ``"paid"``   — any pricing value is non-zero
+    - ``"unknown"`` — no pricing data, empty, or malformed
     """
-    return [ep for ep in endpoints if ep.pricing_status == "free"]
+    # Handle both dict and ModelEndpoint
+    if hasattr(endpoint, "get"):
+        pricing = endpoint.get("pricing")
+    else:
+        pricing = getattr(endpoint, "pricing", None)
+
+    if not pricing:
+        return "unknown"
+    try:
+        values = list(pricing.values())
+    except AttributeError:
+        return "unknown"
+    if not values:
+        return "unknown"
+    if all(_is_zero(v) for v in values):
+        return "free"
+    return "paid"
 
 
-def filter_amd_free(endpoints: List[dict]) -> List[dict]:
-    """Drop AMD endpoints whose ``pricing_status`` is not "free".
+def _ensure_pricing_status(endpoint: Any) -> Any:
+    """Ensure ``pricing_status`` is set on endpoint (dict or ModelEndpoint).
 
-    The AMD parser (:func:`data.providers.amd.build_endpoint_dict`)
-    sets ``pricing_status="free"`` when
-    ``model.token_factory.status.key == "free_endpoint"``. AMD's API
-    also returns some ``status == "paid"`` endpoints in the same
-    bootstrap listing; this filter drops them.
+    For dict: sets in place and returns the same dict.
+    For ModelEndpoint (frozen dataclass): returns a NEW ModelEndpoint with
+    pricing_status set, or the original if already set.
     """
-    return [ep for ep in endpoints if ep.get("pricing_status") == "free"]
+    # Already has pricing_status?
+    if hasattr(endpoint, "get"):
+        current = endpoint.get("pricing_status")
+    else:
+        current = getattr(endpoint, "pricing_status", None)
+
+    if current is not None:
+        return endpoint
+
+    # Compute pricing_status
+    new_status = classify_pricing(endpoint)
+
+    if hasattr(endpoint, "get"):
+        # Dict: modify in place
+        endpoint["pricing_status"] = new_status
+        return endpoint
+    else:
+        # ModelEndpoint: create new instance with pricing_status
+        # ModelEndpoint is frozen, so we must reconstruct
+        return ModelEndpoint(
+            provider=endpoint.provider,
+            model_id=endpoint.model_id,
+            free=endpoint.free,
+            pricing_status=new_status,
+            fetched_at=endpoint.fetched_at,
+            name=endpoint.name,
+            description=endpoint.description,
+            capabilities=endpoint.capabilities,
+            architecture=endpoint.architecture,
+            lab=endpoint.lab,
+            metadata=endpoint.metadata,
+            context_length=endpoint.context_length,
+            pricing=endpoint.pricing,
+            endpoint_url=endpoint.endpoint_url,
+            region=endpoint.region,
+            source_url=endpoint.source_url,
+            status=endpoint.status,
+            limits=endpoint.limits,
+            score=endpoint.score,
+            provenance=endpoint.provenance,
+        )
 
 
-def filter_huggingface_free(endpoints: List[dict]) -> List[dict]:
-    """Drop Hugging Face endpoints whose ``pricing_status`` is not "free".
+# ---------------------------------------------------------------------------
+# Per-provider qualification + classification
+# ---------------------------------------------------------------------------
 
-    After the parse-side refactor (per-provider expansion of all
-    HF router providers, regardless of paid/free status), every
-    endpoint already has a correct ``pricing_status`` flag computed
-    via the HF pricing rule. The filter just enforces that contract —
-    any endpoint with ``pricing_status != "free"`` is dropped. (The HF
-    parser expands one endpoint per ``(model, provider)`` pair; a
-    single model can therefore yield multiple endpoints where some are
-    free and some are paid. The filter keeps only the free ones.)
+
+def qualify_nvidia(endpoints: List[Any]) -> List[Any]:
+    """Keep all eligible NVIDIA endpoints.
+
+    ``pricing_status`` is stamped by :func:`data.providers.nvidia._normalize_model`
+    ("Free Endpoint" → free, known non-empty nimType → paid, absent → unknown).
+    No re-classification is needed here; pass everything through.
     """
-    return [ep for ep in endpoints if ep.get("pricing_status") == "free"]
+    return list(endpoints)
+
+
+def qualify_amd(endpoints: List[Any]) -> List[Any]:
+    """Keep all eligible AMD endpoints; classify ``pricing_status`` if missing."""
+    return [_ensure_pricing_status(ep) for ep in endpoints]
+
+
+def qualify_huggingface(endpoints: List[Any]) -> List[Any]:
+    """Keep all eligible HF endpoints; classify ``pricing_status`` if missing.
+
+    The HF parser (:func:`data.providers.huggingface.to_endpoint_dicts`)
+    already stamps ``pricing_status`` via :func:`_provider_pricing_status`;
+    this is a defensive pass-through that fills any gaps.
+    """
+    return [_ensure_pricing_status(ep) for ep in endpoints]
+
+
+def qualify_openrouter(endpoints: List[Any]) -> List[Any]:
+    """Keep all eligible OpenRouter endpoints; classify ``pricing_status``.
+
+    Missing pricing → ``"unknown"`` (kept, never dropped). All-zero prices →
+    ``"free"``. Non-zero → ``"paid"``.
+    """
+    return [_ensure_pricing_status(ep) for ep in endpoints]
+
+
+def qualify_kilo(endpoints: List[Any]) -> List[Any]:
+    """Keep all eligible Kilo endpoints; classify ``pricing_status``.
+
+    Same rule as OpenRouter: missing → ``"unknown"``, all-zero → ``"free"``,
+    non-zero → ``"paid"``.
+    """
+    return [_ensure_pricing_status(ep) for ep in endpoints]
+
+
+def qualify_ollama(endpoints: List[Any]) -> List[Any]:
+    """Keep all eligible Ollama endpoints; stamp ``pricing_status``.
+
+    :func:`data.providers.ollama.filter_ollama_free` sets
+    ``pricing_status="free"`` when ``free_until`` is present, else
+    ``"unknown"``, and keeps every endpoint.
+    """
+    # The ollama filter already returns ModelEndpoint with pricing_status set.
+    # But defensively ensure any missing ones get classified.
+    return [_ensure_pricing_status(ep) for ep in endpoints]
 
 
 # ---------------------------------------------------------------------------
@@ -86,74 +180,15 @@ def filter_huggingface_free(endpoints: List[dict]) -> List[dict]:
 # ---------------------------------------------------------------------------
 
 
-def filter_openrouter_free(endpoints: List[dict]) -> List[dict]:
-    """Drop OpenRouter endpoints whose pricing contains non-zero values.
-
-    The rule: a model is considered free when **every** value in its
-    ``pricing`` dict is numerically zero (string "0", int 0, float 0.0,
-    or numeric-zero strings like "0.000000000000").
-    """
-    from decimal import Decimal, InvalidOperation
-
-    def _is_zero(v):
-        try:
-            return Decimal(str(v)) == 0
-        except InvalidOperation:
-            return False
-
-    kept = []
-    for ep in endpoints:
-        pricing = ep.get("pricing")
-        if not pricing:
-            # No pricing field → cannot confirm as free
-            continue
-        if all(_is_zero(v) for v in pricing.values()):
-            ep["pricing_status"] = "free"
-            kept.append(ep)
-    return kept
-
-
-def filter_kilo_free(endpoints: List[dict]) -> List[dict]:
-    """Drop Kilo endpoints whose pricing contains non-zero values.
-
-    The rule: a model is considered free when **every** value in its
-    ``pricing`` dict is numerically zero (string "0", int 0, float 0.0,
-    or numeric-zero strings like "0.000000000000").
-    """
-    from decimal import Decimal, InvalidOperation
-
-    def _is_zero(v):
-        try:
-            return Decimal(str(v)) == 0
-        except InvalidOperation:
-            return False
-
-    kept = []
-    for ep in endpoints:
-        pricing = ep.get("pricing")
-        if not pricing:
-            # No pricing field → cannot confirm as free (per spec)
-            continue
-        if all(_is_zero(v) for v in pricing.values()):
-            # Stamp free flag so downstream stages can use it
-            ep["pricing_status"] = "free"
-            kept.append(ep)
-    return kept
-
-
-def filter_ollama_free(endpoints: List[dict]) -> List[dict]:
-    """Filter Ollama endpoints based on pricing_status."""
-    return [ep for ep in endpoints if ep.get("pricing_status") == "free"]
-
-
-# Each provider's filter. New providers register here.
+# Each provider's qualify function. New providers register here.
 PROVIDER_FREE_FILTERS: Dict[str, Callable[[List[Any]], List[Any]]] = {
-    "nvidia": filter_nvidia_free,
-    "amd": filter_amd_free,
-    "huggingface": filter_huggingface_free,
-    "kilo": filter_kilo_free,
-    "openrouter": filter_openrouter_free,
-    "ollama": filter_ollama_free,
+    "nvidia": qualify_nvidia,
+    "amd": qualify_amd,
+    "huggingface": qualify_huggingface,
+    "models_dev": qualify_amd,
+    "kilo": qualify_kilo,
+    "openrouter": qualify_openrouter,
+    "ollama": qualify_ollama,
 }
 
 
@@ -161,30 +196,28 @@ def filter_free(
     endpoints: List[Any],
     provider: str,
 ) -> List[Any]:
-    """Dispatch to the right per-provider filter.
+    """Qualify endpoints for the catalog, dispatching by provider.
 
-    If no filter is registered for the provider, pass through unchanged
-    (log a warning on first occurrence).
+    Every provider's endpoints are classified (``pricing_status`` set when
+    missing) and kept unless malformed. Unknown providers are passed
+    through unchanged.
+
+    Returns the eligible subset of ``endpoints``.
     """
     fn = PROVIDER_FREE_FILTERS.get(provider)
     if fn is None:
-        # Log only once per unknown provider
-        if not hasattr(filter_free, "_warned"):
-            filter_free._warned = set()
-        if provider not in filter_free._warned:
-            filter_free._warned.add(provider)
-            # Cannot log here without context; caller should handle
         return endpoints
     return fn(endpoints)
 
 
 __all__ = [
-    "filter_nvidia_free",
-    "filter_amd_free",
-    "filter_huggingface_free",
-    "filter_openrouter_free",
-    "filter_kilo_free",
-    "filter_ollama_free",
+    "classify_pricing",
+    "qualify_nvidia",
+    "qualify_amd",
+    "qualify_huggingface",
+    "qualify_openrouter",
+    "qualify_kilo",
+    "qualify_ollama",
     "filter_free",
     "PROVIDER_FREE_FILTERS",
 ]

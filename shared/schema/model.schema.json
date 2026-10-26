@@ -13,7 +13,7 @@
   "properties": {
     "provider": {
       "type": "string",
-      "description": "Inference / service provider within the data source. For NVIDIA and AMD the provider equals the data source; for Hugging Face the provider is one of the inference providers (novita, together, deepinfra, nscale, zai-org, …)."
+      "description": "Inference / service provider within the data source. For NVIDIA and AMD the provider equals the data source; for Hugging Face the provider is one of the inference providers (novita, together, deepinfra, nscale, zai-org, \u2026)."
     },
     "data_source": {
       "type": "string",
@@ -24,33 +24,58 @@
       "description": "Provider-specific model identifier"
     },
     "name": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Human-readable model name"
     },
     "description": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Model description"
     },
     "free": {
       "type": "boolean",
       "description": "Whether this endpoint is free to use"
     },
+    "pricing_status": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "free",
+        "paid",
+        "unknown"
+      ],
+      "description": "Canonical pricing/access classification: free, paid, or unknown. Derived from source pricing and free status."
+    },
     "capabilities": {
       "type": "object",
       "description": "Model capability flags (chat, vision, speech, embedding, translation, decision). Interface/runtime parameters (tool_calling, reasoning, structured_output, streaming) live in supported_parameters since 2026-10-19."
     },
     "architecture": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "Input and output modalities. Field name matches HF router API convention (architecture.{input,output}_modalities); AMD mirrors via model.output + provider_pricing; NVIDIA derives from capabilities.",
       "properties": {
         "input": {
           "type": "array",
-          "items": {"type": "string"},
+          "items": {
+            "type": "string"
+          },
           "description": "Modalities the model accepts (e.g. text, image, audio)"
         },
         "output": {
           "type": "array",
-          "items": {"type": "string"},
+          "items": {
+            "type": "string"
+          },
           "description": "Modalities the model emits (e.g. text, image, audio, tool_calls, embedding)"
         }
       },
@@ -58,11 +83,22 @@
     },
     "supported_parameters": {
       "type": "array",
-      "items": {"type": "string", "enum": ["tool_calling", "reasoning", "structured_output", "streaming"]},
+      "items": {
+        "type": "string",
+        "enum": [
+          "tool_calling",
+          "reasoning",
+          "structured_output",
+          "streaming"
+        ]
+      },
       "description": "Endpoint-level interface/runtime parameters. Named to match upstream sources (AMD v1 / OpenRouter / HF router). Values are TFI-canonical tokens from a closed vocabulary. tool_calling / reasoning / structured_output migrated from capabilities on 2026-10-19. Populated only from explicit source signals; empty array means no confirmed support. Distinct from capabilities (what the model can do) and architecture (data modalities)."
     },
     "lab": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Lab / organization the model is attributed to (HF: owned_by, AMD: token_factory.publisher.name)."
     },
     "metadata": {
@@ -75,64 +111,109 @@
       "description": "ISO 8601 timestamp when this endpoint was fetched"
     },
     "canonical_model_id": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Future: canonical model identity across providers"
     },
     "model_family": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Future: model family grouping"
     },
     "organization": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Future: organization name"
     },
     "version": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Future: model version"
     },
     "context_length": {
-      "type": ["integer", "null"],
+      "type": [
+        "integer",
+        "null"
+      ],
       "description": "Future: context window size"
     },
     "license": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Future: model license"
     },
     "quantization": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Future: quantization method"
     },
     "source_url": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "uri",
-      "description": "TFI source page URL — see docs/tfi_model_source_url.md"
+      "description": "TFI source page URL \u2014 see docs/tfi_model_source_url.md"
     },
     "pricing": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "Future: pricing information"
     },
     "endpoint_url": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Future: direct endpoint URL"
     },
     "region": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Future: deployment region"
     },
     "status": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Future: endpoint health status"
     },
     "limits": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "Future: rate limits"
     },
     "score": {
-      "type": ["number", "null"],
+      "type": [
+        "number",
+        "null"
+      ],
       "description": "Future: quality/performance score"
     },
     "provenance": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "Field-level provenance records keyed by canonical field path (e.g. 'description', 'capabilities.input_modalities'). Populated by the enrichment stage."
     }
   },

@@ -22,6 +22,10 @@ export interface ModelEndpoint {
 
   /** True iff the upstream provider offers free access. */
   free: boolean;
+  /** Canonical pricing/access classification: "free" | "paid" | "unknown".
+   * Endpoint-scoped — derived from source pricing evidence, never inferred
+   * from missing pricing. Missing/null means unknown (not paid, not free). */
+  pricing_status: "free" | "paid" | "unknown" | null;
 
   /** Canonical capability flags — the normalize stage
    *  emits the same closed key set across all providers so the UI

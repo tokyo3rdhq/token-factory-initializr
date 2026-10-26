@@ -450,3 +450,22 @@ When complete, provide:
 
 **Definition of done:** Endpoint-level free status is authoritative and consistent throughout the pipeline, public API, `/browse`, and downstream selection/generation flows. No code path silently treats a model's single endpoint status as the truth for every provider serving that model.
 
+## 12. Legacy `free` compatibility rule (§3.2 of tfi_model_endpoint_support_paid_model.md)
+
+A canonical `pricing_status` field (`"free" | "paid" | "unknown"`) is the endpoint-scoped source of truth for access classification:
+
+* `"free"` — confirmed free under documented source conditions.
+* `"paid"` — confirmed to require payment, with pricing evidence where available.
+* `"unknown"` — insufficient evidence to classify as free or paid.
+
+The legacy Boolean `free` field is retained for backward compatibility and is derived deterministically:
+
+> `free: true` **only when** `pricing_status === "free"`; otherwise `false` for legacy clients.
+
+Missing pricing ⇒ `unknown` (kept, never dropped). Pricing must never be inferred free from absence, nor paid from absence. New consumers must use `pricing_status` to distinguish paid from unknown.
+
+Implementation locations:
+* `data/models/schema.py` — `ModelEndpoint.pricing_status: Optional[Literal["free","paid","unknown"]]`; `legacy_free_compatible()` helper.
+* `data/process/normalize.py` — `endpoint_to_dict()` applies `legacy_free_compatible()` at KV serialization.
+* `web/functions/lib/projection.ts` — `toPublicModelEndpoint()` sets `free = pricing_status === "free"` and `pricing_status ?? "unknown"`.
+* `web/src/types.ts` / `web/functions/lib/kv.ts` — TS mirror of the canonical field.

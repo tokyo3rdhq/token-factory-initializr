@@ -46,12 +46,25 @@ export interface ModelFilters {
   capabilities?: string[];
   supported_parameters?: string[];
   /**
+   * Endpoint-level pricing/access classification filter. OR-within-dimension:
+   * a model matches if ANY of its endpoints has a pricing_status in this list.
+   * Values are validated against the fixed vocabulary; an unknown value is a
+   * 400. Priced-status filtering is endpoint-scoped — a model with one free and
+   * one paid endpoint matches ``pricing_status=free`` (the free endpoint is
+   * indicated in the nested ``endpoints[]``).
+   */
+  pricing_status?: string[];
+  /**
    * Inclusive minimum ``context_length`` (in tokens). Parsed from the
    * ``context_length_min`` query param. Endpoints whose
    * ``context_length`` is null/absent are excluded when this filter is
    * set — unknown is not "at least N".
    */
   context_length_min?: number;
+  /** Maximum number of results to return. Default 100, capped at 1000. */
+  limit?: number;
+  /** Offset for pagination (number of results to skip). Default 0. */
+  offset?: number;
 }
 
 /** Sentinel returned by ``parseFilters`` when a 400 is warranted. */
@@ -139,6 +152,39 @@ export function parseFilters(
     filters.supported_parameters = paramList;
   }
 
+  const pricing = splitCsv(params.get("pricing_status"));
+  if (pricing.length > 0) {
+    const unknown = pricing.filter(
+      (p) => !["free", "paid", "unknown"].includes(p),
+    );
+    if (unknown.length > 0) {
+      return {
+        error: {
+          message: `Unknown pricing_status: ${unknown.join(", ")}. Allowed: free, paid, unknown.`,
+          type: "invalid_request_error",
+          param: "pricing_status",
+          code: "invalid_pricing_status",
+        },
+      };
+    }
+    filters.pricing_status = pricing;
+  }
+
+  const limitRaw = params.get("limit");
+  if (limitRaw) {
+    const limitNum = Number(limitRaw);
+    if (Number.isFinite(limitNum) && limitNum > 0) {
+      filters.limit = Math.min(limitNum, 1000);
+    }
+  }
+  const offsetRaw = params.get("offset");
+  if (offsetRaw) {
+    const offsetNum = Number(offsetRaw);
+    if (Number.isFinite(offsetNum) && offsetNum >= 0) {
+      filters.offset = Math.floor(offsetNum);
+    }
+  }
+
   return filters;
 }
 
@@ -147,7 +193,7 @@ export function filterEndpoints(
   endpoints: ModelEndpoint[],
   filters: ModelFilters
 ): ModelEndpoint[] {
-  return endpoints.filter((ep) => {
+  const filtered = endpoints.filter((ep) => {
     if (filters.data_source && !filters.data_source.includes(ep.data_source)) {
       return false;
     }
@@ -173,9 +219,24 @@ export function filterEndpoints(
       const cl = typeof ep.context_length === "number" ? ep.context_length : null;
       if (!cl || cl < filters.context_length_min) return false;
     }
-
+    if (filters.pricing_status && filters.pricing_status.length > 0) {
+      if (!filters.pricing_status.includes(ep.pricing_status ?? "unknown")) {
+        return false;
+      }
+    }
     return true;
   });
+
+  // Pagination: stable deterministic ordering already applied by caller
+  // (toPublicModels sorts by model_id). Apply offset then limit here.
+  let paged = filtered;
+  if (filters.offset && filters.offset > 0) {
+    paged = paged.slice(filters.offset);
+  }
+  if (filters.limit !== undefined) {
+    paged = paged.slice(0, filters.limit);
+  }
+  return paged;
 }
 
 /** Apply filters to a list of public models. Equivalent filter
@@ -209,6 +270,17 @@ export function filterPublicModels(
     if (filters.context_length_min !== undefined) {
       const cl = typeof m.context_length === "number" ? m.context_length : null;
       if (!cl || cl < filters.context_length_min) return false;
+    }
+    if (filters.pricing_status && filters.pricing_status.length > 0) {
+      const hasMatch = m.endpoints.some((e) =>
+        filters.pricing_status!.includes(e.pricing_status ?? "unknown"),
+      );
+      if (!hasMatch) return false;
+      // Keep only the endpoints that satisfy the pricing filter so the
+      // nested list clearly indicates which endpoints match.
+      m.endpoints = m.endpoints.filter((e) =>
+        filters.pricing_status!.includes(e.pricing_status ?? "unknown"),
+      );
     }
 
     return true;
@@ -252,6 +324,10 @@ export interface EndpointFilters {
    *  endpoints index; do NOT introduce expensive runtime scans over
    *  raw source data. */
   model_id?: string[];
+  /** Maximum number of results to return. Default 100, capped at 1000. */
+  limit?: number;
+  /** Offset for pagination (number of results to skip). Default 0. */
+  offset?: number;
 }
 
 /** Apply OR-within-dimension / AND-across-dimensions provider filter. */
@@ -272,7 +348,7 @@ export function filterPublicEndpoints(
   endpoints: PublicEndpoint[],
   filters: EndpointFilters,
 ): PublicEndpoint[] {
-  return endpoints.filter((e) => {
+  const filtered = endpoints.filter((e) => {
     if (filters.provider && !filters.provider.includes(e.provider)) {
       return false;
     }
@@ -293,6 +369,16 @@ export function filterPublicEndpoints(
     }
     return true;
   });
+
+  // Pagination.
+  let paged = filtered;
+  if (filters.offset && filters.offset > 0) {
+    paged = paged.slice(filters.offset);
+  }
+  if (filters.limit !== undefined) {
+    paged = paged.slice(0, filters.limit);
+  }
+  return paged;
 }
 
 /** Parse the query string for the providers list endpoint.

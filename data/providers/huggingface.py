@@ -162,6 +162,33 @@ def _is_free_provider(provider_entry: Dict[str, Any]) -> bool:
         return False
 
 
+def _provider_pricing_status(provider_entry: Dict[str, Any]) -> str:
+    """Classify a single HF router provider entry's access/pricing.
+
+    Returns one of ``"free"`` / ``"paid"`` / ``"unknown"``:
+      * ``"free"`` — status == "live" AND pricing.input == 0 AND pricing.output == 0.
+      * ``"paid"`` — status == "live" AND pricing present but not all zero.
+      * ``"unknown"`` — status != "live", or pricing missing/not a dict,
+        or malformed. Never infer free from missing pricing.
+    """
+    if provider_entry.get("status") != "live":
+        return "unknown"
+    pricing = provider_entry.get("pricing")
+    if not isinstance(pricing, dict):
+        # None / not a dict — unknown price ⇒ cannot confirm free.
+        return "unknown"
+    try:
+        inp = float(pricing.get("input", -1))
+        out = float(pricing.get("output", -1))
+    except (TypeError, ValueError):
+        return "unknown"
+    if inp == 0 and out == 0:
+        return "free"
+    return "paid"
+
+
+
+
 def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
     """Expand a single model+providers group into per-provider endpoint dicts.
 
@@ -226,9 +253,13 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
                 if isinstance(v, (str, int, float))
             } or None
 
-        # Free flag derived from price + status (single source of
-        # truth — see _is_free_provider docstring).
-        free = _is_free_provider(p)
+        # Pricing/access classification: free only when status==live AND
+        # pricing.input==0 AND pricing.output==0; paid when live with
+        # non-zero prices; unknown when pricing is missing/malformed or
+        # status != live. Never infer free from missing pricing.
+        pricing_status = _provider_pricing_status(p)
+        free = pricing_status == "free"
+
 
         # Hugging Face model page URL. Namespaced model ids
         # (``owner/name``) become a single path segment because HF
@@ -247,6 +278,8 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
             "provider": provider_name,
             "model_id": model_id,
             "free": free,
+            "pricing_status": pricing_status,
+
             "fetched_at": datetime.now(timezone.utc).isoformat(),
             "name": name,
             "description": None,

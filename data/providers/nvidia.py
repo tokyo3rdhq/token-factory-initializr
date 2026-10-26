@@ -333,9 +333,20 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
     # unchanged for back-compat with consumers that read metadata
     # directly.
 
-    # Free detection: "Free Endpoint" in nimType.values → free=True.
+    # Free/paid/unknown detection from ``nimType`` label values.
+    # "Free Endpoint" → confirmed free. A known non-empty nimType set
+    # without "Free Endpoint" (e.g. "Run Anywhere" partner endpoints)
+    # → confirmed paid. Empty/absent → unknown (never infer free from
+    # missing data).
     nim_values: List[str] = labels_dict.get("nimType", {}).get("values", []) or []
     free = "Free Endpoint" in nim_values
+    if free:
+        pricing_status: str = "free"
+    elif nim_values:
+        pricing_status = "paid"
+    else:
+        pricing_status = "unknown"
+
 
     # Capability detection from the legacy ``attributes`` shape
     # (``CHAT_MODALITY`` / ``TOOL_CALLING``). Live RSC has stopped
@@ -411,6 +422,8 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         provider="nvidia",
         model_id=model_id,
         free=free,
+        pricing_status=pricing_status,
+
         # AMD/HF providers stamp fetched_at when they build the endpoint dict;
         # NVIDIA yields ModelEndpoint objects directly from parse_html, so
         # we set it here. Without this, ValidateStage rejects every NVIDIA
@@ -740,28 +753,31 @@ def parse_nvidia_pages(
 
 
 def fetch_catalog_page(filters: Optional[Dict[str, str]] = None) -> List[ModelEndpoint]:
-    """Convenience: fetch, parse, and free-filter the NVIDIA catalog.
+    """Convenience: fetch and parse the NVIDIA catalog (all endpoints).
 
-    Thin composition of three steps:
+    Thin composition of two steps:
 
         parser = NvidiaCatalogParser()
         pages = parser.fetch_all_pages(filters)        # raw HTML
         endpoints = parse_nvidia_pages(pages)          # parse only
-        return filter_nvidia_free(endpoints)           # drop non-free
 
-    The free filter is applied here so existing callers that expect a
-    free-only list keep working. Pipeline code should call the three
-    functions separately (Fetch → Parse → FilterFreeStage) so the
-    filter step is observable as its own pipeline stage.
+    Free/paid/unknown classification is stamped per-endpoint by
+    :func:`_normalize_model` via ``pricing_status``; filtering to a
+    free-only subset is the responsibility of the pipeline
+    ``FilterFreeStage`` (or downstream query filters), not this
+    fetcher. This avoids double-filtering and keeps paid/unknown
+    endpoints in the catalog.
+
+    Args:
+        filters: optional query filters passed through to
+            ``fetch_all_pages``.
 
     Returns:
-        List of free ``ModelEndpoint`` objects.
+        All parsed ``ModelEndpoint`` objects (free + paid + unknown).
     """
-    from data.providers.free_filter import filter_nvidia_free
-
     parser = NvidiaCatalogParser()
     pages = parser.fetch_all_pages(filters)
-    return filter_nvidia_free(parse_nvidia_pages(pages))
+    return parse_nvidia_pages(pages)
 
 
 if __name__ == "__main__":

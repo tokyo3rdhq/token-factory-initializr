@@ -21,11 +21,6 @@
       "detail_url": "/radeon/api/tokenfactory/model?id=model_gateway%3ADeepSeek-V4-Flash"
     },
     {
-      "key": "shared-model_gateway:DeepSeek-V4-Flash-Vision-Exp",
-      "id": "model_gateway:DeepSeek-V4-Flash-Vision-Exp",
-      "detail_url": "/radeon/api/tokenfactory/model?id=model_gateway%3ADeepSeek-V4-Flash-Vision-Exp"
-    },
-    {
       "key": "shared-model_gateway:GLM-5.3-Flash",
       "id": "model_gateway:GLM-5.3-Flash",
       "detail_url": "/radeon/api/tokenfactory/model?id=model_gateway%3AGLM-5.3-Flash"

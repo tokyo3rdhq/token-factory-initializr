@@ -11,9 +11,9 @@
     ],
     "sort_order": 4,
     "pricing": {
-      "prompt": "1.5e-7",
-      "completion": "4.6999999999999995e-7",
-      "input_cache_read": "1.6e-8"
+      "prompt": "1.4e-7",
+      "completion": "2.8e-7",
+      "input_cache_read": "2.8e-9"
     },
     "quickstart_template": "",
     "display_config": {
@@ -47,9 +47,9 @@
         "providerId": "self-dploy",
         "externalId": "Qwen3.8-Flash-Next",
         "pricing": {
-          "prompt": "1.5e-7",
-          "completion": "4.6999999999999995e-7",
-          "input_cache_read": "1.6e-8"
+          "prompt": "1.4e-7",
+          "completion": "2.8e-7",
+          "input_cache_read": "2.8e-9"
         },
         "streaming": true,
         "vision": true,
@@ -128,23 +128,23 @@
           {
             "key": "input",
             "label": "Input",
-            "amount": "0.15",
+            "amount": "0.14",
             "unit": "pts / 1M tokens",
-            "value": "0.15 pts / 1M tokens"
+            "value": "0.14 pts / 1M tokens"
           },
           {
             "key": "output",
             "label": "Output",
-            "amount": "0.46999999999999995",
+            "amount": "0.28",
             "unit": "pts / 1M tokens",
-            "value": "0.46999999999999995 pts / 1M tokens"
+            "value": "0.28 pts / 1M tokens"
           },
           {
             "key": "cache_read",
             "label": "Cache read",
-            "amount": "0.016",
+            "amount": "0.0028",
             "unit": "pts / 1M tokens",
-            "value": "0.016 pts / 1M tokens"
+            "value": "0.0028 pts / 1M tokens"
           }
         ]
       },

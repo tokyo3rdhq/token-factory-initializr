@@ -49,6 +49,9 @@ joined with **AND**.
 ?supported_parameters=streaming
    → supported_parameters contains "streaming"
 
+?pricing_status=free,paid
+   → pricing_status IN ["free", "paid"] (endpoint-scoped)
+
 ?data_source=nvidia&capabilities=vision
    → (data_source == "nvidia") AND (capabilities contains "vision")
 \`\`\`
@@ -61,8 +64,9 @@ https://start.magi.website/api/v1/models/{model_id}
 
 Model IDs may contain \`/\`. The model detail response embeds an
 \`endpoints\` array — one record per provider endpoint serving the
-model, each with its own \`provider\`, \`model_id\`, endpoint-specific
-\`free\` status, and optional \`pricing\`. There is no model-level
+model, each with its own \`provider\`, \`model_id``, endpoint-specific
+\`free\` status, \`pricing_status`` (``free``/``paid``/``unknown``),
+and optional \`pricing``. There is no model-level
 \`free\` field: free status is a property of the endpoint, and the
 same model may be free on one provider and paid on another.
 

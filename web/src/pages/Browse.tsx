@@ -35,6 +35,8 @@ export type TagId =
   | "decision"
   | "streaming"
   | "free"
+  | "paid"
+  | "pricing_unknown"
   | "longCtx";
 
 interface TagDef {
@@ -42,13 +44,15 @@ interface TagDef {
   /** i18n key suffix — the lookup is ts("browse.tags." + id + ".label"). */
   variant: "accent" | "success" | "warning" | "neutral";
 }
-
 export const TAGS: TagDef[] = [
-  // Pricing / scale first (green → orange): the two badges that most
-  // often decide a pick are surfaced before the capability list.
+  // Pricing / scale first (green → orange): the pricing badges that most
+  // often decide a pick are surfaced before the capability list. Pricing
+  // tiers are mutually exclusive (an endpoint has exactly one
+  // pricing_status), so the UI should not allow selecting more than one.
   { id: "free",              variant: "success" },
+  { id: "paid",              variant: "neutral" },
+  { id: "pricing_unknown",   variant: "warning" },
   { id: "longCtx",           variant: "warning" },
-  // Capabilities (blue accent) — what the model does. Interface/runtime
   // parameters (tools / reasoning / structured output) migrated to
   // supported_parameters on 2026-10-19 but stay as filter chips.
   { id: "chat",              variant: "accent"  },
@@ -102,7 +106,11 @@ function hasTag(ep: ModelEndpoint, tag: TagId): boolean {
     case "decision":
       return !!ep.capabilities?.decision;
     case "free":
-      return ep.free === true;
+      return ep.pricing_status === "free" || (ep.pricing_status == null && ep.free === true);
+    case "paid":
+      return ep.pricing_status === "paid";
+    case "pricing_unknown":
+      return ep.pricing_status === "unknown";
     case "longCtx":
       return (ep.context_length ?? 0) >= 128_000;
     case "embedding":
@@ -622,7 +630,15 @@ function ModelRow({
         <div className="tfi-model-desc">{endpoint.description}</div>
       )}
       <span className="tfi-model-meta">
-        {endpoint.free && <Badge variant="success" dot>Free</Badge>}
+        {endpoint.pricing_status === "free" && (
+          <Badge variant="success" dot>Free</Badge>
+        )}
+        {endpoint.pricing_status === "paid" && (
+          <Badge variant="neutral">Paid</Badge>
+        )}
+        {endpoint.pricing_status === "unknown" && (
+          <Badge variant="warning">Pricing unknown</Badge>
+        )}
         {ctx && <Badge variant="warning">{ctx}</Badge>}
         {hasChat && <Badge variant="accent">Chat</Badge>}
         {hasVisionCap && <Badge variant="accent">Vision</Badge>}

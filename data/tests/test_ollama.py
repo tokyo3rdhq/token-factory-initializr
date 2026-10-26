@@ -403,8 +403,11 @@ def test_filter_ollama_free_keeps_models_with_free_until():
         ),
     ]
     result = filter_ollama_free(endpoints)
-    assert len(result) == 1
+    assert len(result) == 2
     assert result[0].model_id == "free-model"
+    assert result[0].pricing_status == "free"
+    assert result[1].model_id == "paid-model"
+    assert result[1].pricing_status == "unknown"
 
 
 def test_filter_ollama_free_drops_models_without_free_until():
@@ -422,7 +425,9 @@ def test_filter_ollama_free_drops_models_without_free_until():
         ),
     ]
     result = filter_ollama_free(endpoints)
-    assert len(result) == 0
+    assert len(result) == 1
+    assert result[0].model_id == "paid-model"
+    assert result[0].pricing_status == "unknown"
 
 
 # ---------------------------------------------------------------------------

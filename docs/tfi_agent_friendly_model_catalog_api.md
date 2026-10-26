@@ -192,7 +192,7 @@ object = "model"
 data_source
 provider
 capabilities
-```
+pricing_status
 
 例如：
 
@@ -1497,3 +1497,28 @@ Agent Discovery
 
 形成一个完整的 **Human + Agent friendly Model Catalog**。
 
+# 17. Pricing / access filter (pricing_status)
+
+端点级定价分类通过 ``pricing_status`` 查询参数过滤，取值为 ``free``、``paid``、``unknown`` 中的一个或多个（逗号分隔，维度内 OR）。示例：
+
+```text
+GET /api/v1/models?pricing_status=free
+GET /api/v1/models?pricing_status=paid,unknown
+```
+
+语义：只要模型的**任一**端点的 ``pricing_status`` 匹配，该模型即被返回；嵌套的 ``endpoints[]`` 只保留满足过滤条件的端点，并明确标识哪些端点满足条件。绝不因“该模型有另一个免费端点”就宣称整个模型免费。
+
+缺失定价的端点被视为 ``unknown``，不会被静默丢弃。
+
+# 18. Pagination
+
+为防止 unbounded response（目录可能包含 1,000+ 个端点），``GET /api/v1/models`` 支持：
+
+```text
+GET /api/v1/models?limit=50&offset=0
+```
+
+- ``limit``：返回最多条目，默认 100，上限 1000。
+- ``offset``：跳过条目数，默认 0。
+
+当前实现返回全部匹配模型；未来可按需强制分页，不破坏现有 response shape。
