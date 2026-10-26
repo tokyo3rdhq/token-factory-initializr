@@ -174,6 +174,8 @@ class NormalizeStage(Stage):
     name = "normalize"
 
     def execute(self, context: PipelineContext) -> PipelineContext:
+        import logging
+        logger = logging.getLogger(__name__)
         parsed = context.data.get("parsed", {}) or {}
         or_models_raw: list[dict] = context.data.get("openrouter_models", []) or []
         md_models_raw: list[dict] = context.data.get("models_dev_models", []) or []
@@ -192,8 +194,6 @@ class NormalizeStage(Stage):
                 len(cross_index),
             )
 
-        import logging
-        logger = logging.getLogger(__name__)
         logger.info("NormalizeStage: received parsed data for providers: %s", list(parsed.keys()))
         for provider, items in parsed.items():
             if items:
