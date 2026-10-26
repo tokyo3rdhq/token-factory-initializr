@@ -96,6 +96,7 @@ def _set_pricing_status(endpoint: Any, status: str) -> Any:
             free=endpoint.free,
             pricing_status=status,
             fetched_at=endpoint.fetched_at,
+            data_source=endpoint.data_source,
             name=endpoint.name,
             description=endpoint.description,
             capabilities=endpoint.capabilities,
