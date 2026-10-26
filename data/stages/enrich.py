@@ -270,6 +270,12 @@ class EnrichStage(Stage):
 
     def execute(self, context: PipelineContext) -> PipelineContext:
         endpoints = list(context.data.get("valid", []))
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("EnrichStage: received %d endpoints from valid", len(endpoints))
+        if endpoints:
+            logger.info("EnrichStage: first endpoint data_source=%s provider=%s model_id=%s",
+                        endpoints[0].data_source, endpoints[0].provider, endpoints[0].model_id)
         observations_by_source: dict[str, list[dict]] = {
             "openrouter": list(context.data.get("openrouter_models", []) or []),
             "models_dev": list(context.data.get("models_dev_models", []) or []),
@@ -286,6 +292,9 @@ class EnrichStage(Stage):
             total_additions += len(additions)
             enriched.append(ep)
 
+        if enriched:
+            logger.info("EnrichStage: first enriched endpoint data_source=%s provider=%s model_id=%s",
+                        enriched[0].data_source, enriched[0].provider, enriched[0].model_id)
         context.data["enriched"] = enriched
         context.artifacts["enrich_facts"] = {
             "total_endpoints": len(endpoints),

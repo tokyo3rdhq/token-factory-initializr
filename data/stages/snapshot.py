@@ -137,6 +137,13 @@ class SnapshotStage(Stage):
 
     def execute(self, context: PipelineContext) -> PipelineContext:
         endpoints = context.data.get("enriched") or context.data.get("validated") or []
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("SnapshotStage: received %d endpoints", len(endpoints))
+        if endpoints:
+            first = endpoints[0]
+            logger.info("SnapshotStage: first endpoint data_source=%s provider=%s model_id=%s",
+                        getattr(first, "data_source", None), getattr(first, "provider", None), getattr(first, "model_id", None))
         context.artifacts["desired_state"] = build_desired_state(endpoints)
         logger.info(
             "SnapshotStage: built desired state for %d endpoints across %d sources",
