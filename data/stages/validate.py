@@ -51,16 +51,29 @@ class ValidateStage(Stage):
         nim_ids: Optional[list[str]] = context.data.get("nvidia_canonical_ids")
         if nim_ids is not None and nim_ids:
             nim_set = set(nim_ids)
+            # Also build a set of NIM ids without org prefix (last segment only)
+            # to support matching NVIDIA parser's "nvidia/xxx" format against
+            # NIM API's "org/model" format.
+            nim_suffixes = set()
+            for nid in nim_ids:
+                if "/" in nid:
+                    nim_suffixes.add(nid.split("/", 1)[1])
             nvidia_valid: list = []
             for ep in valid:
-                if ep.provider == "nvidia" and ep.model_id not in nim_set:
-                    invalid.append({
-                        "endpoint": {
-                            "provider": ep.provider,
-                            "model_id": ep.model_id,
-                        },
-                        "issues": [f"model_id '{ep.model_id}' not in NIM API catalog"],
-                    })
+                if ep.provider == "nvidia":
+                    # Match either full model_id or suffix (after "nvidia/" or first "/")
+                    model_id = ep.model_id
+                    suffix = model_id.split("/", 1)[1] if "/" in model_id else model_id
+                    if model_id in nim_set or suffix in nim_suffixes:
+                        nvidia_valid.append(ep)
+                    else:
+                        invalid.append({
+                            "endpoint": {
+                                "provider": ep.provider,
+                                "model_id": ep.model_id,
+                            },
+                            "issues": [f"model_id '{ep.model_id}' not in NIM API catalog"],
+                        })
                 else:
                     nvidia_valid.append(ep)
             valid = nvidia_valid
