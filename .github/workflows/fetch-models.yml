@@ -35,7 +35,7 @@ jobs:
       - name: Install runtime dependencies
         run: |
           pip install --upgrade pip
-          pip install ./data
+          pip install --no-cache-dir ./data
 
       - name: Fetch models
         env:
