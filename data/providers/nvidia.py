@@ -412,7 +412,7 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
     source_url = normalize_source_url(
         f"https://build.nvidia.com/{model_id}"
     )
-    return ModelEndpoint(
+    ep = ModelEndpoint(
         data_source="nvidia",
         provider="nvidia",
         model_id=model_id,
@@ -449,7 +449,10 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         context_length=None,
         metadata=metadata,
     )
-
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("_normalize_model: created ep data_source=%s provider=%s model_id=%s", ep.data_source, ep.provider, ep.model_id)
+    return ep
 
 def parse_html(html: str) -> List[ModelEndpoint]:
     """Parse model list from HTML response.
