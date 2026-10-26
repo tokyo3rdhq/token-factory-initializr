@@ -25,6 +25,13 @@ class ParseStage(Stage):
     def execute(self, context: PipelineContext) -> PipelineContext:
         # Each provider already returns provider-specific parsed output.
         # We simply forward it; NormalizeStage will reconcile into ModelEndpoint.
+        import logging
+        logger = logging.getLogger(__name__)
         fetched = context.data.get("fetched", {})
+        for name, models in fetched.items():
+            if models:
+                first = models[0]
+                logger.info("ParseStage: provider=%s first item type=%s data_source=%s provider=%s",
+                           name, type(first).__name__, getattr(first, "data_source", None), getattr(first, "provider", None))
         context.data["parsed"] = {name: list(models) for name, models in fetched.items()}
         return context
