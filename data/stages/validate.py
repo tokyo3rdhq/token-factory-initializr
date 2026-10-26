@@ -58,7 +58,9 @@ class ValidateStage(Stage):
             for nid in nim_ids:
                 if "/" in nid:
                     nim_suffixes.add(nid.split("/", 1)[1])
+            logger.info("NVIDIA ValidateStage: NIM API has %d models, %d suffixes", len(nim_set), len(nim_suffixes))
             nvidia_valid: list = []
+            nvidia_filtered = 0
             for ep in valid:
                 if ep.provider == "nvidia":
                     # Match either full model_id or suffix (after "nvidia/" or first "/")
@@ -67,6 +69,11 @@ class ValidateStage(Stage):
                     if model_id in nim_set or suffix in nim_suffixes:
                         nvidia_valid.append(ep)
                     else:
+                        nvidia_filtered += 1
+                        logger.info(
+                            "NVIDIA ValidateStage: filtering out model_id='%s' (suffix='%s') - not in NIM API",
+                            model_id, suffix,
+                        )
                         invalid.append({
                             "endpoint": {
                                 "provider": ep.provider,
@@ -76,6 +83,7 @@ class ValidateStage(Stage):
                         })
                 else:
                     nvidia_valid.append(ep)
+            logger.info("NVIDIA ValidateStage: kept %d, filtered out %d", len(nvidia_valid) - sum(1 for ep in valid if ep.provider != "nvidia"), nvidia_filtered)
             valid = nvidia_valid
 
         # Surface invalid records to the pipeline log so CI / Feishu

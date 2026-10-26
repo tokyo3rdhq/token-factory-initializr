@@ -480,6 +480,10 @@ def parse_html(html: str) -> List[ModelEndpoint]:
     """
     rsc = _extract_rsc_payload(html)
     raw_objects = _parse_objects(rsc)
+    logger.info(
+        "NVIDIA parse_html: RSC payload %d bytes, raw objects extracted: %d",
+        len(rsc), len(raw_objects),
+    )
 
     seen: Dict[str, ModelEndpoint] = {}
     for obj in raw_objects:
@@ -489,10 +493,12 @@ def parse_html(html: str) -> List[ModelEndpoint]:
 
     endpoints = list(seen.values())
     if endpoints:
+        logger.info("NVIDIA parse_html: RSC path returned %d endpoints", len(endpoints))
         return endpoints
 
     # Layered fallback — see docstring.
     if html and html.strip():
+        logger.info("NVIDIA parse_html: RSC path returned 0, trying static-HTML fallback")
         fallback = _extract_models_from_static_html(html)
         if fallback:
             logger.warning(
@@ -502,6 +508,8 @@ def parse_html(html: str) -> List[ModelEndpoint]:
                 len(html), len(fallback),
             )
             return fallback
+        else:
+            logger.error("NVIDIA parse_html: both RSC and static-HTML paths returned 0")
 
     # Convert fetched_at from None (caller will set before returning)
     return endpoints
@@ -739,10 +747,25 @@ def parse_nvidia_pages(
         based on ``labels.nimType.values contains "Free Endpoint"``;
         callers decide whether to keep the non-free rows.
     """
+    import logging
+    logger = logging.getLogger(__name__)
     endpoints: List[ModelEndpoint] = []
-    for html in html_pages:
-        endpoints.extend(parse_html(html))
-    return endpoints
+    for i, html in enumerate(html_pages):
+        logger.info("NVIDIA: parsing page %d/%d (%d bytes)", i + 1, len(html_pages), len(html))
+        page_endpoints = parse_html(html)
+        endpoints.extend(page_endpoints)
+        logger.info("NVIDIA: page %d yielded %d endpoints", i + 1, len(page_endpoints))
+    logger.info("NVIDIA: total %d endpoints before dedup", len(endpoints))
+    # Deduplicate by model_id
+    seen = {}
+    for ep in endpoints:
+        if ep.model_id not in seen:
+            seen[ep.model_id] = ep
+    deduped = list(seen.values())
+    logger.info("NVIDIA: %d unique endpoints after dedup by model_id", len(deduped))
+    free_count = sum(1 for ep in deduped if ep.free)
+    logger.info("NVIDIA: free=%d, paid/unknown=%d", free_count, len(deduped) - free_count)
+    return deduped
 
 
 def fetch_catalog_page(filters: Optional[Dict[str, str]] = None) -> List[ModelEndpoint]:
@@ -768,9 +791,15 @@ def fetch_catalog_page(filters: Optional[Dict[str, str]] = None) -> List[ModelEn
     Returns:
         All parsed ``ModelEndpoint`` objects (free + paid + unknown).
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("NVIDIA: starting catalog fetch")
     parser = NvidiaCatalogParser()
     pages = parser.fetch_all_pages(filters)
-    return parse_nvidia_pages(pages)
+    logger.info("NVIDIA: fetched %d page(s), total %d bytes", len(pages), sum(len(p) for p in pages))
+    endpoints = parse_nvidia_pages(pages)
+    logger.info("NVIDIA: parsed %d endpoints from catalog", len(endpoints))
+    return endpoints
 
 
 if __name__ == "__main__":
