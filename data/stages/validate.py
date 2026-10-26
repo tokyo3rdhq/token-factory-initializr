@@ -102,8 +102,13 @@ class ValidateStage(Stage):
 
         context.data["valid"] = valid
         context.data["invalid"] = invalid
-
-        # Mark every known source validated iff it had any valid
+        logger.info("ValidateStage: valid=%d invalid=%d", len(valid), len(invalid))
+        if valid:
+            first = valid[0]
+            logger.info("ValidateStage: first valid data_source=%s provider=%s model_id=%s",
+                        first.data_source if hasattr(first, "data_source") else "N/A",
+                        first.provider if hasattr(first, "provider") else "N/A",
+                        first.model_id if hasattr(first, "model_id") else "N/A")
         # endpoint OR it had no fetch error this run. A source that
         # produced zero valid endpoints AND has a fetch error is
         # treated as not validated.

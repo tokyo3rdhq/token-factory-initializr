@@ -192,8 +192,16 @@ class NormalizeStage(Stage):
                 len(cross_index),
             )
 
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("NormalizeStage: received parsed data for providers: %s", list(parsed.keys()))
+        for provider, items in parsed.items():
+            if items:
+                first = items[0]
+                logger.info("NormalizeStage: provider=%s first item type=%s data_source=%s provider=%s model_id=%s",
+                           provider, type(first).__name__, getattr(first, "data_source", None), getattr(first, "provider", None), getattr(first, "model_id", None))
+
         endpoints: list[ModelEndpoint] = []
-        # Build a single matcher instance — repeated construction is
         # cheap but it also keeps the alias/version/quantization state
         # consistent across both the NVIDIA and AMD/HF lookup paths.
         from data.identity_matcher import DefaultIdentityMatcher
@@ -287,5 +295,10 @@ class NormalizeStage(Stage):
                 cross_source_index=cross_index,
             ):
                 endpoints.append(ep)
+        logger.info("NormalizeStage: produced %d endpoints", len(endpoints))
+        if endpoints:
+            first = endpoints[0]
+            logger.info("NormalizeStage: first endpoint data_source=%s provider=%s model_id=%s",
+                        first.data_source, first.provider, first.model_id)
         context.data["endpoints"] = endpoints
         return context
