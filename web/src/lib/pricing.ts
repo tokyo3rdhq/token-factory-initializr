@@ -255,7 +255,6 @@ export function parsePricingValue(value: unknown): number | null {
   }
   return null;
 }
-
 /**
  * Format a per-token price as USD per 1M tokens.
  * Uses decimal-safe string formatting to avoid floating-point artifacts.
@@ -297,6 +296,8 @@ export function formatPerUnitPrice(value: number, unit: string): string {
   }
   return `$${value.toExponential(2)} per ${unit}`;
 }
+
+
 
 /**
  * Format a discount value.

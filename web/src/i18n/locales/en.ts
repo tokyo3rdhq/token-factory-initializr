@@ -233,6 +233,10 @@ Do not expose or modify secrets. Preserve my existing configuration unless I exp
         label: "128K+",
         description: "Models with a 128,000+ token context window.",
       },
+      longCtxM: {
+        label: "1M+",
+        description: "Models with a 1,000,000+ token context window.",
+      },
     },
     /** Filter row strings. */
     filters: {

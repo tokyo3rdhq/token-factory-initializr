@@ -4,7 +4,7 @@
     "source": "model_gateway",
     "label": "MiMo-V2.6-Flash",
     "model": "MiMo-V2.6-Flash",
-    "description": "Dynamic sglang-router service managed by Model Ops",
+    "description": "Dynamic pool service managed by Model Ops",
     "family": "custom",
     "providers": [
       "Radeon Cloud"

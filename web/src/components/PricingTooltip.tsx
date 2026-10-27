@@ -6,14 +6,12 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Badge } from "@tokyo3rdhq/magi-design-system";
 import type { ModelEndpoint } from "../types";
 import { normalizePricingEntries, getPricingSource } from "../lib/pricing";
 
 interface PricingTooltipProps {
   endpoint: ModelEndpoint;
   children: React.ReactElement;
-  title?: string;
   openDelay?: number;
   closeDelay?: number;
 }
@@ -21,7 +19,6 @@ interface PricingTooltipProps {
 export function PricingTooltip({
   endpoint,
   children,
-  title,
   openDelay = 200,
   closeDelay = 100,
 }: PricingTooltipProps) {
@@ -132,20 +129,6 @@ export function PricingTooltip({
         aria-label="Pricing details"
       >
         <div className="tfi-pricing-tooltip-content">
-          <div className="tfi-pricing-tooltip-header">
-            <h4 className="tfi-pricing-tooltip-title">
-              {title ?? "Pricing details"}
-            </h4>
-            <Badge variant="neutral">
-              {endpoint.pricing_status === "free" ? "Free" : endpoint.pricing_status === "priced" ? "Pricing" : "Unknown"}
-            </Badge>
-          </div>
-
-          <p className="tfi-pricing-tooltip-source">
-            Source: {endpoint.data_source === "huggingface" ? endpoint.provider : endpoint.data_source}
-          </p>
-
-          {children} is already rendered as trigger, so we only show the tooltip content here
           <div className="tfi-pricing-tooltip-body">
             {(() => {
               const entries = normalizePricingEntries(
@@ -165,29 +148,26 @@ export function PricingTooltip({
               }
 
               return (
-                <dl className="tfi-pricing-tooltip-list">
-                  {entries.map((entry) => (
-                    <div key={entry.key} className="tfi-pricing-tooltip-item">
-                      <dt className="tfi-pricing-tooltip-label">{entry.label}</dt>
-                      <dd className="tfi-pricing-tooltip-value">{entry.formatted}</dd>
-                    </div>
-                  ))}
-                </dl>
+                <table className="tfi-pricing-tooltip-table">
+                  <tbody>
+                    {entries.map((entry) => (
+                      <tr key={entry.key} className="tfi-pricing-tooltip-row">
+                        <td className="tfi-pricing-tooltip-label">{entry.label}</td>
+                        <td className="tfi-pricing-tooltip-value">{entry.formatted}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               );
             })()}
           </div>
 
           {endpoint.pricing_status === "free" && hasDetails && (
             <p className="tfi-pricing-tooltip-note">
-              Zero prices shown are confirmed free. Unlisted operations may not be free.
+              Zero prices are confirmed free. Unlisted operations may not be free.
             </p>
           )}
 
-          {endpoint.pricing_status === "unknown" && (
-            <p className="tfi-pricing-tooltip-note">
-              Pricing information unavailable. Zero values are not displayed as they may be unverified.
-            </p>
-          )}
         </div>
       </div>
     </>

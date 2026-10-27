@@ -852,6 +852,10 @@ body {
 .tfi-tag-chip-longCtx.active .tfi-tag-chip-dot {
   background: var(--magi-warning, #f59e0b);
 }
+.tfi-tag-chip-longCtxM .tfi-tag-chip-dot,
+.tfi-tag-chip-longCtxM.active .tfi-tag-chip-dot {
+  background: var(--magi-warning, #f59e0b);
+}
 .tfi-tag-chip.active {
   color: var(--magi-text-primary);
   background: color-mix(in srgb, var(--magi-accent) 12%, transparent);
@@ -1492,4 +1496,71 @@ body {
     max-width: 440px;
     margin-top: 0;
   }
+}
+
+
+/* ----- Pricing tooltip (tooltip/popover for pricing badges on Browse page) ----- */
+.tfi-pricing-tooltip {
+  position: fixed;
+  z-index: var(--magi-z-tooltip);
+  pointer-events: auto;
+  max-width: 320px;
+  border-radius: var(--magi-radius-md);
+  border: 1px solid var(--magi-border);
+  background: var(--magi-surface);
+  color: var(--magi-text-primary);
+  box-shadow: 0 4px 12px var(--magi-shadow-lg);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.tfi-pricing-tooltip-content {
+  padding: var(--magi-space-3);
+}
+.tfi-pricing-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: var(--magi-space-2);
+  margin-bottom: var(--magi-space-2);
+}
+.tfi-pricing-tooltip-title {
+  font-size: var(--magi-text-sm);
+  font-weight: var(--magi-font-weight-semibold);
+  color: var(--magi-text-primary);
+  margin: 0;
+}
+.tfi-pricing-tooltip-source {
+  margin-top: var(--magi-space-1);
+  margin-bottom: var(--magi-space-2);
+  font-size: 11px;
+  color: var(--magi-text-tertiary);
+}
+.tfi-pricing-tooltip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tfi-pricing-tooltip-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.tfi-pricing-tooltip-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+.tfi-pricing-tooltip-label {
+  font-size: 12px;
+  color: var(--magi-text-secondary);
+}
+.tfi-pricing-tooltip-value {
+  font-size: 12px;
+  color: var(--magi-text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.tfi-pricing-tooltip-empty,
+.tfi-pricing-tooltip-note {
+  font-size: 11px;
+  color: var(--magi-text-tertiary);
+  margin-top: var(--magi-space-1);
 }

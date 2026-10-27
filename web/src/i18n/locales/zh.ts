@@ -192,6 +192,7 @@ emptyBefore: "没有匹配的模型。试着放宽一些条件 —— ",
       streaming: { label: "流式输出", description: "确认支持增量流式输出（SSE）的 endpoint。" },
       free: { label: "免费", description: "确认免费的 endpoint。" },
       longCtx: { label: "128K+", description: "上下文窗口 ≥ 128 000 token 的模型。" },
+      longCtxM: { label: "1M+", description: "上下文窗口 ≥ 1 000 000 token 的模型。" },
     },
     filters: {
       searchPlaceholder: "按名称、provider、id 搜索",

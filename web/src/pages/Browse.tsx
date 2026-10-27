@@ -3,7 +3,7 @@ import { Copy, Check, ExternalLink, Code } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Badge, Banner, Button, Checkbox, Container, EmptyState, Input, Section, Stack } from "@tokyo3rdhq/magi-design-system";
 
-import { hasVision } from "../components/format";
+import { fmtContext, hasVision } from "../components/format";
 import { PricingBadge } from "../components/PricingBadge";
 import { PricingTooltip } from "../components/PricingTooltip";
 import { useSelection } from "../components/SelectionContext";
@@ -33,6 +33,7 @@ export type TagId =
   | "decision"
   | "streaming"
   | "free"
+  | "longCtxM"
   | "longCtx";
 
 interface TagDef {
@@ -44,7 +45,9 @@ export const TAGS: TagDef[] = [
   // Pricing / scale first (green → orange): the pricing badges that most
   // often decide a pick are surfaced before the capability list. Pricing
   // tiers are mutually exclusive (an endpoint has exactly one
+  // pricing_status), so the UI should not allow selecting more than one.
   { id: "free",              variant: "success" },
+  { id: "longCtxM",          variant: "warning" },
   { id: "longCtx",           variant: "warning" },
   // parameters (tools / reasoning / structured output) migrated to
   // supported_parameters on 2026-10-19 but stay as filter chips.
@@ -61,15 +64,15 @@ export const TAGS: TagDef[] = [
   { id: "structured_output", variant: "neutral" },
   { id: "streaming",         variant: "neutral" },
 ];
-
-/** Pure predicate — given an endpoint and a tag id, return whether
- * the endpoint has the tag. Centralized so the filter UI and the
- * per-row badge rendering stay in sync (single source of truth).
- *
- * tools / reasoning / structured_output / streaming read
- * ``supported_parameters`` (migrated from capabilities on
- * 2026-10-19). Tolerates records without the field (older
- * snapshots). */
+  /**
+   * Pure predicate — given an endpoint and a tag id, return whether
+   * the endpoint has the tag. Centralized so the filter UI and the
+   * per-row badge rendering stay in sync (single source of truth).
+   *
+   * tools / reasoning / structured_output / streaming read
+   * ``supported_parameters`` (migrated from capabilities on
+   * 2026-10-19). Tolerates records without the field (older
+   * snapshots). */
 function hasTag(ep: ModelEndpoint, tag: TagId): boolean {
   const params = Array.isArray(ep.supported_parameters) ? ep.supported_parameters : [];
   switch (tag) {
@@ -100,6 +103,8 @@ function hasTag(ep: ModelEndpoint, tag: TagId): boolean {
       return !!ep.capabilities?.decision;
     case "free":
       return ep.pricing_status === "free" || (ep.pricing_status == null && ep.free === true);
+    case "longCtxM":
+      return (ep.context_length ?? 0) >= 1_000_000;
     case "longCtx":
       return (ep.context_length ?? 0) >= 128_000;
     case "embedding":
@@ -185,7 +190,7 @@ export function BrowsePage() {
   const tagCounts = useMemo(
     () => {
       const counts: Record<string, number> = {};
-      for (const tag of ["chat", "vision", "speech", "translation", "embedding", "decision", "tools", "reasoning", "structured_output", "streaming", "free", "longCtx"] as TagId[]) {
+      for (const tag of ["chat", "vision", "speech", "translation", "embedding", "decision", "tools", "reasoning", "structured_output", "streaming", "free", "longCtxM", "longCtx"] as TagId[]) {
         counts[tag] = models.filter((m) => hasTag(m, tag)).length;
       }
       return counts;
@@ -380,6 +385,7 @@ export function BrowsePage() {
                       decision: "Decision",
                       streaming: "Streaming",
                       free: "Free",
+                      longCtxM: "1M+",
                       longCtx: "128K+",
                     };
                     return labels[tag.id];
@@ -539,6 +545,7 @@ function ModelRow({
   onToggle: (ep: ModelEndpoint) => void;
 }) {
   const { dict } = useI18n();
+  const ctx = fmtContext(endpoint.context_length);
   const hasVisionCap = hasVision(endpoint);
   const [copied, setCopied] = useState<"copy" | null>(null);
   const onCopy = async (text: string) => {
@@ -621,6 +628,7 @@ function ModelRow({
         <PricingTooltip endpoint={endpoint}>
           <PricingBadge endpoint={endpoint} />
         </PricingTooltip>
+        {ctx && <Badge variant="warning">{ctx}</Badge>}
         {hasChat && <Badge variant="accent">Chat</Badge>}
         {hasVisionCap && <Badge variant="accent">Vision</Badge>}
         {hasSpeech && <Badge variant="accent">Speech</Badge>}

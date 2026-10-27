@@ -220,9 +220,10 @@ export interface TranslationTree {
       structured_output: { label: string; description: string };
       free: { label: string; description: string };
       longCtx: { label: string; description: string };
-      translation: { label: string; description: string };
+      longCtxM: { label: string; description: string };
       embedding: { label: string; description: string };
       streaming: { label: string; description: string };
+      translation: { label: string; description: string };
     };
     /** Filter row strings. */
     filters: {
