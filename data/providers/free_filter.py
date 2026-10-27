@@ -67,10 +67,27 @@ def _hf_provider_pricing_status(provider_entry: Dict[str, Any]) -> str:
       * ``"priced"`` — status == "live" AND pricing present but not all zero.
       * ``"unknown"`` — status != "live", or pricing missing/not a dict,
         or malformed. Never infer free from missing pricing.
+
+    Accepts both the original HF router provider entry format (with top-level
+    ``status`` and ``pricing``) and the canonical endpoint format (with
+    ``metadata.provider_status`` and top-level ``pricing``).
     """
-    if provider_entry.get("status") != "live":
+    # Support both original provider entry format and canonical endpoint format.
+    if isinstance(provider_entry.get("status"), str):
+        # Original HF router provider entry format
+        status = provider_entry.get("status")
+        pricing = provider_entry.get("pricing")
+    else:
+        # Canonical endpoint format: status in metadata, pricing at top level
+        status = provider_entry.get("metadata", {}).get("provider_status")
+        pricing = provider_entry.get("pricing")
+
+    # Status may be missing/null for some providers (e.g., scaleway).
+    # Treat missing status as "live" — if the provider is listed,
+    # it offers the model. Only explicitly non-"live" statuses
+    # (e.g., "offline", "down") block classification.
+    if status is not None and status != "live":
         return "unknown"
-    pricing = provider_entry.get("pricing")
     if not isinstance(pricing, dict):
         return "unknown"
     try:

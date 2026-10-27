@@ -88,7 +88,7 @@ def _amd_ep(free_status: str | None = None, pricing: dict | None = None, model_i
 
 
 def _hf_ep(status: str = "live", pricing: dict | None = None, model_id: str = "x/1") -> dict:
-    """Build a minimal HF-style dict endpoint."""
+    """Build a minimal HF-style dict endpoint (original format with top-level status)."""
     return {
         "data_source": "huggingface",
         "provider": "huggingface",
@@ -102,6 +102,24 @@ def _hf_ep(status: str = "live", pricing: dict | None = None, model_id: str = "x
         "lab": "test",
         "metadata": {},
         "status": status,
+        "pricing": pricing,
+    }
+
+
+def _hf_ep_canonical(provider_status: str = "live", pricing: dict | None = None, model_id: str = "x/1") -> dict:
+    """Build a minimal HF-style dict endpoint (canonical format with metadata.provider_status)."""
+    return {
+        "data_source": "huggingface",
+        "provider": "huggingface",
+        "model_id": model_id,
+        "free": False,
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "name": model_id.split("/")[-1],
+        "description": None,
+        "capabilities": {},
+        "architecture": {"input": ["text"], "output": ["text"]},
+        "lab": "test",
+        "metadata": {"provider_status": provider_status},
         "pricing": pricing,
     }
 
@@ -165,6 +183,20 @@ def test_qualify_huggingface_classifies_by_status_and_pricing():
         _hf_ep(status="live", pricing={"input": "1.4e-7", "output": "2.8e-7"}, model_id="m2"),
         _hf_ep(status="offline", pricing={"input": 0, "output": 0}, model_id="m3"),
         _hf_ep(status="live", pricing=None, model_id="m4"),
+    ]
+    out = qualify_huggingface(endpoints)
+    assert [ep["model_id"] for ep in out] == ["m1", "m2", "m3", "m4"]
+    statuses = {ep["model_id"]: ep["pricing_status"] for ep in out}
+    assert statuses == {"m1": "free", "m2": "priced", "m3": "unknown", "m4": "unknown"}
+
+
+def test_qualify_huggingface_canonical_format():
+    """HF qualify classifies canonical format endpoints (metadata.provider_status)."""
+    endpoints = [
+        _hf_ep_canonical(provider_status="live", pricing={"input": 0, "output": 0}, model_id="m1"),
+        _hf_ep_canonical(provider_status="live", pricing={"input": "1.4e-7", "output": "2.8e-7"}, model_id="m2"),
+        _hf_ep_canonical(provider_status="offline", pricing={"input": 0, "output": 0}, model_id="m3"),
+        _hf_ep_canonical(provider_status="live", pricing=None, model_id="m4"),
     ]
     out = qualify_huggingface(endpoints)
     assert [ep["model_id"] for ep in out] == ["m1", "m2", "m3", "m4"]

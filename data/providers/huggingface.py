@@ -304,6 +304,7 @@ def to_endpoint_dicts(model_group: Dict[str, Any]) -> List[dict[str, Any]]:
                 "first_token_latency_ms": p.get("first_token_latency_ms"),
                 "throughput": p.get("throughput"),
                 "is_model_author": bool(p.get("is_model_author", False)),
+                "provider_status": p.get("status"),
             },
         })
     return endpoints
