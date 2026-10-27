@@ -293,36 +293,61 @@ def normalize_capability_signals(
 # 1M tokens by dividing all values by 1,000,000. This function mutates the
 # pricing dict in place and returns the normalized dict.
 # ---------------------------------------------------------------------------
+def truncate_trailing_zeros(value: Any) -> Any:
+    """Truncate trailing zeros from a pricing value.
 
-HF_PRICING_DIVISOR = 1_000_000
+    Supports both numeric and string representations (e.g. Kilo's
+    ``"0.000000750000"`` → ``"0.00000075"``). Negative sentinel values
+    (e.g. -1 for "unknown") and non-numeric strings are preserved as-is.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        if value < 0:
+            return value
+        return round(float(value), 10)
+    if isinstance(value, str):
+        try:
+            f = float(value)
+        except (TypeError, ValueError):
+            return value
+        if f < 0:
+            return value
+        return str(round(f, 10))
+    return value
 
 
-def normalize_hf_pricing(pricing: dict[str, Any] | None) -> dict[str, float] | None:
-    """Normalize HF pricing values to USD per 1M tokens.
+def normalize_pricing(pricing: dict[str, Any] | None, data_source: str | None = None) -> dict[str, Any] | None:
+    """Normalize a pricing dict for the TFI catalog.
 
-    HF router exposes prices as raw per-token values (e.g., 0.285 per token).
-    This function divides all numeric values by 1,000,000 to convert to
-    USD per 1M tokens, which is the standard display unit.
+    Platform-wide rules:
+    * HF router prices are raw per-token values; divide by 1M to express
+      in USD per 1M tokens.
+    * All numeric values (from any provider) have trailing zeros truncated
+      so ``"0.000000750000"`` → ``"0.00000075"`` and ``1.5000`` → ``1.5``.
+    * Negative sentinel values (e.g. -1 for "unknown") are preserved.
+    * Non-numeric strings are preserved as-is.
 
-    Non-numeric values are preserved as-is (e.g., sentinel -1 values).
-
-    Returns a new dict with normalized values, or None if input is None/empty.
+    Returns a new dict, or None if input is None/empty.
     """
     if not pricing:
         return None
 
     normalized = {}
     for key, value in pricing.items():
-        if isinstance(value, (int, float)):
-            # -1 is a sentinel for "unknown" — preserve as-is
-            if value < 0:
+        # HF: raw per-token → USD per 1M tokens first
+        if data_source == "huggingface" and isinstance(value, (int, float, str)) and not isinstance(value, bool):
+            try:
+                f = float(value)
+            except (TypeError, ValueError):
+                normalized[key] = value
+                continue
+            if f < 0:
                 normalized[key] = value
             else:
-                # Divide by 1M to convert from per-token to per-million-tokens,
-                # then round to eliminate floating-point artifacts and trailing zeros.
-                normalized[key] = round(value / HF_PRICING_DIVISOR, 10)
+                normalized[key] = truncate_trailing_zeros(f / HF_PRICING_DIVISOR)
         else:
-            normalized[key] = value
+            normalized[key] = truncate_trailing_zeros(value)
     return normalized
 
 
@@ -689,13 +714,13 @@ def normalize_endpoints(
 
         # Lift pricing: AMD stamps per-token prices at the top level of
         # its parsed endpoint dict. Validate it's a non-empty dict
-        # before assigning — empty dicts are treated as "no data" so
-        # downstream readers can rely on truthiness.
-        # For Hugging Face, normalize pricing to USD per 1M tokens first.
+        # Platform-wide pricing normalization: trailing zeros are truncated
+        # for every provider, and HF raw per-token values are divided by 1M
+        # to express in USD per 1M tokens. Empty dicts are treated as "no data"
+        # so downstream readers can rely on truthiness.
         pricing = item.get("pricing")
         if isinstance(pricing, dict) and pricing:
-            if item.get("data_source") == "huggingface":
-                pricing = normalize_hf_pricing(pricing)
+            pricing = normalize_pricing(pricing, item.get("data_source"))
             object.__setattr__(ep, "pricing", pricing)
         # Lift pricing_status from the parsed dict — the validate stage
         # computed this per-provider (free/priced/unknown). Preserve it
