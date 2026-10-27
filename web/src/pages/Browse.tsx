@@ -35,8 +35,6 @@ export type TagId =
   | "decision"
   | "streaming"
   | "free"
-  | "paid"
-  | "pricing_unknown"
   | "longCtx";
 
 interface TagDef {
@@ -48,10 +46,7 @@ export const TAGS: TagDef[] = [
   // Pricing / scale first (green → orange): the pricing badges that most
   // often decide a pick are surfaced before the capability list. Pricing
   // tiers are mutually exclusive (an endpoint has exactly one
-  // pricing_status), so the UI should not allow selecting more than one.
   { id: "free",              variant: "success" },
-  { id: "paid",              variant: "neutral" },
-  { id: "pricing_unknown",   variant: "warning" },
   { id: "longCtx",           variant: "warning" },
   // parameters (tools / reasoning / structured output) migrated to
   // supported_parameters on 2026-10-19 but stay as filter chips.
@@ -107,10 +102,6 @@ function hasTag(ep: ModelEndpoint, tag: TagId): boolean {
       return !!ep.capabilities?.decision;
     case "free":
       return ep.pricing_status === "free" || (ep.pricing_status == null && ep.free === true);
-    case "paid":
-      return ep.pricing_status === "paid";
-    case "pricing_unknown":
-      return ep.pricing_status === "unknown";
     case "longCtx":
       return (ep.context_length ?? 0) >= 128_000;
     case "embedding":

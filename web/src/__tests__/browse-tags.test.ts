@@ -37,9 +37,8 @@ test("TAGS exposes the new reasoning / speech / structured_output ids", () => {
   assert.ok(ids.includes("reasoning"), "TAGS must include 'reasoning'");
   assert.ok(ids.includes("speech"), "TAGS must include 'speech'");
   assert.ok(ids.includes("structured_output"), "TAGS must include 'structured_output'");
-  // Tag count: 14 total (6 capabilities + 4 parameters + 3 pricing
-  // tiers + longCtx + decision capability).
-  assert.equal(ids.length, 14, "TAGS array must have 14 entries");
+  // Tag count: 12 total (6 capabilities + 4 parameters + 1 pricing tier + longCtx + decision capability).
+  assert.equal(ids.length, 12, "TAGS array must have 12 entries");
   // decision capability is wired in too.
   assert.ok(ids.includes("decision"), "TAGS must include 'decision'");
 });
