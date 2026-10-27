@@ -334,12 +334,11 @@ def normalize_pricing(pricing: dict[str, Any] | None, data_source: str | None = 
     """Normalize a pricing dict for the TFI catalog.
 
     Platform-wide rules:
-    * HF router prices are raw per-token values; divide by 1M to express
-      in USD per 1M tokens.
-    * All numeric values (from any provider) have trailing zeros truncated
-      so ``"0.000000750000"`` → ``"0.00000075"`` and ``1.5000`` → ``1.5``.
-    * Negative sentinel values (e.g. -1 for "unknown") are preserved.
-    * Non-numeric strings are preserved as-is.
+    * Hugging Face: prices are kept as-is, no processing.
+    * All other providers: each numeric value is multiplied by 1,000,000,
+      rounded to 3 decimal places, trailing zeros truncated, and stored
+      as a string. Negative sentinel values (e.g. -1) and non-numeric
+      strings are preserved as-is.
 
     Returns a new dict, or None if input is None/empty.
     """
@@ -348,19 +347,25 @@ def normalize_pricing(pricing: dict[str, Any] | None, data_source: str | None = 
 
     normalized = {}
     for key, value in pricing.items():
-        # HF: raw per-token → USD per 1M tokens first
-        if data_source == "huggingface" and isinstance(value, (int, float, str)) and not isinstance(value, bool):
+        if data_source == "huggingface":
+            # HF: keep as-is, no processing
+            normalized[key] = value
+        else:
+            # Other providers: multiply by 1M, round to 3 decimals,
+            # truncate trailing zeros, save as string
             try:
                 f = float(value)
             except (TypeError, ValueError):
                 normalized[key] = value
                 continue
+
             if f < 0:
+                # Negative sentinel - preserve as-is
                 normalized[key] = value
             else:
-                normalized[key] = truncate_trailing_zeros(f / HF_PRICING_DIVISOR)
-        else:
-            normalized[key] = truncate_trailing_zeros(value)
+                multiplied = f * 1_000_000
+                rounded = round(multiplied, 3)
+                normalized[key] = _format_number(rounded)
     return normalized
 
 
@@ -742,6 +747,38 @@ def normalize_endpoints(
         pricing_status = item.get("pricing_status")
         if pricing_status is not None:
             object.__setattr__(ep, "pricing_status", pricing_status)
+        # Classify pricing_status from normalized pricing for price-based
+        # providers (openrouter, kilo). Runs AFTER pricing normalization so
+        # classification is based on normalized values, not raw source values.
+        # Other providers (nvidia, amd, huggingface, ollama) set pricing_status
+        # via metadata-based logic in filter_free and are not overwritten here.
+        if item.get("data_source") in ("openrouter", "kilo") and isinstance(pricing, dict) and pricing:
+            _any_negative = False
+            _all_zero = True
+            _all_positive = True
+            for _v in pricing.values():
+                try:
+                    _fv = float(_v)
+                except (TypeError, ValueError):
+                    _all_zero = _all_positive = False
+                    break
+                if _fv < 0:
+                    _any_negative = True
+                elif _fv == 0:
+                    _all_positive = False
+                else:
+                    _all_zero = False
+
+            if _any_negative:
+                _computed_status = "unknown"
+            elif _all_zero:
+                _computed_status = "free"
+            elif _all_positive:
+                _computed_status = "priced"
+            else:
+                _computed_status = "unknown"
+
+            object.__setattr__(ep, "pricing_status", _computed_status)
 
         # Lift supported_parameters — endpoint-level interface/runtime
         # parameters (docs/tfi_add_supported_parameters.md §3.2/§4.1).

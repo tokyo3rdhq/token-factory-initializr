@@ -214,32 +214,40 @@ def test_qualify_huggingface_empty_input():
 
 
 def test_qualify_openrouter_classifies_by_pricing():
+    """qualify_openrouter passes endpoints through unchanged;
+    pricing_status is set in normalize stage after pricing normalization."""
     endpoints = [
         {"provider": "openrouter", "model_id": "m1", "free": True,
-         "fetched_at": datetime.now(timezone.utc).isoformat()},  # no pricing → unknown
+         "fetched_at": datetime.now(timezone.utc).isoformat()},  # no pricing
         {"provider": "openrouter", "model_id": "m2", "free": False,
          "fetched_at": datetime.now(timezone.utc).isoformat(),
-         "pricing": {"input": 0, "output": 0}},  # free
+         "pricing": {"input": 0, "output": 0}},
         {"provider": "openrouter", "model_id": "m3", "free": False,
          "fetched_at": datetime.now(timezone.utc).isoformat(),
-         "pricing": {"input": "1.0", "output": "2.0"}},  # paid
+         "pricing": {"input": "1.0", "output": "2.0"}},
     ]
     out = qualify_openrouter(endpoints)
-    statuses = {ep["model_id"]: ep["pricing_status"] for ep in out}
-    assert statuses == {"m1": "unknown", "m2": "free", "m3": "priced"}
+    # qualify_openrouter no longer sets pricing_status; that's done in normalize
+    assert [ep["model_id"] for ep in out] == ["m1", "m2", "m3"]
+    for ep in out:
+        assert "pricing_status" not in ep
 
 
 def test_qualify_kilo_classifies_by_pricing():
+    """qualify_kilo passes endpoints through unchanged;
+    pricing_status is set in normalize stage after pricing normalization."""
     endpoints = [
         {"provider": "kilo", "model_id": "m1", "free": True,
-         "fetched_at": datetime.now(timezone.utc).isoformat()},  # no pricing → unknown
+         "fetched_at": datetime.now(timezone.utc).isoformat()},  # no pricing
         {"provider": "kilo", "model_id": "m2", "free": False,
          "fetched_at": datetime.now(timezone.utc).isoformat(),
-         "pricing": {"input": "0.000000000000", "output": "0"}},  # free
+         "pricing": {"input": "0.000000000000", "output": "0"}},
     ]
     out = qualify_kilo(endpoints)
-    statuses = {ep["model_id"]: ep["pricing_status"] for ep in out}
-    assert statuses == {"m1": "unknown", "m2": "free"}
+    # qualify_kilo no longer sets pricing_status; that's done in normalize
+    assert [ep["model_id"] for ep in out] == ["m1", "m2"]
+    for ep in out:
+        assert "pricing_status" not in ep
 
 
 # ---------------------------------------------------------------------------

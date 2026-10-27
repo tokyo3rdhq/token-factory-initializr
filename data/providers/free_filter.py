@@ -20,59 +20,11 @@ from __future__ import annotations
 
 from typing import Any, Callable, Dict, List
 from data.models.schema import ModelEndpoint, legacy_free_compatible
-from decimal import Decimal, InvalidOperation
 
 
 # ---------------------------------------------------------------------------
 # Pricing classification helpers
 # ---------------------------------------------------------------------------
-
-
-def _is_zero(value: Any) -> bool:
-    """True iff ``value`` is numerically zero (string/int/float/Decimal)."""
-    try:
-        return Decimal(str(value)) == 0
-    except (InvalidOperation, ValueError, TypeError):
-        return False
-
-
-def _classify_by_pricing(endpoint: Any) -> str:
-    """Classify ``pricing_status`` from the endpoint's ``pricing`` field.
-
-    Returns one of: ``"free"`` / ``"priced"`` / ``"unknown"``.
-
-    Rules:
-      * ``"free"`` — all pricing values are numerically zero.
-      * ``"priced"`` — all pricing values are strictly positive (> 0).
-      * ``"unknown"`` — pricing missing/not a dict/empty, or any value is
-        negative (< 0). Never infer free from missing pricing.
-    """
-    if hasattr(endpoint, "get"):
-        pricing = endpoint.get("pricing")
-    else:
-        pricing = getattr(endpoint, "pricing", None)
-
-    if not pricing:
-        return "unknown"
-    try:
-        values = list(pricing.values())
-    except AttributeError:
-        return "unknown"
-    if not values:
-        return "unknown"
-
-    # Check for any negative value first — negative pricing (e.g. "-1" sentinel)
-    # means "unknown", never "priced".
-    for v in values:
-        try:
-            if Decimal(str(v)) < 0:
-                return "unknown"
-        except (InvalidOperation, ValueError, TypeError):
-            return "unknown"
-
-    if all(_is_zero(v) for v in values):
-        return "free"
-    return "priced"
 
 
 def _hf_provider_pricing_status(provider_entry: Dict[str, Any]) -> str:
@@ -252,27 +204,21 @@ def qualify_huggingface(endpoints: List[Any]) -> List[Any]:
 
 
 def qualify_openrouter(endpoints: List[Any]) -> List[Any]:
-    """Keep all eligible OpenRouter endpoints; classify ``pricing_status``.
+    """Keep all eligible OpenRouter endpoints.
 
-    Missing pricing → "unknown". All-zero prices → "free". Non-zero → "priced".
+    pricing_status is computed in the normalize stage after pricing
+    normalization, not here.
     """
-    return [_set_pricing_status(ep, _classify_by_pricing(ep)) for ep in endpoints]
+    return list(endpoints)
 
 
 def qualify_kilo(endpoints: List[Any]) -> List[Any]:
-    """Keep all eligible Kilo endpoints; classify ``pricing_status``.
+    """Keep all eligible Kilo endpoints.
 
-    Same rule as OpenRouter: missing → "unknown", all-zero → "free", non-zero → "priced".
+    pricing_status is computed in the normalize stage after pricing
+    normalization, not here.
     """
-    return [_set_pricing_status(ep, _classify_by_pricing(ep)) for ep in endpoints]
-
-
-def qualify_kilo(endpoints: List[Any]) -> List[Any]:
-    """Keep all eligible Kilo endpoints; classify ``pricing_status``.
-
-    Same rule as OpenRouter: missing → "unknown", all-zero → "free", non-zero → "priced".
-    """
-    return [_set_pricing_status(ep, _classify_by_pricing(ep)) for ep in endpoints]
+    return list(endpoints)
 
 
 def qualify_ollama(endpoints: List[Any]) -> List[Any]:
