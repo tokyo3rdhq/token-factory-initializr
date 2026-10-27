@@ -4,7 +4,7 @@ Replaces the old free-only filter behavior (docs/tfi_model_endpoint_support_paid
 Each provider function now:
 
 * Sets ``pricing_status`` on every endpoint based on source evidence.
-* Keeps every eligible (well-formed) endpoint — free, paid, and unknown.
+* Keeps every eligible (well-formed) endpoint — free, priced, and unknown.
 * Returns only endpoints eligible for the catalog; malformed records
   (missing required identity fields) are rejected by the FilterFreeStage.
 
@@ -39,7 +39,7 @@ def _is_zero(value: Any) -> bool:
 def _classify_by_pricing(endpoint: Any) -> str:
     """Classify ``pricing_status`` from the endpoint's ``pricing`` field.
 
-    Returns one of: ``"free"`` / ``"paid"`` / ``"unknown"``.
+    Returns one of: ``"free"`` / ``"priced"`` / ``"unknown"``.
     """
     if hasattr(endpoint, "get"):
         pricing = endpoint.get("pricing")
@@ -56,15 +56,15 @@ def _classify_by_pricing(endpoint: Any) -> str:
         return "unknown"
     if all(_is_zero(v) for v in values):
         return "free"
-    return "paid"
+    return "priced"
 
 
 def _hf_provider_pricing_status(provider_entry: Dict[str, Any]) -> str:
     """Classify a single HF router provider entry's access/pricing.
 
-    Returns one of ``"free"`` / ``"paid"`` / ``"unknown"``:
+    Returns one of ``"free"`` / ``"priced"`` / ``"unknown"``:
       * ``"free"`` — status == "live" AND pricing.input == 0 AND pricing.output == 0.
-      * ``"paid"`` — status == "live" AND pricing present but not all zero.
+      * ``"priced"`` — status == "live" AND pricing present but not all zero.
       * ``"unknown"`` — status != "live", or pricing missing/not a dict,
         or malformed. Never infer free from missing pricing.
     """
@@ -80,7 +80,7 @@ def _hf_provider_pricing_status(provider_entry: Dict[str, Any]) -> str:
         return "unknown"
     if inp == 0 and out == 0:
         return "free"
-    return "paid"
+    return "priced"
 
 
 def _set_pricing_status(endpoint: Any, status: str) -> Any:
@@ -130,7 +130,7 @@ def qualify_nvidia(endpoints: List[Any]) -> List[Any]:
 
     Classification from ``labels.nimType`` (stored in ``metadata.labels``):
       * "Free Endpoint" in nimType.values → "free"
-      * Known non-empty nimType (e.g. "Run Anywhere") → "paid"
+      * Known non-empty nimType (e.g. "Run Anywhere") → "priced"
       * Absent/empty nimType → "unknown"
     """
     qualified = []
@@ -147,7 +147,7 @@ def qualify_nvidia(endpoints: List[Any]) -> List[Any]:
         if "Free Endpoint" in nim_values:
             status = "free"
         elif nim_values:
-            status = "paid"
+            status = "priced"
         else:
             status = "unknown"
 
@@ -160,7 +160,7 @@ def qualify_amd(endpoints: List[Any]) -> List[Any]:
 
     Classification from ``free_status`` (stored in ``metadata``):
       * "free_endpoint" → "free"
-      * "paid" → "paid"
+      * "paid" → "priced"
       * Missing/unrecognized → "unknown"
 
     Note: AMD may have non-zero pricing even for free endpoints, so we
@@ -177,7 +177,7 @@ def qualify_amd(endpoints: List[Any]) -> List[Any]:
         if free_status == "free_endpoint":
             status = "free"
         elif free_status == "paid":
-            status = "paid"
+            status = "priced"
         else:
             status = "unknown"
 
@@ -190,7 +190,7 @@ def qualify_huggingface(endpoints: List[Any]) -> List[Any]:
 
     Classification from provider entry's ``status`` and ``pricing``:
       * status == "live" AND pricing.input == 0 AND pricing.output == 0 → "free"
-      * status == "live" AND pricing present with non-zero values → "paid"
+      * status == "live" AND pricing present with non-zero values → "priced"
       * Otherwise → "unknown"
     """
     qualified = []
@@ -210,7 +210,7 @@ def qualify_huggingface(endpoints: List[Any]) -> List[Any]:
 def qualify_openrouter(endpoints: List[Any]) -> List[Any]:
     """Keep all eligible OpenRouter endpoints; classify ``pricing_status``.
 
-    Missing pricing → "unknown". All-zero prices → "free". Non-zero → "paid".
+    Missing pricing → "unknown". All-zero prices → "free". Non-zero → "priced".
     """
     return [_set_pricing_status(ep, _classify_by_pricing(ep)) for ep in endpoints]
 
@@ -218,7 +218,15 @@ def qualify_openrouter(endpoints: List[Any]) -> List[Any]:
 def qualify_kilo(endpoints: List[Any]) -> List[Any]:
     """Keep all eligible Kilo endpoints; classify ``pricing_status``.
 
-    Same rule as OpenRouter: missing → "unknown", all-zero → "free", non-zero → "paid".
+    Same rule as OpenRouter: missing → "unknown", all-zero → "free", non-zero → "priced".
+    """
+    return [_set_pricing_status(ep, _classify_by_pricing(ep)) for ep in endpoints]
+
+
+def qualify_kilo(endpoints: List[Any]) -> List[Any]:
+    """Keep all eligible Kilo endpoints; classify ``pricing_status``.
+
+    Same rule as OpenRouter: missing → "unknown", all-zero → "free", non-zero → "priced".
     """
     return [_set_pricing_status(ep, _classify_by_pricing(ep)) for ep in endpoints]
 

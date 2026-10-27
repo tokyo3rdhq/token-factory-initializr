@@ -624,8 +624,8 @@ function ModelRow({
         {endpoint.pricing_status === "free" && (
           <Badge variant="success" dot>Free</Badge>
         )}
-        {endpoint.pricing_status === "paid" && (
-          <Badge variant="neutral">Paid</Badge>
+        {endpoint.pricing_status === "priced" && (
+          <Badge variant="neutral">Pricing</Badge>
         )}
         {endpoint.pricing_status === "unknown" && (
           <Badge variant="warning">Pricing unknown</Badge>

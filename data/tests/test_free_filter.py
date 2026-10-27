@@ -124,7 +124,7 @@ def test_qualify_nvidia_classifies_by_nimtype():
     out = qualify_nvidia(endpoints)
     assert [ep.model_id for ep in out] == ["free/a", "paid/b", "unknown/c"]
     statuses = {ep.model_id: ep.pricing_status for ep in out}
-    assert statuses == {"free/a": "free", "paid/b": "paid", "unknown/c": "unknown"}
+    assert statuses == {"free/a": "free", "paid/b": "priced", "unknown/c": "unknown"}
 
 
 def test_qualify_nvidia_empty_input():
@@ -146,7 +146,7 @@ def test_qualify_amd_classifies_by_free_status():
     out = qualify_amd(endpoints)
     assert [ep["model_id"] for ep in out] == ["MiMo", "DeepSeek", "x/1"]
     statuses = {ep["model_id"]: ep["pricing_status"] for ep in out}
-    assert statuses == {"MiMo": "free", "DeepSeek": "paid", "x/1": "unknown"}
+    assert statuses == {"MiMo": "free", "DeepSeek": "priced", "x/1": "unknown"}
 
 
 def test_qualify_amd_empty_input():
@@ -169,7 +169,7 @@ def test_qualify_huggingface_classifies_by_status_and_pricing():
     out = qualify_huggingface(endpoints)
     assert [ep["model_id"] for ep in out] == ["m1", "m2", "m3", "m4"]
     statuses = {ep["model_id"]: ep["pricing_status"] for ep in out}
-    assert statuses == {"m1": "free", "m2": "paid", "m3": "unknown", "m4": "unknown"}
+    assert statuses == {"m1": "free", "m2": "priced", "m3": "unknown", "m4": "unknown"}
 
 
 def test_qualify_huggingface_empty_input():
@@ -194,7 +194,7 @@ def test_qualify_openrouter_classifies_by_pricing():
     ]
     out = qualify_openrouter(endpoints)
     statuses = {ep["model_id"]: ep["pricing_status"] for ep in out}
-    assert statuses == {"m1": "unknown", "m2": "free", "m3": "paid"}
+    assert statuses == {"m1": "unknown", "m2": "free", "m3": "priced"}
 
 
 def test_qualify_kilo_classifies_by_pricing():

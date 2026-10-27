@@ -154,7 +154,7 @@ class ModelEndpoint:
     # signal of cost — a non-None ``pricing`` field does NOT imply
     # the endpoint is paid.
     pricing: Optional[dict] = None
-    pricing_status: Optional[Literal["free", "paid", "unknown"]] = None
+    pricing_status: Optional[Literal["free", "priced", "unknown"]] = None
     endpoint_url: Optional[str] = None
     region: Optional[str] = None
     # Optional human-readable source page associated with this model,
