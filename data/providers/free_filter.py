@@ -40,6 +40,12 @@ def _classify_by_pricing(endpoint: Any) -> str:
     """Classify ``pricing_status`` from the endpoint's ``pricing`` field.
 
     Returns one of: ``"free"`` / ``"priced"`` / ``"unknown"``.
+
+    Rules:
+      * ``"free"`` — all pricing values are numerically zero.
+      * ``"priced"`` — all pricing values are strictly positive (> 0).
+      * ``"unknown"`` — pricing missing/not a dict/empty, or any value is
+        negative (< 0). Never infer free from missing pricing.
     """
     if hasattr(endpoint, "get"):
         pricing = endpoint.get("pricing")
@@ -54,6 +60,16 @@ def _classify_by_pricing(endpoint: Any) -> str:
         return "unknown"
     if not values:
         return "unknown"
+
+    # Check for any negative value first — negative pricing (e.g. "-1" sentinel)
+    # means "unknown", never "priced".
+    for v in values:
+        try:
+            if Decimal(str(v)) < 0:
+                return "unknown"
+        except (InvalidOperation, ValueError, TypeError):
+            return "unknown"
+
     if all(_is_zero(v) for v in values):
         return "free"
     return "priced"
