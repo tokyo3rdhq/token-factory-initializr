@@ -256,26 +256,26 @@ export function parsePricingValue(value: unknown): number | null {
   return null;
 }
 /**
+ * Shared Intl.NumberFormat for pricing display.
+ * - Always at least 2 fractional digits.
+ * - Up to 20 fractional digits, trailing zeros stripped by Intl.
+ * - No thousands grouping separators.
+ */
+const priceFormatter = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 20,
+  useGrouping: false,
+});
+
+/**
  * Format a per-token price as USD per 1M tokens.
- * Uses decimal-safe string formatting to avoid floating-point artifacts.
  */
 export function formatPerTokenPrice(value: number): string {
   if (!Number.isFinite(value)) return "—";
   if (value === 0) return "$0.00 / 1M tokens";
 
   const perMillion = value * 1_000_000;
-  // Use toFixed with appropriate precision
-  if (perMillion >= 1) {
-    return `$${perMillion.toFixed(2)} / 1M tokens`;
-  }
-  if (perMillion >= 0.01) {
-    return `$${perMillion.toFixed(4)} / 1M tokens`;
-  }
-  if (perMillion >= 0.0001) {
-    return `$${perMillion.toFixed(6)} / 1M tokens`;
-  }
-  // Very small values - use scientific notation
-  return `$${perMillion.toExponential(2)} / 1M tokens`;
+  return `$${priceFormatter.format(perMillion)} / 1M tokens`;
 }
 
 /**
@@ -285,16 +285,7 @@ export function formatPerUnitPrice(value: number, unit: string): string {
   if (!Number.isFinite(value)) return "—";
   if (value === 0) return `$0.00 per ${unit}`;
 
-  if (value >= 1) {
-    return `$${value.toFixed(2)} per ${unit}`;
-  }
-  if (value >= 0.01) {
-    return `$${value.toFixed(4)} per ${unit}`;
-  }
-  if (value >= 0.0001) {
-    return `$${value.toFixed(6)} per ${unit}`;
-  }
-  return `$${value.toExponential(2)} per ${unit}`;
+  return `$${priceFormatter.format(value)} per ${unit}`;
 }
 
 
