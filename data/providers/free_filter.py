@@ -19,7 +19,7 @@ providers by registering them in :data:`PROVIDER_FREE_FILTERS`.
 from __future__ import annotations
 
 from typing import Any, Callable, Dict, List
-from data.models.schema import ModelEndpoint
+from data.models.schema import ModelEndpoint, legacy_free_compatible
 from decimal import Decimal, InvalidOperation
 
 
@@ -84,16 +84,21 @@ def _hf_provider_pricing_status(provider_entry: Dict[str, Any]) -> str:
 
 
 def _set_pricing_status(endpoint: Any, status: str) -> Any:
-    """Set ``pricing_status`` on endpoint (dict or ModelEndpoint)."""
+    """Set ``pricing_status`` on endpoint (dict or ModelEndpoint).
+
+    Also derives ``free`` from ``pricing_status`` per the legacy
+    compatibility rule (§3.2): free=True iff pricing_status=="free".
+    """
     if hasattr(endpoint, "get"):
         endpoint["pricing_status"] = status
+        endpoint["free"] = legacy_free_compatible(status)
         return endpoint
     else:
         # ModelEndpoint: frozen dataclass — reconstruct with new status.
         return ModelEndpoint(
             provider=endpoint.provider,
             model_id=endpoint.model_id,
-            free=endpoint.free,
+            free=legacy_free_compatible(status),
             pricing_status=status,
             fetched_at=endpoint.fetched_at,
             data_source=endpoint.data_source,
