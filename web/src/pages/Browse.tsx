@@ -3,7 +3,9 @@ import { Copy, Check, ExternalLink, Code } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Badge, Banner, Button, Checkbox, Container, EmptyState, Input, Section, Stack } from "@tokyo3rdhq/magi-design-system";
 
-import { fmtContext, hasVision } from "../components/format";
+import { hasVision } from "../components/format";
+import { PricingBadge } from "../components/PricingBadge";
+import { PricingTooltip } from "../components/PricingTooltip";
 import { useSelection } from "../components/SelectionContext";
 import { fetchManifest, fetchModels, FIXTURES, shouldUseLocalFixtures } from "../kv";
 import { matchesRequirement, type Manifest, type ModelEndpoint, type ModelRequirement } from "../types";
@@ -14,10 +16,6 @@ import { isInternalDataSource } from "../kv";
 import "../gtag";
 
 /**
- * Tag filter taxonomy for the Browse page.
- *
- * Each tag is a (id, predicate, color) triple. The predicate is a
- * pure function over a ModelEndpoint; the color is one of the
  * DS Badge variants (accent / success / warning / neutral).
  *
  * Tags are pure metadata — adding a new one is one new entry below.
@@ -541,7 +539,6 @@ function ModelRow({
   onToggle: (ep: ModelEndpoint) => void;
 }) {
   const { dict } = useI18n();
-  const ctx = fmtContext(endpoint.context_length);
   const hasVisionCap = hasVision(endpoint);
   const [copied, setCopied] = useState<"copy" | null>(null);
   const onCopy = async (text: string) => {
@@ -621,16 +618,9 @@ function ModelRow({
         <div className="tfi-model-desc">{endpoint.description}</div>
       )}
       <span className="tfi-model-meta">
-        {endpoint.pricing_status === "free" && (
-          <Badge variant="success" dot>Free</Badge>
-        )}
-        {endpoint.pricing_status === "priced" && (
-          <Badge variant="neutral">Pricing</Badge>
-        )}
-        {endpoint.pricing_status === "unknown" && (
-          <Badge variant="warning">Pricing unknown</Badge>
-        )}
-        {ctx && <Badge variant="warning">{ctx}</Badge>}
+        <PricingTooltip endpoint={endpoint}>
+          <PricingBadge endpoint={endpoint} />
+        </PricingTooltip>
         {hasChat && <Badge variant="accent">Chat</Badge>}
         {hasVisionCap && <Badge variant="accent">Vision</Badge>}
         {hasSpeech && <Badge variant="accent">Speech</Badge>}
