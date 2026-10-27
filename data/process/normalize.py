@@ -336,7 +336,7 @@ def normalize_pricing(pricing: dict[str, Any] | None, data_source: str | None = 
     Platform-wide rules:
     * Hugging Face: prices are kept as-is, no processing.
     * All other providers: each numeric value is multiplied by 1,000,000,
-      rounded to 3 decimal places, trailing zeros truncated, and stored
+      rounded to 4 decimal places, trailing zeros truncated, and stored
       as a string. Negative sentinel values (e.g. -1) and non-numeric
       strings are preserved as-is.
 
@@ -351,7 +351,7 @@ def normalize_pricing(pricing: dict[str, Any] | None, data_source: str | None = 
             # HF: keep as-is, no processing
             normalized[key] = value
         else:
-            # Other providers: multiply by 1M, round to 3 decimals,
+            # Other providers: multiply by 1M, round to 4 decimals,
             # truncate trailing zeros, save as string
             try:
                 f = float(value)
@@ -364,7 +364,7 @@ def normalize_pricing(pricing: dict[str, Any] | None, data_source: str | None = 
                 normalized[key] = value
             else:
                 multiplied = f * 1_000_000
-                rounded = round(multiplied, 3)
+                rounded = round(multiplied, 4)
                 normalized[key] = _format_number(rounded)
     return normalized
 
