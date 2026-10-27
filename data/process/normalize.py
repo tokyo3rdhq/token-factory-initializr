@@ -292,7 +292,9 @@ def normalize_capability_signals(
 # $0.285 per token). For display and comparison, we normalize to USD per
 # 1M tokens by dividing all values by 1,000,000. This function mutates the
 # pricing dict in place and returns the normalized dict.
-# ---------------------------------------------------------------------------
+HF_PRICING_DIVISOR = 1_000_000
+
+
 def truncate_trailing_zeros(value: Any) -> Any:
     """Truncate trailing zeros from a pricing value.
 
@@ -305,7 +307,7 @@ def truncate_trailing_zeros(value: Any) -> Any:
     if isinstance(value, (int, float)):
         if value < 0:
             return value
-        return round(float(value), 10)
+        return _format_number(float(value))
     if isinstance(value, str):
         try:
             f = float(value)
@@ -313,8 +315,19 @@ def truncate_trailing_zeros(value: Any) -> Any:
             return value
         if f < 0:
             return value
-        return str(round(f, 10))
+        return _format_number(f)
     return value
+
+
+def _format_number(f: float) -> str:
+    """Format a float without scientific notation, stripping trailing zeros."""
+    # Round to 10 decimal places to absorb floating-point imprecision
+    f = round(f, 10)
+    # Use enough decimal places to preserve precision, then strip trailing zeros
+    s = f"{f:.15f}"
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    return s if s else "0"
 
 
 def normalize_pricing(pricing: dict[str, Any] | None, data_source: str | None = None) -> dict[str, Any] | None:

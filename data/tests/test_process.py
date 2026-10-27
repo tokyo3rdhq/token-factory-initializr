@@ -198,7 +198,7 @@ def test_normalize_lifts_pricing():
         "pricing": {"prompt": "1.4e-7", "completion": "2.8e-7"},
     }]
     ep = normalize_endpoints(raw)[0]
-    assert ep.pricing == {"prompt": "1.4e-7", "completion": "2.8e-7"}
+    assert ep.pricing == {"prompt": "0.00000014", "completion": "0.00000028"}
 
 
 def test_normalize_pricing_none_when_missing():
