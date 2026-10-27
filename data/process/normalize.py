@@ -652,6 +652,13 @@ def normalize_endpoints(
         pricing = item.get("pricing")
         if isinstance(pricing, dict) and pricing:
             object.__setattr__(ep, "pricing", pricing)
+        # Lift pricing_status from the parsed dict — the validate stage
+        # computed this per-provider (free/priced/unknown). Preserve it
+        # so downstream consumers (web UI badge, filter, etc.) can rely
+        # on it instead of re-deriving from scratch.
+        pricing_status = item.get("pricing_status")
+        if pricing_status is not None:
+            object.__setattr__(ep, "pricing_status", pricing_status)
 
         # Lift supported_parameters — endpoint-level interface/runtime
         # parameters (docs/tfi_add_supported_parameters.md §3.2/§4.1).
