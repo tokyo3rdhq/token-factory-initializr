@@ -63,10 +63,10 @@ def _hf_provider_pricing_status(provider_entry: Dict[str, Any]) -> str:
     """Classify a single HF router provider entry's access/pricing.
 
     Returns one of ``"free"`` / ``"priced"`` / ``"unknown"``:
-      * ``"free"`` — status == "live" AND pricing.input == 0 AND pricing.output == 0.
-      * ``"priced"`` — status == "live" AND pricing present but not all zero.
-      * ``"unknown"`` — status != "live", or pricing missing/not a dict,
-        or malformed. Never infer free from missing pricing.
+      * ``"free"`` — status == "live" AND all pricing values are 0.
+      * ``"priced"`` — status == "live" AND pricing present with all positive values.
+      * ``"unknown"`` — status != "live", or pricing missing/not a dict/empty,
+        or any value is negative. Never infer free from missing pricing.
 
     Accepts both the original HF router provider entry format (with top-level
     ``status`` and ``pricing``) and the canonical endpoint format (with
@@ -88,15 +88,26 @@ def _hf_provider_pricing_status(provider_entry: Dict[str, Any]) -> str:
     # (e.g., "offline", "down") block classification.
     if status is not None and status != "live":
         return "unknown"
-    if not isinstance(pricing, dict):
+    if not isinstance(pricing, dict) or not pricing:
         return "unknown"
-    try:
-        inp = float(pricing.get("input", -1))
-        out = float(pricing.get("output", -1))
-    except (TypeError, ValueError):
+    # Extract all numeric values from pricing dict (supports both string and numeric values)
+    values = []
+    for v in pricing.values():
+        try:
+            v_float = float(v)
+            if v_float < 0:
+                return "unknown"
+            values.append(v_float)
+        except (TypeError, ValueError):
+            return "unknown"
+    if not values:
         return "unknown"
-    if inp == 0 and out == 0:
+    if all(v == 0 for v in values):
         return "free"
+    # If all values are > 0 → priced
+    if all(v > 0 for v in values):
+        return "priced"
+    # Mix of 0 and positive → priced (some operations cost money)
     return "priced"
 
 

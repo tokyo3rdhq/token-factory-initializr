@@ -284,6 +284,48 @@ def normalize_capability_signals(
     return out
 
 
+# ---------------------------------------------------------------------------
+# Hugging Face pricing normalization
+# ---------------------------------------------------------------------------
+#
+# HF router exposes prices as per-token rates in raw form (e.g., 0.285 means
+# $0.285 per token). For display and comparison, we normalize to USD per
+# 1M tokens by dividing all values by 1,000,000. This function mutates the
+# pricing dict in place and returns the normalized dict.
+# ---------------------------------------------------------------------------
+
+HF_PRICING_DIVISOR = 1_000_000
+
+
+def normalize_hf_pricing(pricing: dict[str, Any] | None) -> dict[str, float] | None:
+    """Normalize HF pricing values to USD per 1M tokens.
+
+    HF router exposes prices as raw per-token values (e.g., 0.285 per token).
+    This function divides all numeric values by 1,000,000 to convert to
+    USD per 1M tokens, which is the standard display unit.
+
+    Non-numeric values are preserved as-is (e.g., sentinel -1 values).
+
+    Returns a new dict with normalized values, or None if input is None/empty.
+    """
+    if not pricing:
+        return None
+
+    normalized = {}
+    for key, value in pricing.items():
+        if isinstance(value, (int, float)):
+            # -1 is a sentinel for "unknown" — preserve as-is
+            if value < 0:
+                normalized[key] = value
+            else:
+                # Divide by 1M to convert from per-token to per-million-tokens,
+                # then round to eliminate floating-point artifacts and trailing zeros.
+                normalized[key] = round(value / HF_PRICING_DIVISOR, 10)
+        else:
+            normalized[key] = value
+    return normalized
+
+
 def normalize_capabilities(
     data_source: str,
     raw_metadata: dict[str, Any] | None,
@@ -649,8 +691,11 @@ def normalize_endpoints(
         # its parsed endpoint dict. Validate it's a non-empty dict
         # before assigning — empty dicts are treated as "no data" so
         # downstream readers can rely on truthiness.
+        # For Hugging Face, normalize pricing to USD per 1M tokens first.
         pricing = item.get("pricing")
         if isinstance(pricing, dict) and pricing:
+            if item.get("data_source") == "huggingface":
+                pricing = normalize_hf_pricing(pricing)
             object.__setattr__(ep, "pricing", pricing)
         # Lift pricing_status from the parsed dict — the validate stage
         # computed this per-provider (free/priced/unknown). Preserve it
