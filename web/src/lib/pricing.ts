@@ -443,16 +443,16 @@ export function getPricingStatusLabel(status: string | null | undefined): string
 /**
  * Get badge variant for pricing status.
  */
-export function getPricingStatusVariant(status: string | null | undefined): "success" | "neutral" | "warning" | "error" | "neutral" {
+export function getPricingStatusVariant(status: string | null | undefined): "success" | "neutral" | "warning" | "accent" {
   switch (status) {
     case "free":
       return "success";
     case "priced":
-      return "neutral";
+      return "accent";
     case "unknown":
-      return "warning";
+      return "neutral";
     default:
-      return "warning";
+      return "neutral";
   }
 }
 
