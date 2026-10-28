@@ -21,7 +21,7 @@ export interface PricingFieldMeta {
   /** Display order (lower = shown first). */
   order: number;
   /** Unit or formatting policy. */
-  unit: "per_token" | "per_request" | "per_image" | "per_search" | "percentage" | "unknown" | "discount";
+  unit: "per_1M_tokens" | "per_request" | "per_image" | "per_search" | "percentage" | "unknown" | "discount";
   /** Source applicability: which providers use this field. */
   sources: string[];
   /** Whether this field is a monetary charge (vs a modifier like discount). */
@@ -41,7 +41,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     rawKey: "input",
     label: "Input tokens",
     order: 10,
-    unit: "per_token",
+    unit: "per_1M_tokens",
     sources: ["huggingface"],
     isCharge: true,
     canonicalKey: "input_tokens",
@@ -50,7 +50,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     rawKey: "output",
     label: "Output tokens",
     order: 20,
-    unit: "per_token",
+    unit: "per_1M_tokens",
     sources: ["huggingface"],
     isCharge: true,
     canonicalKey: "output_tokens",
@@ -61,7 +61,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     rawKey: "prompt",
     label: "Input tokens",
     order: 10,
-    unit: "per_token",
+    unit: "per_1M_tokens",
     sources: ["openrouter", "kilo"],
     isCharge: true,
     canonicalKey: "input_tokens",
@@ -70,7 +70,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     rawKey: "completion",
     label: "Output tokens",
     order: 20,
-    unit: "per_token",
+    unit: "per_1M_tokens",
     sources: ["openrouter", "kilo"],
     isCharge: true,
     canonicalKey: "output_tokens",
@@ -80,7 +80,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     rawKey: "input_cache_read",
     label: "Cached input read",
     order: 30,
-    unit: "per_token",
+    unit: "per_1M_tokens",
     sources: ["openrouter", "kilo"],
     isCharge: true,
     canonicalKey: "cached_input_read",
@@ -89,7 +89,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     rawKey: "input_cache_write",
     label: "Cache write",
     order: 40,
-    unit: "per_token",
+    unit: "per_1M_tokens",
     sources: ["openrouter", "kilo"],
     isCharge: true,
     canonicalKey: "cache_write",
@@ -100,7 +100,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     rawKey: "image",
     label: "Image",
     order: 60,
-    unit: "per_token",
+    unit: "per_1M_tokens",
     sources: ["kilo"],
     isCharge: true,
     canonicalKey: "image",
@@ -111,7 +111,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     rawKey: "audio",
     label: "Audio",
     order: 61,
-    unit: "per_token",
+    unit: "per_1M_tokens",
     sources: ["openrouter", "kilo"],
     isCharge: true,
     canonicalKey: "audio",
@@ -122,7 +122,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     rawKey: "input_audio_cache",
     label: "Cached audio input",
     order: 31,
-    unit: "per_token",
+    unit: "per_1M_tokens",
     sources: ["openrouter", "kilo"],
     isCharge: true,
     canonicalKey: "cached_audio_input",
@@ -133,7 +133,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     rawKey: "web_search",
     label: "Web search",
     order: 70,
-    unit: "per_token",
+    unit: "per_1M_tokens",
     sources: ["openrouter", "kilo"],
     isCharge: true,
     canonicalKey: "web_search",
@@ -155,7 +155,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     rawKey: "internal_reasoning",
     label: "Internal reasoning",
     order: 80,
-    unit: "per_token",
+    unit: "per_1M_tokens",
     sources: ["kilo"],
     isCharge: true,
     canonicalKey: "internal_reasoning",
@@ -332,7 +332,7 @@ export function formatPricingValue(value: number, unit: PricingFieldMeta["unit"]
   if (!Number.isFinite(value)) return "—";
 
   switch (unit) {
-    case "per_token":
+    case "per_1M_tokens":
       return formatPerTokenPrice(value);
     case "per_request":
       return formatPerUnitPrice(value, "request");
