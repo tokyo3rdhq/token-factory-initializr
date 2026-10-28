@@ -130,7 +130,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
   input_audio_cache: {
     rawKey: "input_audio_cache",
     label: "Cached audio input",
-    order: 31,
+    order: 62,
     unit: "per_1M_tokens",
     sources: ["openrouter", "kilo"],
     isCharge: true,
@@ -434,9 +434,9 @@ export function getPricingStatusLabel(status: string | null | undefined): string
     case "priced":
       return "Pricing";
     case "unknown":
-      return "Unknown";
+      return "Pricing";
     default:
-      return "Unknown";
+      return "Pricing";
   }
 }
 
