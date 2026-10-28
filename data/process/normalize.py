@@ -756,7 +756,13 @@ def normalize_endpoints(
             _any_negative = False
             _all_zero = True
             _all_positive = True
-            for _v in pricing.values():
+            for _k, _v in pricing.items():
+                # discount is a modifier/discount, not an actual charge —
+                # skip it when classifying pricing_status. Otherwise a
+                # discount of "0" would wrongly force _all_positive=False
+                # and produce "unknown" for otherwise-priced endpoints.
+                if _k == "discount":
+                    continue
                 try:
                     _fv = float(_v)
                 except (TypeError, ValueError):
