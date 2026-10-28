@@ -133,7 +133,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     rawKey: "web_search",
     label: "Web search",
     order: 70,
-    unit: "per_1M_tokens",
+    unit: "per_search",
     sources: ["openrouter", "kilo"],
     isCharge: true,
     canonicalKey: "web_search",
