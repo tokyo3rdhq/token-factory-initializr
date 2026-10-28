@@ -87,7 +87,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
   },
   input_cache_write: {
     rawKey: "input_cache_write",
-    label: "Cache write",
+    label: "Cached input write",
     order: 40,
     unit: "per_1M_tokens",
     sources: ["openrouter", "kilo"],
@@ -96,7 +96,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
   },
   input_cache_write_1h: {
     rawKey: "input_cache_write_1h",
-    label: "Cache write 1h",
+    label: "Cached input write 1h",
     order: 41,
     unit: "per_1M_tokens",
     sources: ["openrouter", "kilo"],
