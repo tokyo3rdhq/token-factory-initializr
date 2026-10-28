@@ -50,6 +50,8 @@ joined with **AND**.
    → supported_parameters contains "streaming"
 
    → pricing_status IN ["free", "priced"] (endpoint-scoped)
+?pricing_status=free,priced
+   → pricing_status IN ["free", "priced"] (endpoint-scoped)
 
 ?data_source=nvidia&capabilities=vision
    → (data_source == "nvidia") AND (capabilities contains "vision")
