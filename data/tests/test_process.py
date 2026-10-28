@@ -42,7 +42,7 @@ def test_normalize_endpoints_basic():
     ep = eps[0]
     assert ep.provider == "amd"
     assert ep.model_id == "amd/test-model"
-    assert ep.free is True
+    assert ep.pricing_status == "free"
     assert isinstance(ep.fetched_at, datetime)
     assert ep.name == "Test Model"
     # Canonical 7-key shape — chat=True from both raw signal +
@@ -80,7 +80,7 @@ def test_normalize_endpoints_defaults():
     """Empty raw signals → all-False canonical 7-key capabilities."""
     raw = [{"provider": "nvidia", "model_id": "x/y"}]
     eps = normalize_endpoints(raw)
-    assert eps[0].free is False
+    assert eps[0].pricing_status != "free"
     # Canonical shape is always emitted — every key present, all False.
     assert set(eps[0].capabilities.keys()) == {
         "chat", "vision", "speech", "embedding",

@@ -167,7 +167,7 @@ def test_normalize_model_free_via_list_labels_real_api_shape():
         ],
     }
     ep = _ep(obj)
-    assert ep.free is True
+    assert ep.pricing_status == "free"
     assert ep.model_id == "deepseek-ai/deepseek-v4.1-flash"
     assert ep.name == "DeepSeek V4.1 Flash"
     # metadata.labels is normalized to dict keyed by label name
@@ -227,7 +227,7 @@ def test_normalize_model_free_via_dict_labels_legacy_shape():
         "attributes": {"CHAT_MODALITY": "text2textDiffusion", "TOOL_CALLING": "true"},
     }
     ep = _ep(obj)
-    assert ep.free is True
+    assert ep.pricing_status == "free"
     assert ep.capabilities["chat"] is True
     assert ep.capabilities["tool_calling"] is True
 
@@ -239,7 +239,7 @@ def test_normalize_model_not_free_partner_endpoint():
         "labels": [{"key": "nimType", "values": ["Partner Endpoint"], "unresolvedValues": []}],
         "attributes": [],
     }
-    assert _ep(obj).free is False
+    assert _ep(obj).pricing_status != "free"
 
 
 def test_normalize_model_unknown_labels_shape_degrades_safely():
@@ -251,7 +251,7 @@ def test_normalize_model_unknown_labels_shape_degrades_safely():
         "attributes": "also wrong",
     }
     ep = _ep(obj)
-    assert ep.free is False
+    assert ep.pricing_status != "free"
     assert ep.capabilities == {}
 
 
@@ -477,7 +477,7 @@ def test_normalize_model_skips_non_dict_label_entries():
         ],
         "attributes": [],
     }
-    assert _ep(obj).free is True
+    assert _ep(obj).pricing_status == "free"
 
 
 def test_normalize_model_description_defaults_to_empty_string():
@@ -523,9 +523,9 @@ def test_parse_html():
 
     # Check free status from nimType values
     gemma = next(ep for ep in endpoints if ep.model_id == "google/gemma-4-31b-it")
-    assert gemma.free is True  # "Free Endpoint" in nimType values
+    assert gemma.pricing_status == "free"  # "Free Endpoint" in nimType values
     mistral = next(ep for ep in endpoints if ep.model_id == "mistralai/Mistral-7B-Instruct-v0.3")
-    assert mistral.free is False  # "Run Anywhere" not "Free Endpoint"
+    assert mistral.pricing_status != "free"  # "Run Anywhere" not "Free Endpoint"
 
 
 def test_parse_html_deduplication():
@@ -546,9 +546,9 @@ def test_parse_html_free_detection():
     gemma = next(ep for ep in endpoints if ep.model_id == "google/gemma-4-31b-it")
     mistral = next(ep for ep in endpoints if ep.model_id == "mistralai/Mistral-7B-Instruct-v0.3")
     # gemma has "Free Endpoint" in nimType values
-    assert gemma.free is True
+    assert gemma.pricing_status == "free"
     # mistral has "Run Anywhere" (not "Free Endpoint")
-    assert mistral.free is False
+    assert mistral.pricing_status != "free"
 
 
 def test_parse_html_empty_html():
@@ -682,8 +682,8 @@ def test_fetch_catalog_page():
         assert all(ep.provider == "nvidia" for ep in result)
         # pricing_status is set by the qualify stage (FilterFreeStage), not here.
         # So we only verify the free boolean field is correctly set by the parser.
-        free_models = [ep for ep in result if ep.free]
-        non_free_models = [ep for ep in result if not ep.free]
+        free_models = [ep for ep in result if ep.pricing_status == "free"]
+        non_free_models = [ep for ep in result if ep.pricing_status != "free"]
         assert len(free_models) > 0
         assert len(non_free_models) > 0
         # Verify a few known models from the fixture's first page
@@ -771,7 +771,7 @@ def test_parse_nvidia_pages_returns_all_endpoints_including_non_free():
     assert "google/gemma-4-31b-it" in model_ids
     assert "meta-llama/Llama-3.1-8B-Instruct" in model_ids
     # And the free flag is correctly set on each row.
-    by_id = {ep.model_id: ep.free for ep in result}
+    by_id = {ep.model_id: ep.pricing_status == "free" for ep in result}
     assert by_id["google/gemma-4-31b-it"] is True
     assert by_id["mistralai/Mistral-7B-Instruct-v0.3"] is False
 
@@ -965,7 +965,7 @@ def test_extract_models_from_static_html_marks_all_free():
     from data.providers.nvidia import _extract_models_from_static_html
 
     eps = _extract_models_from_static_html(_STATIC_HTML_SAMPLE)
-    assert all(ep.free is True for ep in eps)
+    assert all(ep.pricing_status == "free" for ep in eps)
 
 
 def test_extract_models_from_static_html_records_extraction_path():

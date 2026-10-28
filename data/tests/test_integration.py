@@ -189,7 +189,7 @@ def test_integration_nvidia_fetch_catalog():
     assert objs, "expected at least one ENDPOINT object in real RSC payload"
     models = [_normalize_model(o) for o in objs]
     assert len(models) >= 1, "real NVIDIA catalog should yield at least one endpoint"
-    free_count = sum(1 for m in models if m.free)
+    free_count = sum(1 for m in models if m.pricing_status == "free")
     assert free_count >= 1, f"expected ≥1 free endpoint, got {free_count}/{len(models)}"
     assert all(m.provider == "nvidia" for m in models)
     assert all(m.model_id for m in models)

@@ -39,7 +39,7 @@ function ep(overrides: Partial<ModelEndpoint>): ModelEndpoint {
     model_id: overrides.model_id ?? "x/y",
     name: overrides.name ?? null,
     description: null,
-    free: overrides.free ?? true,
+    pricing_status: overrides.pricing_status ?? "free",
     capabilities: overrides.capabilities ?? {},
     architecture: overrides.architecture ?? null,
     lab: null,
@@ -51,10 +51,10 @@ function ep(overrides: Partial<ModelEndpoint>): ModelEndpoint {
 }
 
 const sample: ModelEndpoint[] = [
-  ep({ model_id: "nvidia/deepseek-v4", name: "DeepSeek V4", free: true, capabilities: { chat: true }, supported_parameters: ["tool_calling"], context_length: 131_072 }),
-  ep({ model_id: "huggingface/kimi-k3", data_source: "huggingface", provider: "cohere", free: true, capabilities: { chat: true }, context_length: 65_536 }),
-  ep({ model_id: "nvidia/cosmos-vision", name: "Cosmos Vision", free: true, architecture: { input: ["text", "image"], output: ["text"] }, context_length: 32_768 }),
-  ep({ model_id: "amd/paid-model", data_source: "amd", provider: "amd", free: false, capabilities: { chat: true } }),
+  ep({ model_id: "nvidia/deepseek-v4", name: "DeepSeek V4", pricing_status: "free", capabilities: { chat: true }, supported_parameters: ["tool_calling"], context_length: 131_072 }),
+  ep({ model_id: "huggingface/kimi-k3", data_source: "huggingface", provider: "cohere", pricing_status: "free", capabilities: { chat: true }, context_length: 65_536 }),
+  ep({ model_id: "nvidia/cosmos-vision", name: "Cosmos Vision", pricing_status: "free", architecture: { input: ["text", "image"], output: ["text"] }, context_length: 32_768 }),
+  ep({ model_id: "amd/paid-model", data_source: "amd", provider: "amd", pricing_status: "priced", capabilities: { chat: true } }),
 ];
 
 // ---------------------------------------------------------------------------

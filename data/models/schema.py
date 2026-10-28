@@ -49,7 +49,6 @@ class ModelEndpoint:
 
     provider: str
     model_id: str
-    free: bool
     fetched_at: datetime
 
     # The platform/source the endpoint was discovered through. Always
@@ -172,13 +171,5 @@ class ModelEndpoint:
     # Values are ``FieldProvenance`` objects with: source, source_id, source_field,
     # method (native|enriched|normalized|inferred|derived), confidence, observed_at.
     provenance: dict[str, FieldProvenance] = field(default_factory=dict)
-def legacy_free_compatible(pricing_status: Optional[str]) -> bool:
-    """Legacy ``free`` compatibility rule (docs/tfi_model_endpoint_support_paid_model.md §3.2).
 
-    ``free: true`` only when ``pricing_status == "free"``; otherwise
-    ``False`` for legacy clients. Never infers free from missing pricing.
-    """
-    return pricing_status == "free"
-
-
-__all__ = ["FieldProvenance", "ModelEndpoint", "legacy_free_compatible"]
+__all__ = ["FieldProvenance", "ModelEndpoint"]

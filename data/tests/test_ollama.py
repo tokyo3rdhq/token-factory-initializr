@@ -332,7 +332,7 @@ def test_build_model_endpoint_populates_all_fields():
     assert endpoint.provider == "ollama"
     assert endpoint.model_id == "minimax-m3.1-flash"
     assert endpoint.data_source == "ollama"
-    assert endpoint.free is True
+    assert endpoint.pricing_status == "free"
     assert endpoint.fetched_at is not None
 
     # Enriched fields
@@ -364,7 +364,7 @@ def test_build_model_endpoint_without_library_page():
 
     assert endpoint.provider == "ollama"
     assert endpoint.model_id == "nemotron-3-ultra"
-    assert endpoint.free is False  # No free_until
+    assert endpoint.pricing_status != "free"  # No free_until
     assert endpoint.capabilities["input_modalities"] == ["text"]
     assert endpoint.capabilities["output_modalities"] == ["text"]
     assert endpoint.architecture == {"input": ["text"], "output": ["text"]}
@@ -476,7 +476,7 @@ def test_fetch_ollama_models_integration_mocked():
     # All models should produce endpoints
     assert len(endpoints) == 23
     # Only minimax-m3.1-flash has free_until in our mock
-    free_endpoints = [e for e in endpoints if e.free]
+    free_endpoints = [e for e in endpoints if e.pricing_status == "free"]
     assert len(free_endpoints) == 1
     assert free_endpoints[0].model_id == "minimax-m3.1-flash"
 

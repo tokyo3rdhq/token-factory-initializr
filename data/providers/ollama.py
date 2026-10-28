@@ -506,5 +506,5 @@ if __name__ == "__main__":
 
     models = fetch_ollama_models()
     for m in models:
-        free_mark = "✓" if m.free else "✗"
+        free_mark = "✓" if m.pricing_status == "free" else "✗"
         print(f"  {m.model_id:<40} free={free_mark} ctx={m.context_length} caps={m.capabilities}")

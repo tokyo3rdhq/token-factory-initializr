@@ -321,9 +321,9 @@ test("toPublicModels nests per-endpoint free/pricing without model-level free", 
   assert.equal(endpoints.length, 2);
   const nvidia = endpoints.find((e) => e.provider === "nvidia")!;
   const together = endpoints.find((e) => e.provider === "together")!;
-  assert.equal(nvidia.free, true);
+  assert.equal(nvidia.pricing_status, "free");
   assert.equal(nvidia.pricing, undefined, "null pricing omitted, not invented");
-  assert.equal(together.free, false);
+  assert.equal(together.pricing_status, "priced");
   assert.deepEqual(together.pricing, { input: 0.2, output: 0.6 });
 });
 

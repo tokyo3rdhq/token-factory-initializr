@@ -766,7 +766,7 @@ def parse_nvidia_pages(
             seen[ep.model_id] = ep
     deduped = list(seen.values())
     logger.info("NVIDIA: %d unique endpoints after dedup by model_id", len(deduped))
-    free_count = sum(1 for ep in deduped if ep.free)
+    free_count = sum(1 for ep in deduped if ep.pricing_status == "free")
     logger.info("NVIDIA: free=%d, paid/unknown=%d", free_count, len(deduped) - free_count)
     return deduped
 
@@ -820,5 +820,5 @@ if __name__ == "__main__":
         print(f"Unfiltered models: {len(models)}")
 
     for m in models:
-        free_mark = " [FREE]" if m.free else ""
+        free_mark = " [FREE]" if m.pricing_status == "free" else ""
         print(f"  {m.model_id:<55} pub={m.name:<12}{free_mark}")

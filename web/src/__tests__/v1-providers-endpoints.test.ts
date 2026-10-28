@@ -422,8 +422,8 @@ test("toPublicModel with endpointsByModel attaches the matching endpoint records
     pm.endpoints.map((e) => e.id),
     ["huggingface:nvidia", "huggingface:together"],
   );
-  assert.equal(pm.endpoints[0].free, false);
-  assert.equal(pm.endpoints[1].free, true);
+  assert.equal(pm.endpoints[0].pricing_status, "priced");
+  assert.equal(pm.endpoints[1].pricing_status, "free");
 });
 
 test("toPublicModel with endpointsByModel but no match falls back to the single endpoint", () => {

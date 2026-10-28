@@ -53,8 +53,6 @@ def validate_endpoint(ep: ModelEndpoint) -> list[str]:
     elif not _MODEL_ID_RE.match(ep.model_id):
         issues.append(f"model_id has whitespace: '{ep.model_id}'")
 
-    if not isinstance(ep.free, bool):
-        issues.append(f"free must be bool, got {type(ep.free).__name__}")
 
     if not isinstance(ep.fetched_at, datetime):
         issues.append("fetched_at is not a datetime")
