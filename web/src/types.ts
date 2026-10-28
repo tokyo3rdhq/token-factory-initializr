@@ -21,7 +21,6 @@ export interface ModelEndpoint {
   description: string | null;
 
   /** True iff the upstream provider offers free access. */
-  free: boolean;
   /** Canonical pricing/access classification: "free" | "priced" | "unknown".
    * Endpoint-scoped — derived from source pricing evidence, never inferred
    * from missing pricing. Missing/null means unknown (not priced, not free). */
@@ -204,9 +203,8 @@ export interface ModelRequirement {
     /** Maximum acceptable output price (USD per token). */
     output?: number;
     /** If true, only free endpoints match. If false, only paid
-     *  endpoints match (`endpoint.free === false`). If omitted,
+     *  endpoints match (`endpoint.pricing_status == "free" === false`). If omitted,
      *  no constraint is applied. */
-    free?: boolean;
   };
 
   /** Whitelist of provider names. If non-empty, an endpoint matches
@@ -276,8 +274,6 @@ export function matchesRequirement(
   // pricing — all sub-constraints AND-combined
   const price = requirement.pricing;
   if (price) {
-    if (price.free === true && !endpoint.free) return false;
-    if (price.free === false && endpoint.free) return false;
     const epPrice = endpoint.pricing;
     if (price.input !== undefined && epPrice) {
       const epInput = readPrice(epPrice, "input");

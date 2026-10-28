@@ -48,8 +48,8 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
   },
   output: {
     rawKey: "output",
-    label: "Output tokens",
     order: 20,
+    label: "Output tokens",
     unit: "per_1M_tokens",
     sources: ["huggingface"],
     isCharge: true,

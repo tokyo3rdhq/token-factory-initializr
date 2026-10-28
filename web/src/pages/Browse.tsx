@@ -102,7 +102,7 @@ function hasTag(ep: ModelEndpoint, tag: TagId): boolean {
     case "decision":
       return !!ep.capabilities?.decision;
     case "free":
-      return ep.pricing_status === "free" || (ep.pricing_status == null && ep.free === true);
+      return ep.pricing_status === "free";
     case "longCtxM":
       return (ep.context_length ?? 0) >= 1_000_000;
     case "longCtx":
