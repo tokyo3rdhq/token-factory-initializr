@@ -151,24 +151,23 @@ export function parseFilters(
     }
     filters.supported_parameters = paramList;
   }
-
   const pricing = splitCsv(params.get("pricing_status"));
-  if (pricing.length > 0) {
-    const unknown = pricing.filter(
-      (p) => !["free", "paid", "unknown"].includes(p),
-    );
-    if (unknown.length > 0) {
-      return {
-        error: {
-          message: `Unknown pricing_status: ${unknown.join(", ")}. Allowed: free, paid, unknown.`,
-          type: "invalid_request_error",
-          param: "pricing_status",
-          code: "invalid_pricing_status",
-        },
-      };
+    if (pricing.length > 0) {
+      const unknown = pricing.filter(
+        (p) => !["free", "priced", "unknown"].includes(p),
+      );
+      if (unknown.length > 0) {
+        return {
+          error: {
+            message: `Unknown pricing_status: ${unknown.join(", ")}. Allowed: free, priced, unknown.`,
+            type: "invalid_request_error",
+            param: "pricing_status",
+            code: "invalid_pricing_status",
+          },
+        };
+      }
+      filters.pricing_status = pricing;
     }
-    filters.pricing_status = pricing;
-  }
 
   const limitRaw = params.get("limit");
   if (limitRaw) {

@@ -82,8 +82,8 @@ export interface PublicModelEndpoint {
   /** Endpoint-specific pricing, when the canonical record carries
    *  it. Omitted rather than invented. */
   pricing?: Record<string, unknown> | null;
-  /** Canonical pricing/access classification: "free", "paid", or "unknown". */
-  pricing_status?: "free" | "paid" | "unknown";
+  /** Canonical pricing/access classification: "free", "priced", or "unknown". */
+  pricing_status?: "free" | "priced" | "unknown";
   /** Endpoint-specific rate / quota limits, when known. Omitted
    *  rather than invented. */
   limits?: Record<string, unknown> | null;
