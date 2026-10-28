@@ -899,6 +899,7 @@ def endpoint_to_dict(endpoint: ModelEndpoint) -> dict[str, Any]:
       format datetime values.
     """
     data = asdict(endpoint)
+    data["fetched_at"] = data["fetched_at"].isoformat()
     # Legacy ``free`` compatibility rule (§3.2): backfill ``pricing_status``
     # from the legacy ``free`` field when the record carries no explicit
     # classification, then derive ``free`` from ``pricing_status`` so both

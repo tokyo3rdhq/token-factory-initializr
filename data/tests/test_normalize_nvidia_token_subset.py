@@ -21,7 +21,7 @@ def _make_nvidia_ep(model_id: str, **overrides) -> ModelEndpoint:
         provider="nvidia",
         data_source="nvidia",
         model_id=model_id,
-        free=True,
+        pricing_status="free",
         fetched_at=datetime.now(timezone.utc),
         description="NVIDIA raw",
         capabilities={},

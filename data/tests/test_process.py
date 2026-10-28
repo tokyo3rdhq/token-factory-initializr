@@ -241,7 +241,7 @@ def test_endpoint_to_dict():
     ep = ModelEndpoint(
         provider="amd",
         model_id="x/y",
-        free=True,
+        pricing_status="free",
         fetched_at=datetime(2026, 9, 24, tzinfo=timezone.utc),
     )
     d = endpoint_to_dict(ep)
@@ -260,7 +260,7 @@ def _mk(provider: str, model_id: str, name: str | None = None) -> ModelEndpoint:
         provider=provider,
         data_source=provider,
         model_id=model_id,
-        free=True,
+        pricing_status="free",
         fetched_at=datetime.now(timezone.utc),
         name=name,
     )

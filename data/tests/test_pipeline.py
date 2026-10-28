@@ -48,7 +48,7 @@ def _mk_ep(provider: str, model_id: str) -> ModelEndpoint:
         provider=provider,
         data_source=provider,
         model_id=model_id,
-        free=True,
+        pricing_status="free",
         fetched_at=datetime.now(timezone.utc),
     )
 

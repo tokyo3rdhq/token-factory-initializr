@@ -436,7 +436,7 @@ def test_to_endpoint_dicts_on_curated_fixture():
         payload = json.load(f)
     endpoints = parse_huggingface_models(payload)
     # The fixture has 4 models / 5 providers -> 5 endpoints (paid openai
-    # endpoint still emitted, marked free=False).
+    # endpoint still emitted, marked pricing_status="priced",.
     assert len(endpoints) == 5
     by_id_provider = {(ep["model_id"], ep["provider"]): ep for ep in endpoints}
     # Llama has 2 providers: huggingface + cloudflare (both free).

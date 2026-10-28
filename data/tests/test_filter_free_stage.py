@@ -95,9 +95,9 @@ def test_filter_free_stage_keeps_all_eligible_endpoints():
     ctx = PipelineContext()
     ctx.data["parsed"] = {
         "nvidia": [
-            _ep("nvidia", free=True, pricing_status="free", model_id="free/a"),
-            _ep("nvidia", free=False, pricing_status="paid", model_id="paid/b"),
-            _ep("nvidia", free=False, pricing_status="unknown", model_id="unknown/c"),
+            _ep("nvidia", pricing_status="free", pricing_status="free", model_id="free/a"),
+            _ep("nvidia", pricing_status="priced", pricing_status="paid", model_id="paid/b"),
+            _ep("nvidia", pricing_status="priced", pricing_status="unknown", model_id="unknown/c"),
         ],
     }
     FilterFreeStage().execute(ctx)
@@ -148,8 +148,8 @@ def test_filter_free_stage_records_metrics_per_provider():
     ctx = PipelineContext()
     ctx.data["parsed"] = {
         "nvidia": [
-            _ep("nvidia", free=True, pricing_status="free"),
-            _ep("nvidia", free=False, pricing_status="paid"),
+            _ep("nvidia", pricing_status="free", pricing_status="free"),
+            _ep("nvidia", pricing_status="priced", pricing_status="paid"),
         ],
         "amd": [_amd_ep(pricing_status="free")],
         "huggingface": [_hf_ep(pricing_status="free"), _hf_ep(pricing_status="paid")],
@@ -167,8 +167,8 @@ def test_filter_free_stage_aliases_parsed_for_downstream():
     ctx = PipelineContext()
     ctx.data["parsed"] = {
         "nvidia": [
-            _ep("nvidia", free=True, pricing_status="free", model_id="free/a"),
-            _ep("nvidia", free=False, pricing_status="paid", model_id="paid/b"),
+            _ep("nvidia", pricing_status="free", pricing_status="free", model_id="free/a"),
+            _ep("nvidia", pricing_status="priced", pricing_status="paid", model_id="paid/b"),
         ],
     }
     FilterFreeStage().execute(ctx)
@@ -180,7 +180,7 @@ def test_filter_free_stage_unknown_provider_passthrough():
     """Unknown providers pass through and are counted in metrics."""
     ctx = PipelineContext()
     ctx.data["parsed"] = {
-        "weird-provider": [_ep("weird-provider", free=True, pricing_status="unknown")],
+        "weird-provider": [_ep("weird-provider", pricing_status="free", pricing_status="unknown")],
     }
     FilterFreeStage().execute(ctx)
     assert len(ctx.data["filtered"]["weird-provider"]) == 1
@@ -209,8 +209,8 @@ def test_filter_free_stage_is_idempotent():
     ctx = PipelineContext()
     ctx.data["parsed"] = {
         "nvidia": [
-            _ep("nvidia", free=True, pricing_status="free", model_id="free/a"),
-            _ep("nvidia", free=False, pricing_status="paid", model_id="paid/b"),
+            _ep("nvidia", pricing_status="free", pricing_status="free", model_id="free/a"),
+            _ep("nvidia", pricing_status="priced", pricing_status="paid", model_id="paid/b"),
         ],
     }
     FilterFreeStage().execute(ctx)

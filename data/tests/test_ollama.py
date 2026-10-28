@@ -386,7 +386,7 @@ def test_filter_ollama_free_keeps_models_with_free_until():
 
     endpoints = [
         ModelEndpoint(
-            provider="ollama", model_id="free-model", free=True, fetched_at=datetime.now(timezone.utc),
+            provider="ollama", model_id="free-model", pricing_status="free", fetched_at=datetime.now(timezone.utc),
             data_source="ollama", name="free-model", description=None,
             capabilities={}, metadata={"free_until": "2026-12-31T23:59:59+00:00"},
             architecture=None, supported_parameters=[], lab="ollama",
@@ -394,7 +394,7 @@ def test_filter_ollama_free_keeps_models_with_free_until():
             source_url=None, status=None, limits=None, score=None,
         ),
         ModelEndpoint(
-            provider="ollama", model_id="paid-model", free=False, fetched_at=datetime.now(timezone.utc),
+            provider="ollama", model_id="paid-model", pricing_status="priced", fetched_at=datetime.now(timezone.utc),
             data_source="ollama", name="paid-model", description=None,
             capabilities={}, metadata={"free_until": None},
             architecture=None, supported_parameters=[], lab="ollama",
@@ -416,7 +416,7 @@ def test_filter_ollama_free_drops_models_without_free_until():
 
     endpoints = [
         ModelEndpoint(
-            provider="ollama", model_id="paid-model", free=False, fetched_at=datetime.now(timezone.utc),
+            provider="ollama", model_id="paid-model", pricing_status="priced", fetched_at=datetime.now(timezone.utc),
             data_source="ollama", name="paid-model", description=None,
             capabilities={}, metadata={},  # No free_until key
             architecture=None, supported_parameters=[], lab="ollama",

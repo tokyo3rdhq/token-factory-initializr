@@ -43,7 +43,7 @@ def main() -> None:
     """Compose + run the default pipeline."""
     _load_env()
     print("=" * 60)
-    print("Free Model Aggregator — Data Pipeline")
+    print("Token Factory Initializr — Model Aggregator — Data Pipeline")
     print("=" * 60)
     pipeline = build_default_pipeline()
     result = pipeline.run(PipelineContext())

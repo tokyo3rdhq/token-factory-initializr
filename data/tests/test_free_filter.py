@@ -132,11 +132,11 @@ def _hf_ep_canonical(provider_status: str = "live", pricing: dict | None = None,
 def test_qualify_nvidia_classifies_by_nimtype():
     """NVIDIA qualify classifies by metadata.labels.nimType.values."""
     endpoints = [
-        _ep("nvidia", free=True, model_id="free/a",
+        _ep("nvidia", pricing_status="free", model_id="free/a",
             metadata={"labels": {"nimType": {"values": ["Free Endpoint"]}}}),
-        _ep("nvidia", free=False, model_id="paid/b",
+        _ep("nvidia", pricing_status="priced", model_id="paid/b",
             metadata={"labels": {"nimType": {"values": ["Run Anywhere"]}}}),
-        _ep("nvidia", free=False, model_id="unknown/c",
+        _ep("nvidia", pricing_status="priced", model_id="unknown/c",
             metadata={"labels": {}}),
     ]
     out = qualify_nvidia(endpoints)
@@ -257,8 +257,8 @@ def test_qualify_kilo_classifies_by_pricing():
 
 def test_qualify_ollama_keeps_all():
     endpoints = [
-        _ep("ollama", free=True, pricing_status="free", model_id="free-model"),
-        _ep("ollama", free=False, pricing_status="unknown", model_id="paid-model"),
+        _ep("ollama", pricing_status="free", pricing_status="free", model_id="free-model"),
+        _ep("ollama", pricing_status="priced", pricing_status="unknown", model_id="paid-model"),
     ]
     out = qualify_ollama(endpoints)
     assert [ep.model_id for ep in out] == ["free-model", "paid-model"]
@@ -272,13 +272,13 @@ def test_qualify_ollama_keeps_all():
 def test_filter_free_dispatches_by_provider():
     hf = [_hf_ep(status="live", pricing={"input": 0, "output": 0})]
     assert [ep["model_id"] for ep in filter_free(hf, "huggingface")] == ["x/1"]
-    nvidia = [_ep("nvidia", free=True, model_id="x/1",
+    nvidia = [_ep("nvidia", pricing_status="free", model_id="x/1",
                   metadata={"labels": {"nimType": {"values": ["Free Endpoint"]}}})]
     assert [ep.model_id for ep in filter_free(nvidia, "nvidia")] == ["x/1"]
 
 
 def test_filter_free_unknown_provider_passthrough():
-    endpoints = [_ep("weird", free=True, pricing_status="unknown")]
+    endpoints = [_ep("weird", pricing_status="free", pricing_status="unknown")]
     out = filter_free(endpoints, "weird")
     assert out is endpoints or out == endpoints
 
