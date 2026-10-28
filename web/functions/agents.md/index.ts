@@ -75,9 +75,7 @@ most important rule to internalize before issuing queries:
 | \`?capabilities=chat,vision\` | \`capabilities ⊇ ["chat", "vision"]\` (i.e. both) |
 | \`?supported_parameters=streaming\` | \`supported_parameters ∋ "streaming"\` |
 | \`?context_length_min=131072\` | \`context_length >= 131072\` (inclusive; models with unknown/null \`context_length\` are excluded) |
-| \`?pricing_status=free\` | \`pricing_status == "free"\` (endpoint-scoped OR within dimension) |
-| \`?pricing_status=priced\` | \`pricing_status == "priced"\` (endpoint-scoped OR within dimension) |
-| \`?pricing_status=unknown\` | \`pricing_status == "unknown"\` (endpoint-scoped OR within dimension) |
+| \`?pricing_status=free,priced,unknown\` | \`pricing_status IN [\"free\", \"priced\", \"unknown\"]\` (endpoint-scoped OR within dimension) |
 | \`?data_source=nvidia&capabilities=chat\` | \`(data_source == "nvidia") AND (capabilities contains "chat")\` |
 
 ### Combined Filters

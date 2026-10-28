@@ -75,7 +75,6 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     isCharge: true,
     canonicalKey: "output_tokens",
   },
-
   // Cache-related
   input_cache_read: {
     rawKey: "input_cache_read",
@@ -96,6 +95,50 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     canonicalKey: "cache_write",
   },
 
+  // Image / multimodal
+  image: {
+    rawKey: "image",
+    label: "Image",
+    order: 60,
+    unit: "per_token",
+    sources: ["kilo"],
+    isCharge: true,
+    canonicalKey: "image",
+  },
+
+  // Audio
+  audio: {
+    rawKey: "audio",
+    label: "Audio",
+    order: 61,
+    unit: "per_token",
+    sources: ["openrouter", "kilo"],
+    isCharge: true,
+    canonicalKey: "audio",
+  },
+
+  // Audio cache
+  input_audio_cache: {
+    rawKey: "input_audio_cache",
+    label: "Cached audio input",
+    order: 31,
+    unit: "per_token",
+    sources: ["openrouter", "kilo"],
+    isCharge: true,
+    canonicalKey: "cached_audio_input",
+  },
+
+  // Web search
+  web_search: {
+    rawKey: "web_search",
+    label: "Web search",
+    order: 70,
+    unit: "per_token",
+    sources: ["openrouter", "kilo"],
+    isCharge: true,
+    canonicalKey: "web_search",
+  },
+
   // Request-based
   request: {
     rawKey: "request",
@@ -105,28 +148,6 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     sources: ["kilo"],
     isCharge: true,
     canonicalKey: "request",
-  },
-
-  // Image / multimodal
-  image: {
-    rawKey: "image",
-    label: "Image",
-    order: 60,
-    unit: "per_image",
-    sources: ["kilo"],
-    isCharge: true,
-    canonicalKey: "image",
-  },
-
-  // Web search
-  web_search: {
-    rawKey: "web_search",
-    label: "Web search",
-    order: 70,
-    unit: "per_search",
-    sources: ["openrouter", "kilo"],
-    isCharge: true,
-    canonicalKey: "web_search",
   },
 
   // Internal reasoning
