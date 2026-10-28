@@ -269,13 +269,16 @@ const priceFormatter = new Intl.NumberFormat("en-US", {
 
 /**
  * Format a per-token price as USD per 1M tokens.
+ *
+ * The value is already normalized at the data layer (multiplied by 1M,
+ * rounded to 4 decimals, trailing zeros truncated, stored as string).
+ * Web layer only formats it for display — no further multiplication.
  */
 export function formatPerTokenPrice(value: number): string {
   if (!Number.isFinite(value)) return "—";
   if (value === 0) return "$0.00 / 1M tokens";
 
-  const perMillion = value * 1_000_000;
-  return `$${priceFormatter.format(perMillion)} / 1M tokens`;
+  return `$${priceFormatter.format(value)} / 1M tokens`;
 }
 
 /**
