@@ -416,7 +416,6 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         data_source="nvidia",
         provider="nvidia",
         model_id=model_id,
-        pricing_status="free",
         # AMD/HF providers stamp fetched_at when they build the endpoint dict;
         # NVIDIA yields ModelEndpoint objects directly from parse_html, so
         # we set it here. Without this, ValidateStage rejects every NVIDIA
