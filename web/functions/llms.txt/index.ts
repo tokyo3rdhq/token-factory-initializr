@@ -48,8 +48,6 @@ joined with **AND**.
 
 ?supported_parameters=streaming
    → supported_parameters contains "streaming"
-
-   → pricing_status IN ["free", "priced"] (endpoint-scoped)
 ?pricing_status=free,priced
    → pricing_status IN ["free", "priced"] (endpoint-scoped)
 
