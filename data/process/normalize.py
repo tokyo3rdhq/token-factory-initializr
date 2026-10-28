@@ -348,8 +348,13 @@ def normalize_pricing(pricing: dict[str, Any] | None, data_source: str | None = 
     normalized = {}
     for key, value in pricing.items():
         if data_source == "huggingface":
-            # HF: keep as-is, no processing
-            normalized[key] = value
+            # HF: keep as-is, but clean up floating-point artifacts
+            # (e.g. 2.9999999999999996 -> 3.0)
+            try:
+                f = float(value)
+                normalized[key] = round(f, 10)
+            except (TypeError, ValueError):
+                normalized[key] = value
         else:
             # Other providers: multiply by 1M, round to 4 decimals,
             # truncate trailing zeros, save as string
