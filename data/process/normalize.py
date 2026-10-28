@@ -335,6 +335,8 @@ def normalize_pricing(pricing: dict[str, Any] | None, data_source: str | None = 
 
     Platform-wide rules:
     * Hugging Face: prices are kept as-is, no processing.
+    * discount/web_search keys: flat-rate modifiers, skip the 1M
+      multiplication; truncate trailing zeros and store as string.
     * All other providers: each numeric value is multiplied by 1,000,000,
       rounded to 4 decimal places, trailing zeros truncated, and stored
       as a string. Negative sentinel values (e.g. -1) and non-numeric
@@ -356,21 +358,35 @@ def normalize_pricing(pricing: dict[str, Any] | None, data_source: str | None = 
             except (TypeError, ValueError):
                 normalized[key] = value
         else:
-            # Other providers: multiply by 1M, round to 4 decimals,
-            # truncate trailing zeros, save as string
-            try:
-                f = float(value)
-            except (TypeError, ValueError):
-                normalized[key] = value
-                continue
-
-            if f < 0:
-                # Negative sentinel - preserve as-is
-                normalized[key] = value
+            # discount/web_search are not per-token prices — they are
+            # flat-rate modifiers, so skip the 1M multiplication and only
+            # truncate trailing zeros before storing as string.
+            if key in ("discount", "web_search"):
+                try:
+                    f = float(value)
+                except (TypeError, ValueError):
+                    normalized[key] = value
+                    continue
+                if f < 0:
+                    normalized[key] = value
+                else:
+                    normalized[key] = _format_number(f)
             else:
-                multiplied = f * 1_000_000
-                rounded = round(multiplied, 4)
-                normalized[key] = _format_number(rounded)
+                # Other providers: multiply by 1M, round to 4 decimals,
+                # truncate trailing zeros, save as string
+                try:
+                    f = float(value)
+                except (TypeError, ValueError):
+                    normalized[key] = value
+                    continue
+
+                if f < 0:
+                    # Negative sentinel - preserve as-is
+                    normalized[key] = value
+                else:
+                    multiplied = f * 1_000_000
+                    rounded = round(multiplied, 4)
+                    normalized[key] = _format_number(rounded)
     return normalized
 
 
