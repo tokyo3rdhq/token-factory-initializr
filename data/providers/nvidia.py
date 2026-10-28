@@ -334,7 +334,7 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
     labels_dict = _labels_to_dict(labels)
 
     # --- Free detection from ``nimType`` label values ---
-    # "Free Endpoint" in nimType.values → free=True.
+    # "Free Endpoint" in nimType.values → pricing_status="free".
     # This determines the ``free`` boolean field on the endpoint.
     nim_values: List[str] = labels_dict.get("nimType", {}).get("values", []) or []
     free = "Free Endpoint" in nim_values
@@ -416,7 +416,7 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         data_source="nvidia",
         provider="nvidia",
         model_id=model_id,
-        free=free,
+        pricing_status="free",
         # AMD/HF providers stamp fetched_at when they build the endpoint dict;
         # NVIDIA yields ModelEndpoint objects directly from parse_html, so
         # we set it here. Without this, ValidateStage rejects every NVIDIA
@@ -525,7 +525,7 @@ def _extract_models_from_static_html(html: str) -> List[ModelEndpoint]:
     JSON). The rendered catalog page embeds ``<a href="/nvidia/<slug>">``
     linkboxes whose display name sits in an adjacent ``<span>``. Each
     card also carries a "Free Endpoint" badge that we use to set
-    ``free=True``.
+    ``pricing_status="free"``.
 
     Trade-offs vs the RSC path:
       * No description, no labels, no architecture derivation.
@@ -536,7 +536,7 @@ def _extract_models_from_static_html(html: str) -> List[ModelEndpoint]:
     Returns:
         Deduplicated list of ``ModelEndpoint`` objects with
         ``provider='nvidia'``, ``data_source='nvidia'``,
-        ``free=True`` (the upstream URL filter ``nimType=nim_type_preview``
+        ``pricing_status="free"`` (the upstream URL filter ``nimType=nim_type_preview``
         already restricts to free endpoints), and
         ``fetched_at`` set to ``now(UTC)``.
     """
@@ -574,7 +574,7 @@ def _extract_models_from_static_html(html: str) -> List[ModelEndpoint]:
                 data_source='nvidia',
                 provider='nvidia',
                 model_id=f'nvidia/{slug}',
-                free=True,
+                pricing_status="free",
                 fetched_at=datetime.now(timezone.utc),
                 name=name,
                 description=None,

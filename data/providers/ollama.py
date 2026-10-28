@@ -381,7 +381,7 @@ def build_model_endpoint(
     return ModelEndpoint(
         provider="ollama",
         model_id=model_id,
-        free=free,
+        pricing_status="free",
         fetched_at=fetched_at,
         data_source="ollama",
         name=model_id,
@@ -412,7 +412,7 @@ def filter_ollama_free(endpoints: List[ModelEndpoint]) -> List[ModelEndpoint]:
             kept.append(ModelEndpoint(
                 provider=ep.provider,
                 model_id=ep.model_id,
-                free=True,
+                pricing_status="free",
                 fetched_at=ep.fetched_at,
                 name=ep.name,
                 description=ep.description,
@@ -436,7 +436,7 @@ def filter_ollama_free(endpoints: List[ModelEndpoint]) -> List[ModelEndpoint]:
             kept.append(ModelEndpoint(
                 provider=ep.provider,
                 model_id=ep.model_id,
-                free=False,
+                pricing_status="priced",
                 fetched_at=ep.fetched_at,
                 name=ep.name,
                 description=ep.description,
