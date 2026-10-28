@@ -94,6 +94,15 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     isCharge: true,
     canonicalKey: "cache_write",
   },
+  input_cache_write_1h: {
+    rawKey: "input_cache_write_1h",
+    label: "Cache write 1h",
+    order: 41,
+    unit: "per_1M_tokens",
+    sources: ["openrouter", "kilo"],
+    isCharge: true,
+    canonicalKey: "cache_write_1h",
+  },
 
   // Image / multimodal
   image: {
