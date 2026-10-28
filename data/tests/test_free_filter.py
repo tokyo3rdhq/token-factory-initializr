@@ -257,7 +257,7 @@ def test_qualify_kilo_classifies_by_pricing():
 
 def test_qualify_ollama_keeps_all():
     endpoints = [
-        _ep("ollama", pricing_status="free", pricing_status="free", model_id="free-model"),
+        _ep("ollama", pricing_status="free", model_id="free-model"),
         _ep("ollama", pricing_status="priced", pricing_status="unknown", model_id="paid-model"),
     ]
     out = qualify_ollama(endpoints)

@@ -95,7 +95,7 @@ def test_filter_free_stage_keeps_all_eligible_endpoints():
     ctx = PipelineContext()
     ctx.data["parsed"] = {
         "nvidia": [
-            _ep("nvidia", pricing_status="free", pricing_status="free", model_id="free/a"),
+            _ep("nvidia", pricing_status="free", model_id="free/a"),
             _ep("nvidia", pricing_status="priced", pricing_status="paid", model_id="paid/b"),
             _ep("nvidia", pricing_status="priced", pricing_status="unknown", model_id="unknown/c"),
         ],
@@ -167,7 +167,7 @@ def test_filter_free_stage_aliases_parsed_for_downstream():
     ctx = PipelineContext()
     ctx.data["parsed"] = {
         "nvidia": [
-            _ep("nvidia", pricing_status="free", pricing_status="free", model_id="free/a"),
+            _ep("nvidia", pricing_status="free", model_id="free/a"),
             _ep("nvidia", pricing_status="priced", pricing_status="paid", model_id="paid/b"),
         ],
     }
@@ -209,7 +209,7 @@ def test_filter_free_stage_is_idempotent():
     ctx = PipelineContext()
     ctx.data["parsed"] = {
         "nvidia": [
-            _ep("nvidia", pricing_status="free", pricing_status="free", model_id="free/a"),
+            _ep("nvidia", pricing_status="free", model_id="free/a"),
             _ep("nvidia", pricing_status="priced", pricing_status="paid", model_id="paid/b"),
         ],
     }
