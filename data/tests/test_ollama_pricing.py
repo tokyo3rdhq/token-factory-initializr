@@ -20,6 +20,7 @@ def test_parse_library_html_extracts_pricing_no_dollar_suffix():
     """
     free_until, prices = _extract_pricing(html)
     assert free_until is None
+    # Values should be bare numbers, no $ prefix, no / 1M tokens suffix
     assert prices["input"] == "0.30"
     assert prices["cached"] == "0.006"
     assert prices["output"] == "1.20"
@@ -69,9 +70,12 @@ def test_normalize_pricing_ollama_string_passthrough():
     assert result["output"] == "$1.20"
 
 
-# ---------------------------------------------------------------------------
-# Non-ollama providers still multiply by 1M
-# ---------------------------------------------------------------------------
+def test_normalize_pricing_ollama_nonexistent_key_skip():
+    """Keys not found in pricing dict are skipped without error."""
+    pricing = {"input": "0.30"}
+    result = normalize_pricing(pricing, data_source="ollama")
+    assert result["input"] == 0.3
+
 
 def test_normalize_pricing_via_payment_still_multiplies():
     """Other providers (e.g. nvidia, amd) still multiply by 1M."""

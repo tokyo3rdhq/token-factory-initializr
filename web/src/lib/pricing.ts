@@ -42,7 +42,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     label: "Input tokens",
     order: 10,
     unit: "per_1M_tokens",
-    sources: ["huggingface"],
+    sources: ["huggingface", "ollama"],
     isCharge: true,
     canonicalKey: "input_tokens",
   },
@@ -51,7 +51,7 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     order: 20,
     label: "Output tokens",
     unit: "per_1M_tokens",
-    sources: ["huggingface"],
+    sources: ["huggingface", "ollama"],
     isCharge: true,
     canonicalKey: "output_tokens",
   },
@@ -75,6 +75,17 @@ export const PRICING_FIELD_META: Record<string, PricingFieldMeta> = {
     isCharge: true,
     canonicalKey: "output_tokens",
   },
+  // Ollama style cached input read
+  cached: {
+    rawKey: "cached",
+    label: "Cached input read",
+    order: 30,
+    unit: "per_1M_tokens",
+    sources: ["ollama"],
+    isCharge: true,
+    canonicalKey: "cached_input_read",
+  },
+
   // Cache-related
   input_cache_read: {
     rawKey: "input_cache_read",

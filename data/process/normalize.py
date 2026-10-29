@@ -789,7 +789,38 @@ def normalize_endpoints(
 
         elif data_source == "ollama":
             free_until = metadata.get("free_until")
-            pricing_status = "free" if free_until else "unknown"
+            if free_until:
+                pricing_status = "free"
+            elif isinstance(pricing, dict) and pricing:
+                # Fall back to pricing-based classification. Ollama pricing is
+                # already normalized to USD per 1M tokens (no ×1M in
+                # normalize_pricing). Any positive value means the model is
+                # paid; all-zero means a free offer.
+                _any_negative = False
+                _all_zero = True
+                _all_positive = True
+                for _k, _v in pricing.items():
+                    try:
+                        _fv = float(_v)
+                    except (TypeError, ValueError):
+                        _all_zero = _all_positive = False
+                        break
+                    if _fv < 0:
+                        _any_negative = True
+                    elif _fv == 0:
+                        _all_positive = False
+                    else:
+                        _all_zero = False
+                if _any_negative:
+                    pricing_status = "unknown"
+                elif _all_zero:
+                    pricing_status = "free"
+                elif _all_positive:
+                    pricing_status = "priced"
+                else:
+                    pricing_status = "unknown"
+            else:
+                pricing_status = "unknown"
 
         elif data_source in ("huggingface", "openrouter", "kilo"):
             if isinstance(pricing, dict) and pricing:
