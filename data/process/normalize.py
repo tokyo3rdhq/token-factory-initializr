@@ -333,23 +333,21 @@ def normalize_pricing(pricing: dict[str, Any] | None, data_source: str | None = 
     """Normalize a pricing dict for the TFI catalog.
 
     Platform-wide rules:
-    * Hugging Face: prices are kept as-is, no processing.
+    * Hugging Face / Ollama: prices are kept as-is, no 1M multiplication.
     * discount/web_search keys: flat-rate modifiers, skip the 1M
       multiplication; truncate trailing zeros and store as string.
     * All other providers: each numeric value is multiplied by 1,000,000,
       rounded to 4 decimal places, trailing zeros truncated, and stored
       as a string. Negative sentinel values (e.g. -1) and non-numeric
       strings are preserved as-is.
-
-    Returns a new dict, or None if input is None/empty.
-    """
+"""
     if not pricing:
         return None
 
     normalized = {}
     for key, value in pricing.items():
-        if data_source == "huggingface":
-            # HF: keep as-is, but clean up floating-point artifacts
+        if data_source in ("huggingface", "ollama"):
+            # HF/Ollama: keep as-is, but clean up floating-point artifacts
             # (e.g. 2.9999999999999996 -> 3.0)
             try:
                 f = float(value)

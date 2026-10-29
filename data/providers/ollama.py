@@ -213,7 +213,7 @@ def _extract_pricing(html: str) -> tuple[Optional[str], Dict[str, str]]:
         re.DOTALL,
     )
     for price, label in price_matches:
-        prices[label] = f"${price} / 1M tokens"
+        prices[label] = price
 
     return free_until, prices
 

@@ -232,7 +232,9 @@ def test_parse_library_html_extracts_pricing():
     result = _parse_library_html(html, "minimax-m3.1-flash")
     assert "input" in result["pricing"]
     assert "output" in result["pricing"]
-    assert "$0.15" in result["pricing"]["input"]
+    # Simplified: bare number, no $ prefix or "/ 1M tokens" suffix
+    assert result["pricing"]["input"] == "0.15"
+    assert result["pricing"]["output"] == "0.60"
 
 
 def test_parse_library_html_extracts_metadata():
