@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import logging
 
-from data.identity_matcher import DefaultIdentityMatcher, _normalize_id
+from data.models.identity_matcher import DefaultIdentityMatcher, _normalize_id
 from data.models.schema import ModelEndpoint
 from data.pipeline.context import PipelineContext
 from data.pipeline.stage import Stage
@@ -204,7 +204,7 @@ class NormalizeStage(Stage):
         endpoints: list[ModelEndpoint] = []
         # cheap but it also keeps the alias/version/quantization state
         # consistent across both the NVIDIA and AMD/HF lookup paths.
-        from data.identity_matcher import DefaultIdentityMatcher
+        from data.models.identity_matcher import DefaultIdentityMatcher
 
         matcher = DefaultIdentityMatcher()
         for provider, items in parsed.items():

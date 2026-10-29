@@ -18,7 +18,7 @@ from data.stages.normalize import (
     _apply_cross_source_signals_to_nvidia_endpoint,
     _build_cross_source_index,
 )
-from data.identity_matcher import _normalize_id
+from data.models.identity_matcher import _normalize_id
 
 
 def _make_nvidia_ep(model_id: str = "z-ai/glm-5-3-flash", **overrides) -> ModelEndpoint:

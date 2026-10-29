@@ -1,5 +1,5 @@
 """Unit tests for the version-separator normalization added to
-``data.identity_matcher._normalize_id``.
+``data.models.identity_matcher._normalize_id``.
 
 OpenRouter spells minor versions with a dot (``glm-5.3``) while NVIDIA
 spells them with a dash (``glm-5-3``). Without unifying the two forms,
@@ -8,7 +8,7 @@ identical releases never collide.
 
 from __future__ import annotations
 
-from data.identity_matcher import DefaultIdentityMatcher, _normalize_id
+from data.models.identity_matcher import DefaultIdentityMatcher, _normalize_id
 
 
 # ---------------------------------------------------------------------------

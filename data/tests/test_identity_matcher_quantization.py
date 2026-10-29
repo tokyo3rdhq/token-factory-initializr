@@ -15,7 +15,7 @@ two slugs differ by an inserted ``2`` token. The new passes:
 
 from __future__ import annotations
 
-from data.identity_matcher import DefaultIdentityMatcher, _normalize_id
+from data.models.identity_matcher import DefaultIdentityMatcher, _normalize_id
 
 
 # ---------------------------------------------------------------------------

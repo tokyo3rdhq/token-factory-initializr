@@ -645,7 +645,7 @@ def normalize_endpoints(
         # actually contribute signals.
         cross_source_signals_for_endpoint: list[dict] | None = None
         if cross_source_index:
-            from data.identity_matcher import DefaultIdentityMatcher
+            from data.models.identity_matcher import DefaultIdentityMatcher
 
             matcher = DefaultIdentityMatcher()
             best_obs: list[dict] | None = None

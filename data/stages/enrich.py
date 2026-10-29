@@ -23,8 +23,8 @@ import logging
 from datetime import datetime, timezone
 from typing import Iterable
 
-from data.field_resolver import should_overwrite
-from data.identity_matcher import DefaultIdentityMatcher
+from data.models.field_resolver import should_overwrite
+from data.models.identity_matcher import DefaultIdentityMatcher
 from data.models.schema import FieldProvenance, ModelEndpoint
 from data.pipeline.context import PipelineContext
 from data.pipeline.stage import Stage
