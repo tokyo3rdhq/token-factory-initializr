@@ -4,7 +4,7 @@
     "source": "model_gateway",
     "label": "Qwen3.8-Flash-Next",
     "model": "Qwen3.8-Flash-Next",
-    "description": "Dynamic pool service managed by Model Ops",
+    "description": "Dynamic sglang-router service managed by Model Ops",
     "family": "custom",
     "providers": [
       "Radeon Cloud"

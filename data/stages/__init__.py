@@ -11,7 +11,7 @@ dependency: main → pipeline → stages → ...).
 from data.stages.diff import DiffStage
 from data.stages.enrich import EnrichStage
 from data.stages.fetch import FetchStage, PROVIDER_FETCHERS
-from data.stages.filter_free import FilterFreeStage
+from data.stages.filter import FilterStage
 from data.stages.normalize import NormalizeStage
 from data.stages.notify import NotifyStage
 from data.stages.parse import ParseStage
@@ -27,7 +27,7 @@ def build_default_pipeline() -> "Pipeline":
 
     Per docs/data_source_provider_refactor.md §6:
 
-        fetch → parse → filter_free → normalize → validate → enrich
+        fetch → parse → filter → normalize → validate → enrich
         → snapshot → diff → reconcile → publish → summarize → notify
 
     The ``store`` stage has been replaced by the four-stage
@@ -50,7 +50,7 @@ def build_default_pipeline() -> "Pipeline":
         Pipeline()
         .then(FetchStage())
         .then(ParseStage())
-        .then(FilterFreeStage())
+        .then(FilterStage())
         .then(NormalizeStage())
         .then(ValidateStage())
         .then(EnrichStage())
@@ -67,7 +67,7 @@ def build_default_pipeline() -> "Pipeline":
 __all__ = [
     "FetchStage",
     "ParseStage",
-    "FilterFreeStage",
+    "FilterStage",
     "NormalizeStage",
     "ValidateStage",
     "EnrichStage",

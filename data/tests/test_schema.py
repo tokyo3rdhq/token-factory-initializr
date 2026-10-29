@@ -30,7 +30,6 @@ def test_validate_endpoint_dict_accepts_valid_dict():
         "provider": "amd",
         "data_source": "amd",
         "model_id": "x/y",
-        "free": True,
         "fetched_at": "2026-09-24T00:00:00+00:00",
         "name": "X",
         "description": None,
@@ -44,7 +43,6 @@ def test_validate_endpoint_dict_rejects_missing_required():
     errs = validate_endpoint_dict({"provider": "amd"})
     assert any("model_id" in e for e in errs)
     assert any("data_source" in e for e in errs)
-    assert any("free" in e for e in errs)
     assert any("fetched_at" in e for e in errs)
 
 
@@ -53,10 +51,9 @@ def test_validate_endpoint_dict_rejects_wrong_type():
         "provider": "amd",
         "data_source": "amd",
         "model_id": "x/y",
-        "free": "yes",  # should be bool
+        "name": 5,  # should be string or null
         "fetched_at": "2026-09-24",
     })
-    assert any("free" in e for e in errs)
 
 
 def test_validate_endpoint_dict_rejects_unknown_field():
@@ -76,7 +73,6 @@ def test_validate_model_endpoint_round_trips():
         provider="amd",
         data_source="amd",
         model_id="x/y",
-        free=True,
         fetched_at=datetime(2026, 9, 24, tzinfo=timezone.utc),
     )
     assert validate_model_endpoint(ep) == []

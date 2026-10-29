@@ -7,7 +7,6 @@
     "provider",
     "data_source",
     "model_id",
-    "free",
     "fetched_at"
   ],
   "properties": {
@@ -36,10 +35,6 @@
         "null"
       ],
       "description": "Model description"
-    },
-    "free": {
-      "type": "boolean",
-      "description": "Whether this endpoint is free to use"
     },
     "pricing_status": {
       "type": [

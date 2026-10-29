@@ -4,7 +4,7 @@
     "source": "model_gateway",
     "label": "DeepSeek-V4-Flash",
     "model": "DeepSeek-V4-Flash",
-    "description": "Dynamic pool service managed by Model Ops",
+    "description": "Dynamic sglang-router service managed by Model Ops",
     "family": "custom",
     "providers": [
       "Radeon Cloud"

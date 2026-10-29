@@ -4,7 +4,7 @@
     "source": "model_gateway",
     "label": "GLM-5.3-Flash",
     "model": "GLM-5.3-Flash",
-    "description": "Dynamic pool service managed by Model Ops",
+    "description": "Dynamic vllm-router service managed by Model Ops",
     "family": "custom",
     "providers": [
       "Radeon Cloud"

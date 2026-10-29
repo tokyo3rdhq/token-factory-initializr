@@ -388,7 +388,6 @@ def normalize_pricing(pricing: dict[str, Any] | None, data_source: str | None = 
                     normalized[key] = _format_number(rounded)
     return normalized
 
-
 def normalize_capabilities(
     data_source: str,
     raw_metadata: dict[str, Any] | None,
@@ -759,51 +758,77 @@ def normalize_endpoints(
         if isinstance(pricing, dict) and pricing:
             pricing = normalize_pricing(pricing, item.get("data_source"))
             object.__setattr__(ep, "pricing", pricing)
-        # Lift pricing_status from the parsed dict — the validate stage
-        # computed this per-provider (free/priced/unknown). Preserve it
-        # so downstream consumers (web UI badge, filter, etc.) can rely
-        # on it instead of re-deriving from scratch.
-        pricing_status = item.get("pricing_status")
+        # Classify pricing_status from provider metadata / normalized pricing.
+        # Replaces the former per-provider qualify functions in
+        # data/providers/free_filter.py (qualify_nvidia, qualify_amd,
+        # qualify_ollama, qualify_huggingface, qualify_openrouter, qualify_kilo).
+        # Runs AFTER pricing normalization so classification is based on
+        # normalized values, not raw source values.
+        pricing_status = None
+        data_source = item.get("data_source")
+        metadata = ep.metadata if isinstance(ep.metadata, dict) else {}
+
+        if data_source == "nvidia":
+            labels = metadata.get("labels", {})
+            if not isinstance(labels, dict):
+                labels = {}
+            nim_values = labels.get("nimType", {}).get("values", []) or []
+            if "Free Endpoint" in nim_values:
+                pricing_status = "free"
+            elif nim_values:
+                pricing_status = "priced"
+            else:
+                pricing_status = "unknown"
+
+        elif data_source == "amd":
+            free_status = metadata.get("free_status")
+            if free_status == "free_endpoint":
+                pricing_status = "free"
+            elif free_status == "paid":
+                pricing_status = "priced"
+            else:
+                pricing_status = "unknown"
+
+        elif data_source == "ollama":
+            free_until = metadata.get("free_until")
+            pricing_status = "free" if free_until else "unknown"
+
+        elif data_source in ("huggingface", "openrouter", "kilo"):
+            if isinstance(pricing, dict) and pricing:
+                _any_negative = False
+                _all_zero = True
+                _all_positive = True
+                for _k, _v in pricing.items():
+                    # discount is a modifier/discount, not an actual charge —
+                    # skip it when classifying pricing_status. Otherwise a
+                    # discount of "0" would wrongly force _all_positive=False
+                    # and produce "unknown" for otherwise-priced endpoints.
+                    if _k == "discount":
+                        continue
+                    try:
+                        _fv = float(_v)
+                    except (TypeError, ValueError):
+                        _all_zero = _all_positive = False
+                        break
+                    if _fv < 0:
+                        _any_negative = True
+                    elif _fv == 0:
+                        _all_positive = False
+                    else:
+                        _all_zero = False
+                if _any_negative:
+                    pricing_status = "unknown"
+                elif _all_zero:
+                    pricing_status = "free"
+                elif _all_positive:
+                    pricing_status = "priced"
+                else:
+                    pricing_status = "unknown"
+            else:
+                pricing_status = "unknown"
+
         if pricing_status is not None:
             object.__setattr__(ep, "pricing_status", pricing_status)
-        # Classify pricing_status from normalized pricing for price-based
-        # providers (openrouter, kilo). Runs AFTER pricing normalization so
-        # classification is based on normalized values, not raw source values.
-        # Other providers (nvidia, amd, huggingface, ollama) set pricing_status
-        # via metadata-based logic in filter_free and are not overwritten here.
-        if item.get("data_source") in ("openrouter", "kilo") and isinstance(pricing, dict) and pricing:
-            _any_negative = False
-            _all_zero = True
-            _all_positive = True
-            for _k, _v in pricing.items():
-                # discount is a modifier/discount, not an actual charge —
-                # skip it when classifying pricing_status. Otherwise a
-                # discount of "0" would wrongly force _all_positive=False
-                # and produce "unknown" for otherwise-priced endpoints.
-                if _k == "discount":
-                    continue
-                try:
-                    _fv = float(_v)
-                except (TypeError, ValueError):
-                    _all_zero = _all_positive = False
-                    break
-                if _fv < 0:
-                    _any_negative = True
-                elif _fv == 0:
-                    _all_positive = False
-                else:
-                    _all_zero = False
-
-            if _any_negative:
-                _computed_status = "unknown"
-            elif _all_zero:
-                _computed_status = "free"
-            elif _all_positive:
-                _computed_status = "priced"
-            else:
-                _computed_status = "unknown"
-
-            object.__setattr__(ep, "pricing_status", _computed_status)
 
         # Lift supported_parameters — endpoint-level interface/runtime
         # parameters (docs/tfi_add_supported_parameters.md §3.2/§4.1).
@@ -898,13 +923,9 @@ def endpoint_to_dict(endpoint: ModelEndpoint) -> dict[str, Any]:
       JSON serializable`` because ``asdict`` recurses but doesn't
       format datetime values.
     """
-    data = asdict(endpoint)
-    data["fetched_at"] = data["fetched_at"].isoformat()
-    # Legacy ``free`` compatibility rule (§3.2): backfill ``pricing_status``
-    # from the legacy ``free`` field when the record carries no explicit
-    # classification, then derive ``free`` from ``pricing_status`` so both
-    prov = data.get("provenance")
-    if isinstance(prov, dict):
-        for key, fp in prov.items():
-                fp["observed_at"] = fp["observed_at"].isoformat()
-    return data
+    from dataclasses import asdict
+    d = asdict(endpoint)
+    d["fetched_at"] = endpoint.fetched_at.isoformat()
+    for path, prov in endpoint.provenance.items():
+        d["provenance"][path]["observed_at"] = prov.observed_at.isoformat()
+    return d

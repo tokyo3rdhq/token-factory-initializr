@@ -90,12 +90,12 @@ def test_pipeline_end_returns_pipeline():
 def test_default_pipeline_has_twelve_stages_in_canonical_order():
     """Per refactor doc §6:
 
-        fetch → parse → filter_free → normalize → validate → enrich
+        fetch → parse → filter → normalize → validate → enrich
         → snapshot → diff → reconcile → publish → summarize → notify
     """
     p = build_default_pipeline()
     assert [s.name for s in p.stages] == [
-        "fetch", "parse", "filter_free", "normalize", "validate", "enrich",
+        "fetch", "parse", "filter", "normalize", "validate", "enrich",
         "snapshot", "diff", "reconcile", "publish",
         "summarize", "notify",
     ]

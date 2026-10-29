@@ -39,7 +39,6 @@ def _mk_ep(data_source: str, provider: str, model_id: str) -> ModelEndpoint:
         provider=provider,
         data_source=data_source,
         model_id=model_id,
-        free=True,
         fetched_at=datetime.now(timezone.utc),
     )
 
@@ -341,14 +340,12 @@ def test_publish_same_provider_across_two_sources_keeps_keys_independent():
             provider="together",
             data_source="huggingface",
             model_id="h/together-x",
-            free=True,
             fetched_at=datetime.now(timezone.utc),
         ),
         ModelEndpoint(
             provider="together",
             data_source="openrouter",
             model_id="o/together-x",
-            free=True,
             fetched_at=datetime.now(timezone.utc),
         ),
     ]

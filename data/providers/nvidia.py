@@ -333,11 +333,17 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
     # unchanged for back-compat with consumers that read metadata
     labels_dict = _labels_to_dict(labels)
 
-    # --- Free detection from ``nimType`` label values ---
-    # "Free Endpoint" in nimType.values → pricing_status="free".
-    # This determines the ``free`` boolean field on the endpoint.
+    # --- Pricing status from nimType label values ---
+    # "Free Endpoint" → "free", non-empty values (no Free Endpoint) → "priced", else "unknown".
+    # This mirrors the normalize stage's logic for compatibility with unit tests
+    # that instantiate ModelEndpoint directly via _ep().
     nim_values: List[str] = labels_dict.get("nimType", {}).get("values", []) or []
-    free = "Free Endpoint" in nim_values
+    if "Free Endpoint" in nim_values:
+        pricing_status = "free"
+    elif nim_values:
+        pricing_status = "priced"
+    else:
+        pricing_status = "unknown"
 
     # Read the legacy ``attributes`` block once
     attrs = obj.get("attributes", {})
@@ -445,6 +451,7 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
         # page (https://build.nvidia.com/models/<slug>) which renders
         # per-model details in HTML.
         pricing=None,
+        pricing_status=pricing_status,
         context_length=None,
         metadata=metadata,
     )

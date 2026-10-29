@@ -60,9 +60,10 @@
           "minimum": 0,
           "description": "Maximum acceptable output price (USD per token, raw float)."
         },
-        "free": {
-          "type": "boolean",
-          "description": "If true, only `ModelEndpoint.free == true` endpoints match. If false, only paid endpoints match (`free == false`). If omitted, no constraint is applied (any free flag is accepted)."
+        "pricingStatus": {
+          "type": ["string", "null"],
+          "enum": ["free", "priced", "unknown"],
+          "description": "Pricing access classification. If \"free\", only endpoints with pricing_status == \"free\" match. If \"priced\", only endpoints with pricing_status == \"priced\" match. If \"unknown\", only endpoints with pricing_status == \"unknown\" match. If omitted, no constraint is applied."
         }
       }
     },

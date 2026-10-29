@@ -42,7 +42,7 @@ def test_normalize_endpoints_basic():
     ep = eps[0]
     assert ep.provider == "amd"
     assert ep.model_id == "amd/test-model"
-    assert ep.pricing_status == "free"
+    assert ep.pricing_status == "unknown"
     assert isinstance(ep.fetched_at, datetime)
     assert ep.name == "Test Model"
     # Canonical 7-key shape — chat=True from both raw signal +

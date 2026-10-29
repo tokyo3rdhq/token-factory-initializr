@@ -381,7 +381,7 @@ def build_model_endpoint(
     return ModelEndpoint(
         provider="ollama",
         model_id=model_id,
-        pricing_status="free",
+        pricing_status="free" if free_until is not None else "unknown",
         fetched_at=fetched_at,
         data_source="ollama",
         name=model_id,
@@ -408,7 +408,6 @@ def filter_ollama_free(endpoints: List[ModelEndpoint]) -> List[ModelEndpoint]:
     for ep in endpoints:
         free_until = ep.metadata.get("free_until")
         if free_until:
-            # Create new endpoint with pricing_status="free" (dataclass is frozen)
             kept.append(ModelEndpoint(
                 provider=ep.provider,
                 model_id=ep.model_id,
@@ -422,7 +421,6 @@ def filter_ollama_free(endpoints: List[ModelEndpoint]) -> List[ModelEndpoint]:
                 metadata=ep.metadata,
                 context_length=ep.context_length,
                 pricing=ep.pricing,
-                pricing_status="free",
                 endpoint_url=ep.endpoint_url,
                 region=ep.region,
                 source_url=ep.source_url,
@@ -432,11 +430,10 @@ def filter_ollama_free(endpoints: List[ModelEndpoint]) -> List[ModelEndpoint]:
                 provenance=ep.provenance,
             ))
         else:
-            # For non-free endpoints, also create new instance with pricing_status
             kept.append(ModelEndpoint(
                 provider=ep.provider,
                 model_id=ep.model_id,
-                pricing_status="priced",
+                pricing_status="unknown",
                 fetched_at=ep.fetched_at,
                 name=ep.name,
                 description=ep.description,
@@ -446,7 +443,6 @@ def filter_ollama_free(endpoints: List[ModelEndpoint]) -> List[ModelEndpoint]:
                 metadata=ep.metadata,
                 context_length=ep.context_length,
                 pricing=ep.pricing,
-                pricing_status="unknown",
                 endpoint_url=ep.endpoint_url,
                 region=ep.region,
                 source_url=ep.source_url,
