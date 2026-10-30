@@ -20,7 +20,6 @@ export interface ModelEndpoint {
   /** Optional longer description. */
   description: string | null;
 
-  /** True iff the upstream provider offers free access. */
   /** Canonical pricing/access classification: "free" | "priced" | "unknown".
    * Endpoint-scoped — derived from source pricing evidence, never inferred
    * from missing pricing. Missing/null means unknown (not priced, not free). */
@@ -202,9 +201,11 @@ export interface ModelRequirement {
     input?: number;
     /** Maximum acceptable output price (USD per token). */
     output?: number;
-    /** If true, only free endpoints match. If false, only paid
-     *  endpoints match (`endpoint.pricing_status == "free" === false`). If omitted,
-     *  no constraint is applied. */
+    /** Access-classification constraint (canonical
+     *  ``pricing_status`` values, schema enum). An endpoint matches
+     *  only when its ``pricing_status`` equals this value. If
+     *  omitted / null, no constraint is applied. */
+    pricingStatus?: "free" | "priced" | "unknown" | null;
   };
 
   /** Whitelist of provider names. If non-empty, an endpoint matches
@@ -282,6 +283,13 @@ export function matchesRequirement(
     if (price.output !== undefined && epPrice) {
       const epOutput = readPrice(epPrice, "output");
       if (epOutput !== null && epOutput > price.output) return false;
+    }
+    // Access-classification constraint. An unclassified record
+    // (null / missing ``pricing_status``) is treated as "unknown"
+    // — the same projection rule the public API applies.
+    if (price.pricingStatus != null) {
+      const epStatus = endpoint.pricing_status ?? "unknown";
+      if (epStatus !== price.pricingStatus) return false;
     }
   }
 

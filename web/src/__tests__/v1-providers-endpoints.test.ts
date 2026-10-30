@@ -20,7 +20,7 @@ function makeEndpoint(overrides: Partial<ModelEndpoint> = {}): ModelEndpoint {
     model_id: "meta-llama/Llama-3.3-70B-Instruct",
     name: null,
     description: null,
-    free: true,
+    pricing_status: "free",
     capabilities: { chat: true },
     architecture: null,
     lab: null,
@@ -413,8 +413,8 @@ test("toPublicModel with endpointsByModel attaches the matching endpoint records
   const m = makeEndpoint({ model_id: "m1", free: true });
   const idx = new Map<string, ModelEndpoint[]>([
     ["m1", [
-      makeEndpoint({ model_id: "m1", provider: "together", free: true }),
-      makeEndpoint({ model_id: "m1", provider: "nvidia", free: false }),
+    makeEndpoint({ model_id: "m1", provider: "together", pricing_status: "free" }),
+    makeEndpoint({ model_id: "m1", provider: "nvidia", pricing_status: "priced" }),
     ]],
   ]);
   const pm = toPublicModel(m, { endpointsByModel: idx });

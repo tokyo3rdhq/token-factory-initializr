@@ -32,7 +32,6 @@ export interface ModelEndpoint {
   model_id: string;
   name: string | null;
   description: string | null;
-  free: boolean;
   capabilities: Record<string, unknown>;
   architecture: { input: string[]; output: string[] } | null;
   lab: string | null;

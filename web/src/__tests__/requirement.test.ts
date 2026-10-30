@@ -41,7 +41,7 @@ function ep(overrides: Partial<ModelEndpoint>): ModelEndpoint {
     model_id: "x/y",
     name: "Y",
     description: null,
-    free: true,
+    pricing_status: "free",
     capabilities: {},
     architecture: null,
     lab: null,
@@ -100,7 +100,7 @@ const HF_PAID = ep({
   provider: "novita",
   data_source: "huggingface",
   model_id: "novita/some-paid-model",
-  free: false,
+    pricing_status: "priced",
   capabilities: { chat: true },
   architecture: { input: ["text"], "output": ["text"] },
   context_length: 65536,
@@ -197,14 +197,14 @@ suite("contextWindow.min treats null/unknown as pass", () => {
 
 // -- pricing --
 suite("pricing.free=true rejects paid", () => {
-  const req: ModelRequirement = { pricing: { free: true } };
+  const req: ModelRequirement = { pricing: { pricingStatus: "free" } };
   check("NV_TEXT passes", matchesRequirement(NV_TEXT, req), true);
   check("HF_FREE passes", matchesRequirement(HF_FREE, req), true);
   check("HF_PAID fails", matchesRequirement(HF_PAID, req), false);
 });
 
 suite("pricing.free=false accepts only paid", () => {
-  const req: ModelRequirement = { pricing: { free: false } };
+  const req: ModelRequirement = { pricing: { pricingStatus: "priced" } };
   check("HF_PAID passes", matchesRequirement(HF_PAID, req), true);
   check("NV_TEXT rejected (free=true)", matchesRequirement(NV_TEXT, req), false);
 });
@@ -243,7 +243,7 @@ suite("providers empty array means all", () => {
 // -- combined --
 suite("combined requirements AND-compose", () => {
   const req: ModelRequirement = {
-    pricing: { free: true },
+    pricing: { pricingStatus: "free" },
     capabilities: { vision: true },
     providers: ["amd"],
   };

@@ -63,10 +63,11 @@ export interface PublicModel {
 
 /** Per-endpoint access record nested inside a PublicModel.
  *
- * ``free`` is the single source of truth for THIS endpoint's free
- * status, projected verbatim from the canonical
- * ``ModelEndpoint.free``. It is never derived from the model name,
- * the provider, or the absence of pricing. */
+ * ``pricing_status`` is the single source of truth for THIS
+ * endpoint's access classification, projected verbatim from the
+ * canonical ``ModelEndpoint.pricing_status``; ``free`` is derived
+ * from it. It is never derived from the model name, the provider,
+ * or the absence of pricing. */
 export interface PublicModelEndpoint {
   /** Stable endpoint id — ``{provider}:{endpoint_name}`` (see
    *  ``toPublicEndpoint`` in projection / ``buildIndexes``). */
@@ -146,13 +147,11 @@ function deriveOwner(modelId: string, lab: string | null | undefined): string | 
  *  ``ModelEndpoint``. Free / pricing / limits are endpoint-scoped;
  *  they are projected verbatim — never inferred, never collapsed. */
 function toPublicModelEndpoint(model: ModelEndpoint): PublicModelEndpoint {
-  // Legacy ``free`` compatibility rule (§3.2): backfill ``pricing_status``
-  // from the legacy ``free`` field when the record carries no explicit
-  // classification, then derive ``free`` from ``pricing_status`` so both
-  // fields stay consistent. New records always carry an explicit
-  // ``pricing_status``; missing pricing is never treated as free.
-  const derivedPricingStatus =
-    model.pricing_status ?? (model.free === true ? "free" : "unknown");
+  // ``pricing_status`` is the canonical access classification. The
+  // public ``free`` flag is derived from it so both surface fields
+  // stay consistent. Missing pricing is never treated as free —
+  // an unclassified record projects as "unknown".
+  const derivedPricingStatus = model.pricing_status ?? "unknown";
   const out: PublicModelEndpoint = {
     id: `${model.data_source}:${model.provider}`,
     provider: model.provider,
