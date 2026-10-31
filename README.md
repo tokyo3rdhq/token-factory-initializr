@@ -317,6 +317,35 @@ $ User copies artifact URL or Agent Prompt → wires to embedded
 
 PRs to `main` automatically deploy the web app (`.github/workflows/web-ci.yml` gates the build; `wrangler pages deploy` publishes it). The Python pipeline is decoupled — it only writes to KV, the web app reads from KV.
 
+
+## Filtering Architecture
+
+TFI has **two distinct filtering layers** with different semantics and implementations:
+
+### Server-side API (`/api/v1/models`, `/api/v1/providers`, `/api/v1/endpoints`)
+- **Purpose**: Programmatic access for agents/scripts, optimized for precision and composability
+- **Implementation**: `web/functions/lib/filter.ts` with `parseFilters()` + `filterEndpoints()`/`filterPublicModels()`
+- **Query params**: `data_source`, `provider`, `capabilities`, `supported_parameters`, `pricing_status`, `context_length_min`, `limit`, `offset`
+- **Semantics**:
+  - `data_source`, `provider`, `pricing_status`: **OR within dimension**
+  - `capabilities`, `supported_parameters`: **AND within dimension** (all required values must match)
+  - Different dimensions: **AND across dimensions**
+- **Validation**: Unknown `data_source`/`provider` return empty results (dynamic catalog); unknown `capabilities`/`supported_parameters`/`pricing_status` return 400
+- **Pagination**: Required for large catalogs (default limit 100, max 1000)
+
+### Client-side UI (Browse page)
+- **Purpose**: Human interactive browsing with instant feedback
+- **Implementation**: `web/src/pages/Browse.tsx` with `applyFilters()` - pure in-memory filtering
+- **Features**:
+  - **Keyword search**: Full-text search across `name`, `model_id`, `provider`, `data_source` (case-insensitive substring)
+  - **Tag filters**: AND within dimension (all selected tags must match) - covers `chat`, `vision`, `tools`, `reasoning`, `free`, `longCtx`, etc.
+  - **Requirement matching**: `matchesRequirement()` applies complex rules from the homepage form (provider whitelist, endpoint count, capabilities, etc.)
+  - **Sorting**: Client-side sorting by `context_length` descending
+  - **No pagination**: All matching results displayed in memory
+- **Semantics**: Tags use AND (like API's `capabilities`/`supported_parameters`), keyword is OR across fields
+
+**Note**: These are intentionally separate implementations. The API is optimized for machine consumption (server-side filtering, pagination, validation), while Browse is optimized for human discovery (instant feedback, rich search, requirement-based matching). They share field naming and similar OR/AND conventions where applicable, but should not be forced to share the same implementation.
+
 ---
 
 ## Conventions
