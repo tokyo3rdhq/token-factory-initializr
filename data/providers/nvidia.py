@@ -292,22 +292,26 @@ def _normalize_model(obj: Dict) -> ModelEndpoint:
     name = obj.get("displayName", obj.get("name", ""))
     publisher = _extract_publisher(obj)
     if "/" in resource_id and publisher:
-        # Live RSC: resourceId is the NIM namespace prefix
-        # (e.g. "qc69jvmznzxy/deepseek-v4.1-flash"); the real org/name
-        # pair comes from publisher + displayName. Use the publisher
-        # as the org so model_ids stay consistent with HF/AMD
-        # (``org/name`` shape). Slugify the displayName so values
-        # containing spaces ("Kumo Relational" → "kumo-relational")
-        # match the URL the public catalog exposes and survive the
-        # model's validator regex (^\S+$).
-        model_id = f"{publisher}/{_slugify_name(name)}" if name else resource_id
+        # Live RSC: resourceId is often ``<nim-namespace>/<model-slug>``
+        # (e.g. "qc69jvmznzxy/deepseek-v4.1-flash"). The canonical
+        # inference model ID used by NIM /v1/models is
+        # ``<publisher>/<model-slug>`` in the common case — keep the
+        # original slug from resourceId (immutable after collection)
+        # and only replace the internal namespace prefix with the
+        # publisher label. This preserves variant suffixes
+        # (e.g. mistral-large-4-1t-a52b) that displayName-based
+        # slugification would drop, and keeps the ID valid for NIM
+        # validation and endpoint requests.
+        model_slug = resource_id.split("/", 1)[1]
+        model_id = f"{publisher}/{model_slug}" if model_slug else resource_id
     elif "/" in resource_id:
         # Legacy / fallback: resourceId is already ``org/name``.
         model_id = resource_id
     else:
         # No org info anywhere — legacy synthesis uses the NIM
-        # namespace prefix to avoid collisions.
-        model_id = f"qc69jvmznzxy/{_slugify_name(name)}"
+        # namespace prefix to avoid collisions. Slugify only as a
+        # last resort when no stable resourceId slug is available.
+        model_id = f"qc69jvmznzxy/{_slugify_name(name)}" if name else resource_id
 
     labels = obj.get("labels", {})
 

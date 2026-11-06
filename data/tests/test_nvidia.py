@@ -175,8 +175,13 @@ def test_normalize_model_free_via_list_labels_real_api_shape():
     assert ep.metadata["labels"]["nimType"]["values"] == ["Free Endpoint"]
 
 
-def test_normalize_model_uses_publisher_label_for_model_id():
-    """``labels.publisher.values[0]`` is the canonical org for model_id."""
+def test_normalize_model_uses_publisher_label_and_preserves_resource_slug():
+    """Publisher provides org; resourceId suffix provides the immutable model slug.
+
+    ``model_id`` must not be rewritten from displayName — doing so breaks
+    NIM /v1/models validation and endpoint requests (e.g. variant suffixes
+    like ``-1t-a52b`` are lost).
+    """
     obj = {
         "resourceId": "qc69jvmznzxy/some-slug",
         "displayName": "Some Model",
@@ -186,7 +191,7 @@ def test_normalize_model_uses_publisher_label_for_model_id():
         ],
         "attributes": [],
     }
-    assert _ep(obj).model_id == "anthropic/some-model"
+    assert _ep(obj).model_id == "anthropic/some-slug"
 
 
 def test_normalize_model_model_id_falls_back_when_no_publisher_label():
