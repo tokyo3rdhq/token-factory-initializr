@@ -767,7 +767,9 @@ class NvidiaCatalogParser:
         from the detail page RSC payload.
 
         Tries URL variants on 404: original model_id, then "." -> "_",
-        then "." -> "-". The first working URL is returned as ``source_url``.
+        then "." -> "-". Also treats HTTP 200 with Next.js 404 fallback
+        (``NEXT_HTTP_ERROR_FALLBACK;404`` in payload) as 404. The first
+        working URL is returned as ``source_url``.
 
         Returns a dict with keys: context_length, input_modalities, output_modalities,
         function_calling, structured_output, reasoning, source_url. Keys with no data are omitted.
@@ -776,11 +778,17 @@ class NvidiaCatalogParser:
         import json
         logger = logging.getLogger(__name__)
 
+        def _is_404_page(html: str) -> bool:
+            """Check if HTML is a Next.js 404 fallback page."""
+            return "NEXT_HTTP_ERROR_FALLBACK;404" in html
+
         def _try_fetch(url: str) -> Optional[str]:
             r = self.session.get(url, timeout=self.timeout)
-            if r.status_code == 200:
-                return r.text
-            return None
+            if r.status_code != 200:
+                return None
+            if _is_404_page(r.text):
+                return None
+            return r.text
 
         # Try URL variants on 404: original, "." -> "_", "." -> "-"
         variants = [model_id]
