@@ -766,26 +766,50 @@ class NvidiaCatalogParser:
         and ``modelCapability`` (functionCalling, structuredOutput, reasoning)
         from the detail page RSC payload.
 
+        Tries URL variants on 404: original model_id, then "." -> "_",
+        then "." -> "-". The first working URL is returned as ``source_url``.
+
         Returns a dict with keys: context_length, input_modalities, output_modalities,
-        function_calling, structured_output, reasoning. Keys with no data are omitted.
+        function_calling, structured_output, reasoning, source_url. Keys with no data are omitted.
         """
         import logging
         import json
         logger = logging.getLogger(__name__)
-        url = f"https://build.nvidia.com/{model_id}"
-        r = self.session.get(url, timeout=self.timeout)
-        if r.status_code != 200:
-            logger.warning(f"Detail page fetch failed for {model_id}: {r.status_code}")
+
+        def _try_fetch(url: str) -> Optional[str]:
+            r = self.session.get(url, timeout=self.timeout)
+            if r.status_code == 200:
+                return r.text
             return None
+
+        # Try URL variants on 404: original, "." -> "_", "." -> "-"
+        variants = [model_id]
+        if "." in model_id:
+            variants.append(model_id.replace(".", "_"))
+            variants.append(model_id.replace(".", "-"))
+
+        html = None
+        working_url = None
+        for variant in variants:
+            url = f"https://build.nvidia.com/{variant}"
+            html = _try_fetch(url)
+            if html is not None:
+                working_url = url
+                break
+            logger.debug(f"Detail page 404 for {variant}")
+
+        if html is None:
+            logger.warning(f"Detail page fetch failed for all variants of {model_id}")
+            return None
+
         # Search in the extracted RSC payload, not raw HTML
-        payload = _extract_rsc_payload(r.text)
+        payload = _extract_rsc_payload(html)
         if not payload:
-            logger.warning(f"No RSC payload extracted for {model_id}")
+            logger.warning(f"No RSC payload extracted for {model_id} (url: {working_url})")
             return None
         details: Dict[str, Any] = {}
 
         # Extract contextLength, inputModalities, outputModalities from specifications
-        # Search in the full payload for the specifications block
         m = re.search(r'"specifications"\s*:\s*\{([^}]+)\}', payload)
         if m:
             spec_text = m.group(1)
@@ -793,13 +817,13 @@ class NvidiaCatalogParser:
             if cl_match:
                 details["context_length"] = int(cl_match.group(1))
             # inputModalities / outputModalities
-            im_match = re.search(r'"inputModalities"\s*:\s*(\[[^\]]+\])', spec_text)
+            im_match = re.search(r'"inputModalities"\s*:\s*(\[^\]]+\])', spec_text)
             if im_match:
                 try:
                     details["input_modalities"] = json.loads(im_match.group(1))
                 except json.JSONDecodeError:
                     pass
-            om_match = re.search(r'"outputModalities"\s*:\s*(\[[^\]]+\])', spec_text)
+            om_match = re.search(r'"outputModalities"\s*:\s*(\[^\]]+\])', spec_text)
             if om_match:
                 try:
                     details["output_modalities"] = json.loads(om_match.group(1))
@@ -821,11 +845,11 @@ class NvidiaCatalogParser:
                 details["reasoning"] = rs_match.group(1) == "true"
 
         if details:
+            details["source_url"] = working_url
             logger.debug(f"Detail page for {model_id}: {details}")
         else:
-            logger.warning(f"No detail data extracted for {model_id}")
+            logger.warning(f"No detail data extracted for {model_id} (url: {working_url})")
         return details or None
-
     def get_all_models_enriched(self, max_workers: int = 4) -> List[ModelEndpoint]:
         """Fetch all preview pages, parse, and enrich with detail page specs.
 
@@ -897,6 +921,9 @@ class NvidiaCatalogParser:
                 cap_attrs["REASONING"] = "true" if details["reasoning"] else "false"
             meta["attributes"] = cap_attrs
             object.__setattr__(ep, "metadata", meta)
+            # Save source_url from detail page
+            if "source_url" in details:
+                object.__setattr__(ep, "source_url", details["source_url"])
             return ep
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
