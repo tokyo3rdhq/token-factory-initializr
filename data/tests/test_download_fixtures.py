@@ -356,15 +356,45 @@ def test_download_all_writes_only_live_suffixed_files(tmp_path):
         )
 
 
-def test_download_all_live_suffixed_files_point_under_fixtures_dir():
+def test_download_all_live_suffixed_files_point_under_fixtures_dir(tmp_path, monkeypatch):
     """Successful downloads must report paths inside the requested directory."""
-    results = download_all(FIXTURES, live_suffix="_live")
+    from data.tests import download_fixtures as dl
+
+    def fake_nvidia(fixtures_dir, *, live_suffix, force=True, reachable_check=True):
+        r = DownloadResult(provider="nvidia", status="ok")
+        name = dl._apply_suffix("nvidia_html.html", live_suffix)
+        (fixtures_dir / name).write_text("<html/>")
+        r.files.append(name)
+        r.bytes = (fixtures_dir / name).stat().st_size
+        return r
+
+    def fake_amd(fixtures_dir, *, live_suffix, max_details=5, force=True, reachable_check=True):
+        r = DownloadResult(provider="amd", status="ok")
+        name = dl._apply_suffix("amd_bootstrap.json", live_suffix)
+        (fixtures_dir / name).write_text("{}")
+        r.files.append(name)
+        r.bytes = (fixtures_dir / name).stat().st_size
+        return r
+
+    def fake_hf(fixtures_dir, *, live_suffix, hf_token=None, env_file=None, force=True, reachable_check=True):
+        r = DownloadResult(provider="huggingface", status="ok")
+        name = dl._apply_suffix("huggingface.json", live_suffix)
+        (fixtures_dir / name).write_text('{"data":[]}')
+        r.files.append(name)
+        r.bytes = (fixtures_dir / name).stat().st_size
+        return r
+
+    monkeypatch.setattr(dl, "download_nvidia", fake_nvidia)
+    monkeypatch.setattr(dl, "download_amd", fake_amd)
+    monkeypatch.setattr(dl, "download_huggingface", fake_hf)
+
+    results = download_all(tmp_path, live_suffix="_live")
     for r in results:
         if r.status != "ok":
             continue
         for rel in r.files:
             assert rel.endswith("_live.html") or rel.endswith("_live.json")
-            assert (FIXTURES / rel).exists(), f"{rel} not written under {FIXTURES}"
+            assert (tmp_path / rel).exists(), f"{rel} not written under {tmp_path}"
 
 
 def test_download_all_empty_suffix_overwrites_curated(tmp_path):
