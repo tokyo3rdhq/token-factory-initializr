@@ -156,6 +156,12 @@ def _apply_cross_source_signals_to_nvidia_endpoint(
                 "architecture",
                 {"input": merged_input, "output": merged_output},
             )
+    else:
+        # Native architecture present (detail page specs) — keep it
+        # and base capability inference on the native modalities.
+        native_arch = ep.architecture if isinstance(ep.architecture, dict) else {}
+        merged_input = list(native_arch.get("input") or [])
+        merged_output = list(native_arch.get("output") or [])
 
     # --- capabilities (additive, never subtract) ---
     caps = dict(ep.capabilities or {})
