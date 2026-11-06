@@ -166,14 +166,14 @@ def normalize_capability_signals(
         # Modern labels-driven paths produce architecture + capabilities
         # via the architecture block above, so this branch only fills
         # what the architecture can't infer.
-        attrs = attrs.get("attributes") if isinstance(attrs, dict) else None
-        if isinstance(attrs, dict):
-            if attrs.get("CHAT_MODALITY") == "text2textDiffusion":
+        legacy_attrs = raw_meta.get("attributes") if isinstance(raw_meta, dict) else None
+        if isinstance(legacy_attrs, dict):
+            if legacy_attrs.get("CHAT_MODALITY") == "text2textDiffusion":
                 out["chat"] = True
-            if attrs.get("TOOL_CALLING") == "true":
+            if legacy_attrs.get("TOOL_CALLING") == "true":
                 out["tool_calling"] = True
-        elif isinstance(attrs, list):
-            for a in attrs:
+        elif isinstance(legacy_attrs, list):
+            for a in legacy_attrs:
                 if not isinstance(a, dict):
                     continue
                 if a.get("key") == "CHAT_MODALITY" and a.get("value") == "text2textDiffusion":
@@ -181,10 +181,17 @@ def normalize_capability_signals(
                 if a.get("key") == "TOOL_CALLING" and a.get("value") == "true":
                     out["tool_calling"] = True
 
-        # Modern labels-driven path: usecase includes "Text Translation"
-        # (e.g. nvidia/riva-translate-4b-instruct-v2) → set translation flag.
-        # Labels live under raw_meta["labels"], not top-level keys.
+        # Modern labels-driven path (NVIDIA catalog RSC). Labels live
+        # under raw_meta["labels"]. ``general`` often carries explicit
+        # signals like "Tool Use", "Reasoning", "Image-to-Text",
+        # "Multimodal" that legacy attribute extraction misses.
         labels_block = raw_meta.get("labels") if isinstance(raw_meta, dict) else {}
+        general_vals: list[str] = []
+        if isinstance(labels_block, dict):
+            gv = labels_block.get("general")
+            if isinstance(gv, dict):
+                general_vals = [v for v in (gv.get("values") or []) if isinstance(v, str)]
+        general_set = {v.strip().lower() for v in general_vals}
         for key in ("usecase", "general"):
             if not isinstance(labels_block, dict):
                 continue
@@ -194,30 +201,15 @@ def normalize_capability_signals(
             for v in vals.get("values", []):
                 if not isinstance(v, str):
                     continue
-                if "translation" in v.lower() or "translate" in v.lower():
+                vl = v.lower()
+                if "translation" in vl or "translate" in vl:
                     out["translation"] = True
-                    break
-        # Legacy attributes shape (legacy RSC payloads still carry
-        # these inside ``raw_metadata["attributes"]`` — TFI's nvidia
-        # adapter stashes the upstream ``attributes`` block there for
-        # back-compat with consumers that read metadata directly).
-        # Modern labels-driven paths produce architecture + capabilities
-        # via the architecture block above, so this branch only fills
-        # what the architecture can't infer.
-        attrs = attrs.get("attributes") if isinstance(attrs, dict) else None
-        if isinstance(attrs, dict):
-            if attrs.get("CHAT_MODALITY") == "text2textDiffusion":
-                out["chat"] = True
-            if attrs.get("TOOL_CALLING") == "true":
-                out["tool_calling"] = True
-        elif isinstance(attrs, list):
-            for a in attrs:
-                if not isinstance(a, dict):
-                    continue
-                if a.get("key") == "CHAT_MODALITY" and a.get("value") == "text2textDiffusion":
-                    out["chat"] = True
-                if a.get("key") == "TOOL_CALLING" and a.get("value") == "true":
-                    out["tool_calling"] = True
+                if key == "general" and vl in {"image-to-text", "multimodal", "vision language model", "multimodal moe"}:
+                    out["vision"] = True
+        if "tool use" in general_set:
+            out["tool_calling"] = True
+        if "reasoning" in general_set:
+            out["reasoning"] = True
 
     elif data_source == "huggingface":
         # HF capability signals come from the architecture block.

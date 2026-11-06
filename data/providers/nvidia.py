@@ -217,14 +217,36 @@ def _derive_architecture_from_labels(labels: Dict[str, Dict[str, Any]]) -> Optio
             if "image" not in inputs:
                 inputs.append("image")
 
-    # Vision hint from ``general`` (covers multimodal chat models that
-    # don't have a vision-specific usecase).
-    if "Vision Language Model" in generals and "image" not in inputs:
+    # Vision / multimodal hints from ``general`` (covers models whose
+    # usecase labels are coarse). Modern catalog entries use values like
+    # "Image-to-Text" and "Multimodal" (in addition to legacy
+    # "Vision Language Model" / "Multimodal MOE").
+    general_set = set(generals)
+    if (
+        "Vision Language Model" in general_set
+        or "Multimodal MOE" in general_set
+        or "Multimodal" in general_set
+        or "Image-to-Text" in general_set
+    ) and "image" not in inputs:
         inputs.append("image")
 
-    # Multimodal input hint from ``general``.
-    if "Multimodal MOE" in generals and "image" not in inputs:
-        inputs.append("image")
+    # "Image-to-Text" in general implies text output for chat/VLM models.
+    if "Image-to-Text" in general_set and "text" not in outputs:
+        outputs.append("text")
+
+    # "Text-to-Text" in general implies text input + text output (standard chat).
+    if "Text-to-Text" in general_set:
+        if "text" not in inputs:
+            inputs.append("text")
+        if "text" not in outputs:
+            outputs.append("text")
+
+    # "Chat" in general also implies text input/output.
+    if "Chat" in general_set:
+        if "text" not in inputs:
+            inputs.append("text")
+        if "text" not in outputs:
+            outputs.append("text")
 
     # Text-to-Image: text in, image out.
     if "Text-to-Image" in usecases:
@@ -737,6 +759,127 @@ class NvidiaCatalogParser:
         """
         return parse_nvidia_pages(self.get_all_pages())
 
+    def _fetch_model_details(self, model_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch detail page for a single model and extract specs.
+
+        Extracts ``contextLength``, ``inputModalities``, ``outputModalities``,
+        and ``modelCapability`` (functionCalling, structuredOutput, reasoning)
+        from the detail page RSC payload.
+
+        Returns a dict with keys: context_length, input_modalities, output_modalities,
+        function_calling, structured_output, reasoning. Keys with no data are omitted.
+        """
+        import logging
+        import json
+        logger = logging.getLogger(__name__)
+        url = f"https://build.nvidia.com/{model_id}"
+        r = self.session.get(url, timeout=self.timeout)
+        if r.status_code != 200:
+            logger.warning(f"Detail page fetch failed for {model_id}: {r.status_code}")
+            return None
+        # Search in the extracted RSC payload, not raw HTML
+        payload = _extract_rsc_payload(r.text)
+        if not payload:
+            logger.warning(f"No RSC payload extracted for {model_id}")
+            return None
+        details: Dict[str, Any] = {}
+
+        # Extract contextLength, inputModalities, outputModalities from specifications
+        # Search in the full payload for the specifications block
+        m = re.search(r'"specifications"\s*:\s*\{([^}]+)\}', payload)
+        if m:
+            spec_text = m.group(1)
+            cl_match = re.search(r'"contextLength"\s*:\s*(\d+)', spec_text)
+            if cl_match:
+                details["context_length"] = int(cl_match.group(1))
+            # inputModalities / outputModalities
+            im_match = re.search(r'"inputModalities"\s*:\s*(\[[^\]]+\])', spec_text)
+            if im_match:
+                try:
+                    details["input_modalities"] = json.loads(im_match.group(1))
+                except json.JSONDecodeError:
+                    pass
+            om_match = re.search(r'"outputModalities"\s*:\s*(\[[^\]]+\])', spec_text)
+            if om_match:
+                try:
+                    details["output_modalities"] = json.loads(om_match.group(1))
+                except json.JSONDecodeError:
+                    pass
+
+        # Extract modelCapability (functionCalling, structuredOutput, reasoning)
+        m2 = re.search(r'"modelCapability"\s*:\s*\{([^}]+)\}', payload)
+        if m2:
+            cap_text = m2.group(1)
+            fc_match = re.search(r'"functionCalling"\s*:\s*(true|false)', cap_text)
+            if fc_match:
+                details["function_calling"] = fc_match.group(1) == "true"
+            so_match = re.search(r'"structuredOutput"\s*:\s*(true|false)', cap_text)
+            if so_match:
+                details["structured_output"] = so_match.group(1) == "true"
+            rs_match = re.search(r'"reasoning"\s*:\s*(true|false)', cap_text)
+            if rs_match:
+                details["reasoning"] = rs_match.group(1) == "true"
+
+        if details:
+            logger.debug(f"Detail page for {model_id}: {details}")
+        else:
+            logger.warning(f"No detail data extracted for {model_id}")
+        return details or None
+
+    def get_all_models_enriched(self, max_workers: int = 4) -> List[ModelEndpoint]:
+        """Fetch all preview pages, parse, and enrich with detail page specs.
+
+        Fetches the catalog, parses endpoints, then enriches each endpoint
+        with detail page data (context_length, input/output modalities,
+        reasoning, functionCalling, structuredOutput) using a bounded
+        thread pool.
+
+        Args:
+            max_workers: max concurrent detail page fetches (default 4).
+
+        Returns:
+            List of endpoints enriched with detail page specs.
+        """
+        import concurrent.futures
+        import logging
+        logger = logging.getLogger(__name__)
+
+        endpoints = self.get_all_models()
+        logger.info("NVIDIA: enriching %d endpoints with detail page specs", len(endpoints))
+
+        def enrich_one(ep: ModelEndpoint) -> ModelEndpoint:
+            details = self._fetch_model_details(ep.model_id)
+            if not details:
+                return ep
+            # Update context_length if present
+            if "context_length" in details:
+                object.__setattr__(ep, "context_length", details["context_length"])
+            # Merge modalities into architecture
+            if "input_modalities" in details or "output_modalities" in details:
+                arch = dict(ep.architecture) if ep.architecture else {}
+                arch["input"] = list(set(arch.get("input", []) + details.get("input_modalities", [])))
+                arch["output"] = list(set(arch.get("output", []) + details.get("output_modalities", [])))
+                object.__setattr__(ep, "architecture", arch)
+            # Merge capabilities from modelCapability (these go to supported_parameters via normalize)
+            # We set them on metadata for normalize_endpoints to pick up
+            meta = dict(ep.metadata)
+            cap_attrs = meta.get("attributes", {}) if isinstance(meta.get("attributes"), dict) else {}
+            cap_attrs = dict(cap_attrs)  # copy
+            if "function_calling" in details:
+                cap_attrs["TOOL_CALLING"] = "true" if details["function_calling"] else "false"
+            if "structured_output" in details:
+                cap_attrs["STRUCTURED_OUTPUT"] = "true" if details["structured_output"] else "false"
+            if "reasoning" in details:
+                cap_attrs["REASONING"] = "true" if details["reasoning"] else "false"
+            meta["attributes"] = cap_attrs
+            object.__setattr__(ep, "metadata", meta)
+            return ep
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            enriched = list(executor.map(enrich_one, endpoints))
+        logger.info("NVIDIA: enriched %d endpoints with detail page specs", len(enriched))
+        return enriched
+
 
 def parse_nvidia_pages(
     html_pages: List[str],
@@ -782,13 +925,12 @@ def parse_nvidia_pages(
 
 
 def fetch_catalog_page(filters: Optional[Dict[str, str]] = None) -> List[ModelEndpoint]:
-    """Convenience: fetch and parse the NVIDIA catalog (all endpoints).
+    """Convenience: fetch and parse the NVIDIA catalog (all endpoints), enriched with detail page specs.
 
     Thin composition of two steps:
 
         parser = NvidiaCatalogParser()
-        pages = parser.fetch_all_pages(filters)        # raw HTML
-        endpoints = parse_nvidia_pages(pages)          # parse only
+        endpoints = parser.get_all_models_enriched()   # enriched with detail page specs
 
     Free/paid/unknown classification is stamped per-endpoint by
     :func:`_normalize_model` via ``pricing_status``; filtering to a
@@ -799,19 +941,19 @@ def fetch_catalog_page(filters: Optional[Dict[str, str]] = None) -> List[ModelEn
 
     Args:
         filters: optional query filters passed through to
-            ``fetch_all_pages``.
+            ``fetch_all_pages`` (currently ignored; enrichment always runs).
 
     Returns:
-        All parsed ``ModelEndpoint`` objects (free + paid + unknown).
+        All parsed ``ModelEndpoint`` objects (free + paid + unknown),
+        enriched with detail page specs (context_length, modalities,
+        reasoning, tool calling, structured output).
     """
     import logging
     logger = logging.getLogger(__name__)
-    logger.info("NVIDIA: starting catalog fetch")
+    logger.info("NVIDIA: starting enriched catalog fetch")
     parser = NvidiaCatalogParser()
-    pages = parser.fetch_all_pages(filters)
-    logger.info("NVIDIA: fetched %d page(s), total %d bytes", len(pages), sum(len(p) for p in pages))
-    endpoints = parse_nvidia_pages(pages)
-    logger.info("NVIDIA: parsed %d endpoints from catalog", len(endpoints))
+    endpoints = parser.get_all_models_enriched(max_workers=4)
+    logger.info("NVIDIA: parsed %d enriched endpoints from catalog", len(endpoints))
     return endpoints
 
 
