@@ -693,7 +693,7 @@ def normalize_endpoints(
                 from data.stages.enrich import _make_provenance_record
 
                 record = _make_provenance_record(
-                    source="amd",
+                    source=ep.data_source,
                     source_id=ep.model_id,
                     source_field="context_length",
                     method="native",

@@ -138,16 +138,24 @@ def _apply_cross_source_signals_to_nvidia_endpoint(
                 or_reasoning_mandatory = True
 
     # --- architecture ---
-    existing_input = list(ep.architecture.get("input") or []) if isinstance(ep.architecture, dict) else []
-    existing_output = list(ep.architecture.get("output") or []) if isinstance(ep.architecture, dict) else []
-    merged_input = list(dict.fromkeys([*existing_input, *cs_input]))
-    merged_output = list(dict.fromkeys([*existing_output, *cs_output]))
-    if merged_input or merged_output:
-        object.__setattr__(
-            ep,
-            "architecture",
-            {"input": merged_input, "output": merged_output},
-        )
+    # Only merge cross-source architecture if the endpoint does NOT already
+    # have native architecture provenance. This preserves provider-native
+    # detail page enrichment (e.g. NVIDIA detail page specs).
+    has_native_arch = (
+        "architecture" in ep.provenance
+        and ep.provenance["architecture"].method == "native"
+    )
+    if not has_native_arch:
+        existing_input = list(ep.architecture.get("input") or []) if isinstance(ep.architecture, dict) else []
+        existing_output = list(ep.architecture.get("output") or []) if isinstance(ep.architecture, dict) else []
+        merged_input = list(dict.fromkeys([*existing_input, *cs_input]))
+        merged_output = list(dict.fromkeys([*existing_output, *cs_output]))
+        if merged_input or merged_output:
+            object.__setattr__(
+                ep,
+                "architecture",
+                {"input": merged_input, "output": merged_output},
+            )
 
     # --- capabilities (additive, never subtract) ---
     caps = dict(ep.capabilities or {})

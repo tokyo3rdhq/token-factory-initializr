@@ -851,15 +851,39 @@ class NvidiaCatalogParser:
             details = self._fetch_model_details(ep.model_id)
             if not details:
                 return ep
-            # Update context_length if present
+            # Update context_length if present - set with native provenance
             if "context_length" in details:
                 object.__setattr__(ep, "context_length", details["context_length"])
-            # Merge modalities into architecture
+                # Stamp native provenance so cross-source enrichment doesn't overwrite
+                from data.stages.enrich import _make_provenance_record
+                rec = _make_provenance_record(
+                    source=ep.data_source,
+                    source_id=ep.model_id,
+                    source_field="context_length",
+                    method="native",
+                    confidence=1.0,
+                    observed_at=ep.fetched_at,
+                )
+                object.__setattr__(ep, "provenance", {**ep.provenance, "context_length": rec})
+            # Merge modalities into architecture (normalize to lowercase) - stamp native provenance
             if "input_modalities" in details or "output_modalities" in details:
                 arch = dict(ep.architecture) if ep.architecture else {}
-                arch["input"] = list(set(arch.get("input", []) + details.get("input_modalities", [])))
-                arch["output"] = list(set(arch.get("output", []) + details.get("output_modalities", [])))
+                im = [m.lower() for m in details.get("input_modalities", [])]
+                om = [m.lower() for m in details.get("output_modalities", [])]
+                arch["input"] = list(set([m.lower() for m in arch.get("input", [])] + im))
+                arch["output"] = list(set([m.lower() for m in arch.get("output", [])] + om))
                 object.__setattr__(ep, "architecture", arch)
+                # Stamp native provenance for architecture
+                from data.stages.enrich import _make_provenance_record
+                rec = _make_provenance_record(
+                    source=ep.data_source,
+                    source_id=ep.model_id,
+                    source_field="architecture",
+                    method="native",
+                    confidence=1.0,
+                    observed_at=ep.fetched_at,
+                )
+                object.__setattr__(ep, "provenance", {**ep.provenance, "architecture": rec})
             # Merge capabilities from modelCapability (these go to supported_parameters via normalize)
             # We set them on metadata for normalize_endpoints to pick up
             meta = dict(ep.metadata)
