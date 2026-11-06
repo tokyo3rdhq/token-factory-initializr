@@ -291,24 +291,37 @@ def test_download_huggingface_still_probes_without_proxy(tmp_path, monkeypatch):
     assert any("not reachable" in e for e in r.errors)
 
 
-def test_download_all_reports_every_requested_provider():
-    """Each provider in the selection must produce a result, even on failure.
+def test_download_all_reports_every_requested_provider(tmp_path, monkeypatch):
+    """Each provider in the selection must produce a result, even on failure."""
+    from data.tests import download_fixtures as dl
 
-    Calls download_all with all three providers but bypasses the network
-    probes (``reachable_check=False``). The HF provider fails immediately
-    in this environment (router.huggingface.co is not reachable), but
-    AMD and NVIDIA still get a real fetch attempt. Either way, every
-    requested provider must show up in the result list.
-    """
+    def fake_nvidia(fixtures_dir, *, live_suffix, force=True, reachable_check=True):
+        r = DownloadResult(provider="nvidia", status="ok")
+        r.files.append(dl._apply_suffix("nvidia_html.html", live_suffix))
+        (fixtures_dir / r.files[0]).write_text("<html/>")
+        return r
+
+    def fake_amd(fixtures_dir, *, live_suffix, max_details=5, force=True, reachable_check=True):
+        r = DownloadResult(provider="amd", status="failed")
+        r.errors.append("boom")
+        return r
+
+    def fake_hf(fixtures_dir, *, live_suffix, hf_token=None, env_file=None, force=True, reachable_check=True):
+        r = DownloadResult(provider="huggingface", status="skipped")
+        r.errors.append("unreachable")
+        return r
+
+    monkeypatch.setattr(dl, "download_nvidia", fake_nvidia)
+    monkeypatch.setattr(dl, "download_amd", fake_amd)
+    monkeypatch.setattr(dl, "download_huggingface", fake_hf)
+
     results = download_all(
-        FIXTURES,
+        tmp_path,
         providers=["nvidia", "amd", "huggingface"],
         live_suffix="_live",
     )
     assert {r.provider for r in results} == {"nvidia", "amd", "huggingface"}
-    for r in results:
-        assert isinstance(r, DownloadResult)
-        assert r.status in {"ok", "failed", "skipped"}
+    assert [r.status for r in results] == ["ok", "failed", "skipped"]
 
 
 def test_download_all_unknown_provider_returns_failed_result():
@@ -325,12 +338,10 @@ def test_download_all_unknown_provider_returns_failed_result():
     assert r.errors and "unknown provider" in r.errors[0]
 
 
-def test_download_all_writes_only_live_suffixed_files(tmp_path):
-    """Live-suffix downloads must NEVER touch the curated fixture names.
-    A successful or skipped run still must not write to the curated
-    paths. (Run AMD/NVIDIA writes below will exercise the success case;
-    here we only assert the filename contract.)
-    """
+def test_download_all_writes_only_live_suffixed_files(tmp_path, monkeypatch):
+    """Live-suffix downloads must NEVER touch the curated fixture names."""
+    from data.tests import download_fixtures as dl
+
     curated = {
         "nvidia_html.html",
         "amd_bootstrap.json",
@@ -338,11 +349,30 @@ def test_download_all_writes_only_live_suffixed_files(tmp_path):
         "amd_detail_mistral.json",
         "huggingface_router.json",
     }
-    # Pre-create all curated files in tmp_path; after a download attempt
-    # their mtime must be unchanged.
     for name in curated:
         (tmp_path / name).write_text("curated")
     before = {n: (tmp_path / n).stat().st_mtime for n in curated}
+
+    def fake_nvidia(fixtures_dir, *, live_suffix, force=True, reachable_check=True):
+        r = DownloadResult(provider="nvidia", status="ok")
+        name = dl._apply_suffix("nvidia_html.html", live_suffix)
+        (fixtures_dir / name).write_text("<html/>")
+        r.files.append(name)
+        return r
+
+    def fake_amd(fixtures_dir, *, live_suffix, max_details=5, force=True, reachable_check=True):
+        r = DownloadResult(provider="amd", status="skipped")
+        r.errors.append("skipped")
+        return r
+
+    def fake_hf(fixtures_dir, *, live_suffix, hf_token=None, env_file=None, force=True, reachable_check=True):
+        r = DownloadResult(provider="huggingface", status="failed")
+        r.errors.append("failed")
+        return r
+
+    monkeypatch.setattr(dl, "download_nvidia", fake_nvidia)
+    monkeypatch.setattr(dl, "download_amd", fake_amd)
+    monkeypatch.setattr(dl, "download_huggingface", fake_hf)
 
     download_all(
         tmp_path,
