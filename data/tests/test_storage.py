@@ -282,19 +282,25 @@ def test_kvstorage_put_sends_correct_url_and_auth():
     assert req.headers["Content-type"] == "text/plain"
 
 
-def test_kvstorage_put_sends_ttl_header_when_specified():
-    """When ttl is set, the request includes a TTL header.
+def test_kvstorage_put_sends_expiration_header_when_ttl_specified():
+    """When ttl is set, the request includes an expiration header (Unix timestamp).
 
-    urllib normalizes header names to title-case, so we check both forms.
+    The expiration header should be a Unix timestamp (current time + ttl).
     """
+    import time
     kv = _make_kv()
     with patch("data.storage.cloudflare_kv.urllib.request.urlopen") as mock_urlopen:
         mock_urlopen.return_value = _resp(200, b'{"success":true}')
+        before = int(time.time())
         kv.put("x", {"a": 1}, ttl=300)
+        after = int(time.time())
     req = mock_urlopen.call_args[0][0]
     items = dict(req.header_items())
-    ttl = items.get("TTL") or items.get("Ttl") or items.get("ttl")
-    assert ttl == "300"
+    expiration = items.get("expiration") or items.get("Expiration")
+    assert expiration is not None, "expiration header not found"
+    exp_val = int(expiration)
+    # expiration should be between before+300 and after+300 (allowing for test execution time)
+    assert before + 300 <= exp_val <= after + 300 + 1, f"expiration {exp_val} not in expected range"
 
 
 def test_kvstorage_put_rejects_oversize_payload():

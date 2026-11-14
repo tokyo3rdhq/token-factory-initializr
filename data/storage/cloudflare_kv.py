@@ -342,14 +342,17 @@ class KVStorage:
                 :func:`manifest_key` helpers.
             value: Dict to serialize; must be JSON-encodable.
             ttl: Optional expiration in seconds (≥ 60). Cloudflare ignores
-                values smaller than 60.
+                values smaller than 60. Passed as ``expiration`` header
+                (Unix timestamp) per Cloudflare KV API.
         """
         body = json.dumps(value, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         if len(body) > 25 * 1024 * 1024:
             raise KVError(f"value for {key} exceeds 25 MiB KV limit ({len(body)} bytes)")
         extra: dict[str, str] = {}
         if ttl is not None:
-            extra["TTL"] = str(int(ttl))
+            # Cloudflare KV expects expiration as Unix timestamp (seconds since epoch)
+            import time
+            extra["expiration"] = str(int(time.time() + ttl))
         self._request_with_retry("PUT", key, body=body, extra_headers=extra)
 
     def delete(self, key: str) -> None:
