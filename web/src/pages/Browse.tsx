@@ -7,7 +7,7 @@ import { fmtContext, hasVision } from "../components/format";
 import { PricingBadge } from "../components/PricingBadge";
 import { PricingTooltip } from "../components/PricingTooltip";
 import { useSelection } from "../components/SelectionContext";
-import { fetchManifest, fetchModels, FIXTURES, shouldUseLocalFixtures } from "../kv";
+import { fetchManifest, fetchModels, fetchModelsDev, FIXTURES, shouldUseLocalFixtures } from "../kv";
 import { matchesRequirement, type Manifest, type ModelEndpoint, type ModelRequirement } from "../types";
 import { useI18n } from "../I18nProvider";
 import { useSeo } from "../seo/useSeo";
@@ -209,9 +209,17 @@ export function BrowsePage() {
 
   useEffect(() => {
     if (!shouldUseLocalFixtures(import.meta.env.VITE_USE_LOCAL_FIXTURES)) {
-      fetchModels()
-        .then((snaps) => {
-          setModels(snaps.flatMap((s) => s.models));
+      // Fetch main models and models_dev in parallel
+      Promise.all([
+        fetchModels(),
+        fetchModelsDev().catch(() => []) // models_dev is optional; don't fail if unavailable
+      ])
+        .then(([mainSnaps, devSnaps]) => {
+          const allModels = [
+            ...mainSnaps.flatMap((s) => s.models),
+            ...devSnaps.flatMap((s) => s.models),
+          ];
+          setModels(allModels);
           setLoading(false);
         })
         .catch((e) => {

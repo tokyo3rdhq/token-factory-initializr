@@ -25,7 +25,7 @@
 // We keep this module tiny — no caching, no retries. The Pages
 // Functions layer handles KV caching.
 
-import type { Manifest, ProviderSnapshot } from "./types";
+import type { Manifest, ProviderSnapshot, ModelEndpoint } from "./types";
 
 const BASE = ""; // same-origin (Pages Functions)
 
@@ -49,10 +49,34 @@ export async function fetchProviders(): Promise<string[]> {
 }
 
 export async function fetchModels(
-  provider?: string
+  provider?: string,
+  includeInternal?: boolean
 ): Promise<ProviderSnapshot[]> {
-  const qs = provider ? `?provider=${encodeURIComponent(provider)}` : "";
+  const params = new URLSearchParams();
+  if (provider) params.set("provider", provider);
+  if (includeInternal) params.set("include_internal", "true");
+  const qs = params.toString() ? `?${params.toString()}` : "";
   return jsonFetch<ProviderSnapshot[]>(`/api/models${qs}`);
+}
+/**
+ * Fetch the models_dev catalog (internal cross-source enrichment data source).
+ * Uses a single provider query to avoid the multi-provider timeout issue
+ * with include_internal=true.
+ */
+export async function fetchModelsDev(): Promise<ProviderSnapshot[]> {
+  return jsonFetch<ProviderSnapshot[]>("/api/models?provider=models_dev/models_dev");
+}
+
+/**
+ * Fetch all model endpoints as a flat array using the v1 API raw mode.
+ * Includes internal data sources (e.g., models_dev) that are hidden
+ * from the default /api/models listing.
+ */
+export async function fetchAllEndpoints(): Promise<ModelEndpoint[]> {
+  const resp = await jsonFetch<{ data: ModelEndpoint[] }>(
+    "/api/v1/models?raw=true&limit=5000"
+  );
+  return resp.data;
 }
 
 export async function fetchGenerated(id: string): Promise<{

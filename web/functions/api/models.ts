@@ -56,10 +56,14 @@ export async function onRequestGet(context: {
   // Callers that explicitly request models_dev via
   // ?provider=<ds>/<provider> still get its catalog for development
   // debugging of cross-source signals.
+  // If include_internal=true, also include internal data sources.
+  const includeInternal = url.searchParams.get("include_internal") === "true";
   const pairs = await listAllProviderPairs(context.env);
-  const consumerPairs = pairs.filter((p) => !isInternalDataSource(p.data_source));
+  const filteredPairs = includeInternal
+    ? pairs
+    : pairs.filter((p) => !isInternalDataSource(p.data_source));
   const results = await Promise.all(
-    consumerPairs.map((p) =>
+    filteredPairs.map((p) =>
       loadProviderModels(context.env, p.data_source, p.provider)
     )
   );

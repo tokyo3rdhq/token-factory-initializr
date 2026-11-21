@@ -1,11 +1,12 @@
 // /api/v1/models
 //
-// OpenAI-compatible Agent-friendly catalog endpoint
+// OpenAPI-compatible Agent-friendly catalog endpoint
 // (docs/tfi_agent_friendly_model_catalog_api.md).
 //
 // Single-file route handler — Pages Functions' file-based routing
 // resolves both:
 //   - GET /api/v1/models               → list with optional filters
+//   - GET /api/v1/models?raw=true      → raw ModelEndpoint[] list (no projection)
 //   - GET /api/v1/models/{id...}       → detail (id may contain `/`)
 //
 // (We use a single ``models.ts`` because Pages Functions' catch-all
@@ -67,8 +68,20 @@ export async function onRequestGet(context: {
         parsed.error.code
       );
     }
+    // Check for raw mode - return ModelEndpoint[] directly without
+    // PublicModel projection. Used by Browse page to get all endpoints
+    // including internal data sources (models_dev).
+    const rawMode = url.searchParams.get("raw") === "true";
     const endpoints = await loadEndpoints(context.env);
     const filtered = filterEndpoints(endpoints, parsed);
+    if (rawMode) {
+      const body = { data: filtered };
+      const json = JSON.stringify(body);
+      return jsonResponse(body, {
+        etag: makeEtag(json),
+        ifNoneMatch: context.request.headers.get("If-None-Match"),
+      });
+    }
     const body = publicListResponse(
       toPublicModels(filtered),
     );
